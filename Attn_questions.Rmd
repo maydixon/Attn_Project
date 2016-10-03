@@ -14,8 +14,10 @@ output: html_document
    
    I have a few questions about my methods! 
   
-  So, first, I'm just going to show you my data and the tests I have run. All the raw data can be found at: <https://github.com/maydixon/Attn_Project>
-[link](https://github.com/maydixon/Attn_Project) . 
+  So, first, I'm just going to show you my data and the tests I have run. (All the raw data can be found at: <https://github.com/maydixon/Attn_Project>
+[link](https://github.com/maydixon/Attn_Project) ) :
+
+#####Summary stats:
 
 ```{r, echo=FALSE}
 attn_habit_3<-read.table("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attn_habit_1.txt", sep="\t", header=TRUE)
@@ -25,35 +27,80 @@ attn_habit_3<-read.table("https://raw.githubusercontent.com/maydixon/Attn_Projec
         library(nlme)
 ```
 
+
+#####So now, running a linear mixed model using the lme function: 
+  
+  My FIRST THREE Questions regard how to call this: 
+  
+#####1.
+I currently have trial number as a random effect. But if anything, I expect there to be a negative relationship between number of twitches and trial number (bats get bored over time).Other than that I don't really care about this variable. If I think it should have a trend, should I make it a fixed effect? How will this affect the power of my model?  
+  
+#####2.
+I'm worried that I am making too many comparisons for my sample size. I only have 11 bats in this comparison (13 at most). As far as I can tell I am making 24 comparisons in this model. Is this way too much? What should my guidelines be for this? 
+
+#####3.
+I read that you should have random slopes as well as random intercepts, bc random intercept only models have a high type 1 error rate. When I tried this, my model didn't converge. I may just be calling it wrong. Any advice? Could you show me how to call this right? The way I coded it below just makes my r freeze:
+  
+`nlme_int3 <- lme(all_tw_call ~ call_num*trial_name_2, random = list(Bat_ID=+1 , trial_number= +1), data= attn_habit_3)`
+
+Anyway, here is how I have been running it:    
+
 ```{r}
 nlme_int3 <- lme(all_tw_call ~ call_num*trial_name_2, random = list(Bat_ID=~1 , trial_number= ~1), data= attn_habit_3) # does glm
-        sum_lme3<- summary(nlme_int3)
-        sum_lme3
+        sum_lme3<- summary(nlme_int3) #summary
+        sum_lme3 
+```
+
+So, if I understand this correctly:
+
+- The random variables Bat ID  and trial number explain 0.33 (0.33%?) and .41 of the variation. 0.74 is the amount of  variation (the majority, I guess behavior is  just messy?) unexplained by this model.
+
+- Call number is the slope to which I compare everything else (the relationship between call number and # twitches), and it is 0.036
+
+- The P-values describe whether the given treatment or interactions describe a significant amount of the variation.
+  
+#####4.
+ What should my significance level/alpha value be in this situation? Do these count as multiple comparisons? What are guidelines to use for this decision? 
+
+#####5. 
+One thing that I am potentially interested in is the initial interest that the bats had in each of the treatments. Thus, the comparative response that they had to each treatment at time 0. Is this what my intercept is? For example, if my reference is "de", then is the Intercept = 0.88 the response to de at time 0? If there is a significant p-value, can I interpret intercepts thus? 
+
+#####6.
+If this isn't how the interecpt works, what does the intercept mean in this context? 
+
+####7.
+I realize I pretty much don't care about the main effects of call number alone or of treatment alone on twitch number. Could I reduce the complexity of my model by only including the interaction effects (thus):
+```{r, echo=TRUE}
+nlme_int6 <- lme(all_tw_call ~ call_num:trial_name_2, random = list(Bat_ID=~1 , trial_number= ~1), data= attn_habit_3) #only interaction, not main effects
+summary(nlme_int6)
 ```
 
 
+
+###Now, I want to compare whether the bats habituated to each treatment at a different rate
+
+ - So, I take it that I want to compare the coefficient of the interaction between call_number and each treatment, and 
+
+ - To do this, I use relevel to set a given treatment as the reference. By default, "de" is the reference. 
+ 
+ - Here's a graph, so you have an idea of what the data look like by treatment:
+ 
+ ```{r, echo=FALSE}
+ library(ggplot2)      
+p <- ggplot(data = attn_habit_3, aes(x = set_num, y = all_tw_set, color = factor(trial_name_2)))  # first, we build a plot object and color points by trial
+p <- p + xlab("set number") + ylab("number twitches per set")  # then we modify the axis labels
+p <- p + geom_point( position=position_jitterdodge(jitter.width = 5, jitter.height = 1, dodge.width = NULL))  # then we make a scatterplot
+p <- p + theme(legend.position = "bottom", legend.title = element_blank())  # then we modify the legend
+ 
+p <- p + facet_wrap(~trial_name_2, ncol = 3) #facet by trial
+p <- p + theme(legend.position = "none")
+p <-p + geom_smooth(method = "glm", se = TRUE)  
+p       
+```
    
-How should I deal with trial number? 
-If anything, I expect there to be a negative relationship between number of twitches and trial number. 
-Other than that I don't really care about it
-if I think it should have a trend, should I make it a fixed or a random effect? How will this affect the power of my model?
+  
 
-
-
-Do I have too many contrasts for my sample size? What is a good guideline? I only have 11 bats, and I have 9 different treatments that I cam comparing, plus call number, plus interactions, plus two random variables. 
-
-
-
-Should I have a random slope? Right now I only have a random intercept model, which i read has a high rate of type 1 errors. How do I code a random slope? Whenever I try to, my model fails to converge. 
-
-Intercepts: 
-It is my 
-May I use intercepts as an indicator of initial interest? 
-
-Is anova simpler? 
-Is a linear mixed model a good way to measure initial interest? 
-
-attn_int_2 <- read.table("/Users/maydixon/Dropbox/Attention Project/R/attn_for_initial_interest.txt", header=TRUE)
+attn__2 <- read.table("/Users/maydixon/Dropbox/Attention Project/R/attn_for_initial_interest.txt", header=TRUE)
 View(attn_int_2)
 initial_int_1 <-  lme(all_tw_set ~ trial_name_2, random = ~1|Bat_ID, data = attn_int_2)
 summary(initial_int_1)
