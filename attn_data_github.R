@@ -349,8 +349,12 @@ summary(aov((attn_nob1_nob16$lg_tw_set+1 ~ attn_nob1_nob16$primary_stim))
         #use following write.table only if I have changes the original data somehow
         # write.table(attn_habit_1, "/Users/maydixon/Dropbox/Attention Project/R/attn_habit_1.txt", sep="\t") 
         # write.table(attn_habit_1, "/Users/maydixon/Dropbox/Attention Project/R/attn.project.rproject/attn_habit_1.txt", sep="\t") 
+        #use local or web souce for data:
         
-        attn_habit_3<-read.table("/Users/maydixon/Dropbox/Attention Project/R/attn_habit_1.txt", header=TRUE, sep="\t") #reads in table in palatable format
+        #local
+       # attn_habit_3<-read.table("/Users/maydixon/Dropbox/Attention Project/R/attn_habit_1.txt", header=TRUE, sep="\t") #reads in table in palatable format
+        #web
+        attn_habit_3<-read.table("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attn_habit_1.txt", sep="\t", header=TRUE)
         View(attn_habit_3)
         #glm for all twitches with an interaction between call number and trial name as main effect, bat ID as random effect, for all twitches
         library(nlme)

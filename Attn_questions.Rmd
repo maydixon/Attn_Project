@@ -10,11 +10,28 @@ output: html_document
 
    This is the main question for which I sought help. To reorient you, I am studying how bats habituate to different frog calls. I measure habituation as a decrease in response (ear twitches/ all_tw_call) over time. I am currently testing to see whether the different treatments (trial_name_2) interact with call number (call_num) (my time proxy) to explain the number of twitches. I have bat ID and trial number (which refers to when in the testing the bat got a given treatment) as random effects. My model looks like: 
    
-   $$twitches/call ~ call number*treatment , random = batID, trial number$$  
+   `twitches/call ~ call number*treatment , random = batID, trial number`
    
    I have a few questions about my methods! 
   
-  So, first, I'm just going to show you my data and the tests I have run. All the raw data can be found on 
+  So, first, I'm just going to show you my data and the tests I have run. All the raw data can be found at: <https://github.com/maydixon/Attn_Project>
+[link](https://github.com/maydixon/Attn_Project) . 
+
+```{r, echo=FALSE}
+attn_habit_3<-read.table("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attn_habit_1.txt", sep="\t", header=TRUE)
+        View(attn_habit_3)
+        str(attn_habit_3) #there is a lot in here I'm not using now
+        #glm for all twitches with an interaction between call number and trial name as main effect, bat ID as random effect, for all twitches
+        library(nlme)
+```
+
+```{r}
+nlme_int3 <- lme(all_tw_call ~ call_num*trial_name_2, random = list(Bat_ID=~1 , trial_number= ~1), data= attn_habit_3) # does glm
+        sum_lme3<- summary(nlme_int3)
+        sum_lme3
+```
+
+
    
 How should I deal with trial number? 
 If anything, I expect there to be a negative relationship between number of twitches and trial number. 
