@@ -4,6 +4,10 @@ author: "May Dixon"
 date: "September 27, 2016"
 output: html_document
 ---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
 ## Major questions
 
 # Habituation
@@ -79,13 +83,17 @@ summary(nlme_int6)
 
 ###Now, I want to compare whether the bats habituated to each treatment at a different rate
 
- - So, I take it that I want to compare the coefficient of the interaction between call_number and each treatment, and 
+ - So, I take it that I want to compare the coefficient of the interaction between call_number and each treatment. I then see whether the coefficients are significantly different. So I can see that (assuming alpha=0.05) the slope of de by callnumber (by looking at the row call_num, bc de is the reference here) is significantly different than the slopes of all of the other interactions:
+```{r}
+ summary(nlme_int3)$tTable
+```
 
- - To do this, I use relevel to set a given treatment as the reference. By default, "de" is the reference. 
+ 
+- To compare all the other slopes, I use relevel to set a given treatment as the reference. By default, "de" is the reference. 
  
  - Here's a graph, so you have an idea of what the data look like by treatment:
  
- ```{r, echo=FALSE}
+```{r, echo=FALSE}
  library(ggplot2)      
 p <- ggplot(data = attn_habit_3, aes(x = set_num, y = all_tw_set, color = factor(trial_name_2)))  # first, we build a plot object and color points by trial
 p <- p + xlab("set number") + ylab("number twitches per set")  # then we modify the axis labels
@@ -97,13 +105,64 @@ p <- p + theme(legend.position = "none")
 p <-p + geom_smooth(method = "glm", se = TRUE)  
 p       
 ```
-   
-  
 
-attn__2 <- read.table("/Users/maydixon/Dropbox/Attention Project/R/attn_for_initial_interest.txt", header=TRUE)
+The code for this releveling is below, just in case you want to run it, otherwise it is supressed:
+
+```{r, eval=FALSE}
+
+attn_habit_3$trial_name_2 <- relevel(attn_habit_3$trial_name_2,"ra_t_ra") #MAKE RA REFERENCE
+nlme_ra_ref<- lme(all_tw_call ~ call_num*trial_name_2, random = list(Bat_ID=~1 , trial_number= ~1), data= attn_habit_3)
+summary(nlme_ra_ref)
+
+attn_habit_3$trial_name_2 <- relevel(attn_habit_3$trial_name_2,"rra_rt_rra") #MAKE RRA REFERENCE
+nlme_rra_ref<- lme(all_tw_call ~ call_num*trial_name_2, random = list(Bat_ID=~1 , trial_number= ~1), data= attn_habit_3)
+summary(nlme_rra_ref)
+
+attn_habit_3$trial_name_2 <- relevel(attn_habit_3$trial_name_2,"rt_rra_rt") #MAKE RT REFERENCE
+nlme_rt_ref<- lme(all_tw_call ~ call_num*trial_name_2, random = list(Bat_ID=~1 , trial_number= ~1), data= attn_habit_3)
+summary(nlme_rt_ref)
+
+attn_habit_3$trial_name_2 <- relevel(attn_habit_3$trial_name_2,"t_de_t") #MAKE t_de REFERENCE
+nlme_t_de_ref<- lme(all_tw_call ~ call_num*trial_name_2, random = list(Bat_ID=~1 , trial_number= ~1), data= attn_habit_3)
+summary(nlme_t_de_ref)
+
+attn_habit_3$trial_name_2 <- relevel(attn_habit_3$trial_name_2,"t_ra_t") #MAKE t_ra REFERENCE
+nlme_t_ra_ref<- lme(all_tw_call ~ call_num*trial_name_2, random = list(Bat_ID=~1 , trial_number= ~1), data= attn_habit_3)
+summary(nlme_t_ra_ref)
+
+attn_habit_3$trial_name_2 <- relevel(attn_habit_3$trial_name_2,"tc_ts_tc") #MAKE TC REFERENCE
+nlme_tc_ref<- lme(all_tw_call ~ call_num*trial_name_2, random = list(Bat_ID=~1 , trial_number= ~1), data= attn_habit_3)
+summary(nlme_tc_ref)
+
+attn_habit_3$trial_name_2 <- relevel(attn_habit_3$trial_name_2,"tia_tib_tia") #MAKE TIA REFERENCE
+nlme_tia_ref<- lme(all_tw_call ~ call_num*trial_name_2, random = list(Bat_ID=~1 , trial_number= ~1), data= attn_habit_3)
+summary(nlme_tia_ref)
+
+attn_habit_3$trial_name_2 <- relevel(attn_habit_3$trial_name_2,"ts_tc_ts") #MAKE ts REFERENCE
+nlme_ts_ref<- lme(all_tw_call ~ call_num*trial_name_2, random = list(Bat_ID=~1 , trial_number= ~1), data= attn_habit_3)
+summary(nlme_ts_ref)
+```
+      
+#####9.
+Again, what should my significance level be? This seems like a lot of comparisons. Is there some kind of bootstrapping for these tests? 
+  
+  
+  
+  
+  
+```{r, eval=FALSE}
+attn_int_2 <- read.table("/Users/maydixon/Dropbox/Attention Project/R/attn_for_initial_interest.txt", header=TRUE)
 View(attn_int_2)
 initial_int_1 <-  lme(all_tw_set ~ trial_name_2, random = ~1|Bat_ID, data = attn_int_2)
 summary(initial_int_1)
+attn_int_2$trial_name_2 <- relevel(attn_int_2$trial_name_2, ref= "rra_rt_rra"
+```
+
+
+
+
+
+
 
 May I transform some of my data but not all of it? 
 
@@ -117,7 +176,5 @@ is it appropriate to choose some to transform and not others?
 what should by alpha level be for these comparisons? Is there some bootstrapping guideline for that? 
 
 What are good ways to get rid of outliers? What are guidelines for getting rid of outliers? (tc_ts_tc)
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+
 

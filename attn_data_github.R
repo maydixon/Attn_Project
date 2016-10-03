@@ -401,7 +401,13 @@ summary(aov((attn_nob1_nob16$lg_tw_set+1 ~ attn_nob1_nob16$primary_stim))
         sum_lme5<- summary(nlme_int5)
         sum_lme5
         
-        ##### gotta figure out how to call this. for now I am going to just try to work on how to compare slopes between calls with relevel
+        
+        ##### gotta figure out how to call this. 
+        
+        #### What if I don't have the main effects? 
+        nlme_int6 <- lme(all_tw_call ~ call_num:trial_name_2, random = list(Bat_ID=~1 , trial_number= ~1), data= attn_habit_3) # does glm  
+        summary(nlme_int6)
+        #for now I am going to just try to work on how to compare slopes between calls with relevel
         
         #slope represents the change from prev level to next level, alphabetically. May I relevel first to call number? #why is call number alone positive?
         
