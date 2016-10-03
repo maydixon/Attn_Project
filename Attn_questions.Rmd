@@ -1,18 +1,17 @@
 ---
-title: "Attention questions"
+title: "Attention questions for Sally"
 author: "May Dixon"
-date: "September 27, 2016"
-output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-## Major questions
+# Major questions: 
+   Thank you so much for your help, you all are saviors. I have 9 questions (all labelled) for you about the tests that I am running. This got sort of long, so if you feel like you can only help with a few of these, that would still be wonderful. 
 
-# Habituation
+## Habituation
 
-   This is the main question for which I sought help. To reorient you, I am studying how bats habituate to different frog calls. I measure habituation as a decrease in response (ear twitches/ all_tw_call) over time. I am currently testing to see whether the different treatments (trial_name_2) interact with call number (call_num) (my time proxy) to explain the number of twitches. I have bat ID and trial number (which refers to when in the testing the bat got a given treatment) as random effects. My model looks like: 
+   This is the main work for which I originally sought help. To reorient you, I am studying how bats habituate to different frog calls. I measure habituation as a decrease in response (ear twitches/ all_tw_call) over time. I am currently testing to see whether the  treatments (contained in trial_name_2) interact with call number (call_num, my time proxy) to explain the number of twitches. I have bat ID and trial number (which refers to when in the testing the bat got a given treatment) as random effects. My model looks like: 
    
    `twitches/call ~ call number*treatment , random = batID, trial number`
    
@@ -37,10 +36,10 @@ attn_habit_3<-read.table("https://raw.githubusercontent.com/maydixon/Attn_Projec
   My FIRST THREE Questions regard how to call this: 
   
 #####1.
-I currently have trial number as a random effect. But if anything, I expect there to be a negative relationship between number of twitches and trial number (bats get bored over time).Other than that I don't really care about this variable. If I think it should have a trend, should I make it a fixed effect? How will this affect the power of my model?  
+I currently have trial number as a random effect (see below). But if anything, I expect there to be a negative relationship between number of twitches and trial number (bats get bored over time). Other than that I don't really care about this variable. If I think it should have a trend, should I make it a fixed effect? How will this affect the power of my model?  
   
 #####2.
-I'm worried that I am making too many comparisons for my sample size. I only have 11 bats in this comparison (13 at most). As far as I can tell I am making 24 comparisons in this model. Is this way too much? What should my guidelines be for this? 
+I'm worried that I am making too many comparisons for my sample size. I only have 11 bats in this comparison (13 at most). As far as I can tell I am making 24 comparisons in this model. Is this way too much? What should my guidelines be for this? Would question 7, including only the interactions, and not the main-effects, be a viable way of dealing with this?
 
 #####3.
 I read that you should have random slopes as well as random intercepts, bc random intercept only models have a high type 1 error rate. When I tried this, my model didn't converge. I may just be calling it wrong. Any advice? Could you show me how to call this right? The way I coded it below just makes my r freeze:
@@ -83,7 +82,7 @@ summary(nlme_int6)
 
 ###Now, I want to compare whether the bats habituated to each treatment at a different rate
 
- - So, I take it that I want to compare the coefficient of the interaction between call_number and each treatment. I then see whether the coefficients are significantly different. So I can see that (assuming alpha=0.05) the slope of de by callnumber (by looking at the row call_num, bc de is the reference here) is significantly different than the slopes of all of the other interactions:
+ - So, I take it that I want to compare the coefficient of the interaction between call number and each treatment. I then see whether the coefficients are significantly different. The reference slope is 0. So I can see that (assuming alpha=0.05) the slope of the interaction between De (my reference treatment) and  my call number is significantly different than the slopes of all of the other interactions:
 ```{r}
  summary(nlme_int3)$tTable
 ```
@@ -148,6 +147,8 @@ Again, what should my significance level be? This seems like a lot of comparison
  
 
 
+
+
 # Discrimination
 Call number can be grouped into sets. I want to know if there is a difference between the 5th and 6th sets, and between the 5th and 7th set.  A significantly greater response to the 6th or 7th set from the 5th set is indicative of discrimination between the stimuli. In all cases the response was the total number of ear twitches. I analysed this by subsetting the data and running a lme on each treatment. Since I'm not comparing between treatments in this part I thought this would be acceptable.  
      
@@ -203,7 +204,7 @@ subset_ts1 <- subset(subset_ts, subset_ts$set_num=="5" | subset_ts$set_num=="6" 
 Below I am going to include all the tests just in case they are useful, but I really only have one question here: 
 
 #####10.
-   Some of the subsets seem okay reasonably normally distributed, but others really don't. Do you think it is acceptable to run some of the treatments with transformed data, and others without? Or is that a faux pas of some sort? Finally, some of them are pretty awfully 0 weighted, so it doesn't seem as if any sort of transformation is going to make it normal. 
+   Some of the subsets seem  reasonably normally distributed, but others really don't. Do you think it is acceptable to run some of the treatments with transformed data, and others without? Or is that a faux pas of some sort? Finally, some of them are pretty awfully 0 weighted, so it doesn't seem as if any sort of transformation is going to make it normal. 
    
 
 
