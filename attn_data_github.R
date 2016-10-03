@@ -537,8 +537,19 @@ summary(aov((attn_nob1_nob16$lg_tw_set+1 ~ attn_nob1_nob16$primary_stim))
         
         ######apparently my response variable is different for some or all of these, gotta work on that    
         
+## PLotting the slopes in ggplot2
         
-        
+library(ggplot2)      
+p <- ggplot(data = attn_habit_3, aes(x = set_num, y = all_tw_set, color = factor(trial_name_2)))  # first, we build a plot object and color points by trial
+p <- p + xlab("set number") + ylab("number twitches per set")  # then we modify the axis labels
+p <- p + geom_point( position=position_jitterdodge(jitter.width = 5, jitter.height = 1, dodge.width = NULL))  # then we make a scatterplot
+p <- p + theme(legend.position = "bottom", legend.title = element_blank())  # then we modify the legend
+ 
+p <- p + facet_wrap(~trial_name_2, ncol = 3) #facet by trial
+p <- p + theme(legend.position = "none")
+p <-p + geom_smooth(method = "glm", se = TRUE)  
+p       
+
         #################QUESTION 3 ##############
         
         #IS there a significant difference in the number of twitches to 5th to 6th, and 5th to 7th set? 
@@ -723,6 +734,22 @@ summary(aov((attn_nob1_nob16$lg_tw_set+1 ~ attn_nob1_nob16$primary_stim))
         #evidence for discrimination
         #no evidence for dishabituation
         
+ ## Using ggplot to plot all of this, and also in one graph
+ #attn_set   
+ attn_set_sub <- subset(attn_set, attn_set$set_num=="5" | attn_set$set_num=="6" | attn_set$set_num=="7" )
+        
+p2 <- ggplot(data = subset_ts1, aes(x = set_num, y = all_tw_set, color = factor(set_num)))  # first, we build a plot object and color points by trial
+        p2 <- p2 + xlab("set number") + ylab("number twitches per set")  # then we modify the axis labels
+        p2 <- p2 + geom_boxplot()  # then we make a boxplot
+        p2 <- p2 + theme(legend.position = "bottom", legend.title = element_blank())  # then we modify the legend
+        
+ 
+        
+multiplot(p...)
+    #figure out initial interest, add the glm results to the r markdown mile, send it out. send out sally one too with all the questions. Probably more urgent than this graphing.     
+        
+        
+        
         #look up what goes into anova
         # need one-way repeated measures ANOVA, bc I have 1 dependent variable (twitches), and 1 IV with 3 levels, and the 3 levels are matched, not independent. Command will be anova() 
         
@@ -761,4 +788,5 @@ summary(aov((attn_nob1_nob16$lg_tw_set+1 ~ attn_nob1_nob16$primary_stim))
         View(attn_int_2)
         initial_int_1 <-  lme(all_tw_set ~ trial_name_2, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
         summary(initial_int_1)
+        levels(attn_set$trial_name_2)
         
