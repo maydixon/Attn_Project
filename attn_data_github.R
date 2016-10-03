@@ -445,9 +445,7 @@ summary(aov((attn_nob1_nob16$lg_tw_set+1 ~ attn_nob1_nob16$primary_stim))
         nlme_ts_ref<- lme(all_tw_call ~ call_num*trial_name_2, random = list(Bat_ID=~1 , trial_number= ~1), data= attn_habit_3)
         summary(nlme_ts_ref)
         
-        
-        attn_habit_3 <- with(ChickWeight_new, relevel(Diet, ref = "2"))
-        mod2 <- lme(weight ~ Diet * Time_factor, random = ~ 1|Chick, data = ChickWeight_new)
+
         
         
         
@@ -585,43 +583,46 @@ p
         
         #1 need to make a dummy variable to refer to just to 1 row per set per bat (for all_tw_set)
         
-        #import data, remove duds, remove bad treatments
-        attention_Rcopy_individuals_condensed <- read.delim("~/Dropbox/Attention Project/R/attention_Rcopy_individuals_condensed.txt") #this file has all sets, and a row with condensed Tia_tib_Tia
-        attention_Rcopy1<- subset(attention_Rcopy_individuals_condensed, attention_Rcopy_individuals_condensed$bat_name != "Blackbeard" & attention_Rcopy_individuals_condensed$bat_name != "Wramplemeier") #removes unresponsive bats
-        attention_Rcopy2<-subset(attention_Rcopy1, attention_Rcopy1$trial_name != "t_rt_t" & attention_Rcopy1$trial_name != "rt_t_rt") #removes variables only tested on one bat
-        #condenses all the 
-        attn_r2 <- attention_Rcopy2 #short version
-        #pull partial string match  x.1 for call number using grep
-        
-        attn_set <- attn_r2[grep(".1", attn_r2$call_num), ]
-        class(attn_set$call_num)
-        View(attn_set)
-        
-        
-        #2 need to subset data to refer to one treatment at a time
-        unique(attn_set$trial_name_2)
-        
-        subset_de <- subset(attn_set, attn_set$trial_name_2=="de_t_de")
-        subset_ra <- subset(attn_set, attn_set$trial_name_2=="ra_t_ra")
-        subset_rra <- subset(attn_set, attn_set$trial_name_2=="rra_rt_rra")
-        subset_rt <- subset(attn_set, attn_set$trial_name_2=="rt_rra_rt")
-        subset_t_de <- subset(attn_set, attn_set$trial_name_2=="t_de_t")
-        subset_t_ra <- subset(attn_set, attn_set$trial_name_2=="t_ra_t")
-        subset_tc <- subset(attn_set, attn_set$trial_name_2=="tc_ts_tc")
-        subset_tia <- subset(attn_set, attn_set$trial_name_2=="tia_tib_tia")
-        subset_ts <- subset(attn_set, attn_set$trial_name_2=="ts_tc_ts")
-        
-        #further subset to only include sets 5, 6, 7
-        subset_de1 <- subset(subset_de, subset_de$set_num=="5" | subset_de$set_num=="6" | subset_de$set_num=="7" )
-        subset_ra1 <- subset(subset_ra, subset_ra$set_num=="5" | subset_ra$set_num=="6" | subset_ra$set_num=="7" ) 
-        subset_rra1 <- subset(subset_rra, subset_rra$set_num=="5" | subset_rra$set_num=="6" | subset_rra$set_num=="7" )
-        subset_rt1 <- subset(subset_rt, subset_rt$set_num=="5" | subset_rt$set_num=="6" | subset_rt$set_num=="7" )
-        subset_t_de1 <- subset(subset_t_de, subset_t_de$set_num=="5" | subset_t_de$set_num=="6" | subset_t_de$set_num=="7" )
-        subset_t_ra1 <- subset(subset_t_ra, subset_t_ra$set_num=="5" | subset_t_ra$set_num=="6" | subset_t_ra$set_num=="7" )
-        subset_tc1 <- subset(subset_tc, subset_tc$set_num=="5" | subset_tc$set_num=="6" | subset_tc$set_num=="7" )
-        subset_tia1 <- subset(subset_tia, subset_tia$set_num=="5" | subset_tia$set_num=="6" | subset_tia$set_num=="7" )
-        subset_ts1 <- subset(subset_ts, subset_ts$set_num=="5" | subset_ts$set_num=="6" | subset_ts$set_num=="7" )
-        
+#import data, remove duds, remove bad treatments
+#local version      
+attention_Rcopy_individuals_condensed <- read.delim("~/Dropbox/Attention Project/R/attention_Rcopy_individuals_condensed.txt") #this file has all sets, and a row with condensed Tia_tib_Tia
+#online version
+attention_Rcopy_individuals_condensed <- read.delim("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attention_Rcopy_individuals_condensed.txt")
+attention_Rcopy1<- subset(attention_Rcopy_individuals_condensed, attention_Rcopy_individuals_condensed$bat_name != "Blackbeard" & attention_Rcopy_individuals_condensed$bat_name != "Wramplemeier") #removes unresponsive bats
+attention_Rcopy2<-subset(attention_Rcopy1, attention_Rcopy1$trial_name != "t_rt_t" & attention_Rcopy1$trial_name != "rt_t_rt") #removes variables only tested on one bat
+#condenses all the 
+attn_r2 <- attention_Rcopy2 #short version
+#pull partial string match  x.1 for call number using grep
+
+attn_set <- attn_r2[grep(".1", attn_r2$call_num), ]
+class(attn_set$call_num)
+View(attn_set)
+
+
+#2 need to subset data to refer to one treatment at a time
+unique(attn_set$trial_name_2)
+
+subset_de <- subset(attn_set, attn_set$trial_name_2=="de_t_de")
+subset_ra <- subset(attn_set, attn_set$trial_name_2=="ra_t_ra")
+subset_rra <- subset(attn_set, attn_set$trial_name_2=="rra_rt_rra")
+subset_rt <- subset(attn_set, attn_set$trial_name_2=="rt_rra_rt")
+subset_t_de <- subset(attn_set, attn_set$trial_name_2=="t_de_t")
+subset_t_ra <- subset(attn_set, attn_set$trial_name_2=="t_ra_t")
+subset_tc <- subset(attn_set, attn_set$trial_name_2=="tc_ts_tc")
+subset_tia <- subset(attn_set, attn_set$trial_name_2=="tia_tib_tia")
+subset_ts <- subset(attn_set, attn_set$trial_name_2=="ts_tc_ts")
+
+#further subset to only include sets 5, 6, 7
+subset_de1 <- subset(subset_de, subset_de$set_num=="5" | subset_de$set_num=="6" | subset_de$set_num=="7" )
+subset_ra1 <- subset(subset_ra, subset_ra$set_num=="5" | subset_ra$set_num=="6" | subset_ra$set_num=="7" ) 
+subset_rra1 <- subset(subset_rra, subset_rra$set_num=="5" | subset_rra$set_num=="6" | subset_rra$set_num=="7" )
+subset_rt1 <- subset(subset_rt, subset_rt$set_num=="5" | subset_rt$set_num=="6" | subset_rt$set_num=="7" )
+subset_t_de1 <- subset(subset_t_de, subset_t_de$set_num=="5" | subset_t_de$set_num=="6" | subset_t_de$set_num=="7" )
+subset_t_ra1 <- subset(subset_t_ra, subset_t_ra$set_num=="5" | subset_t_ra$set_num=="6" | subset_t_ra$set_num=="7" )
+subset_tc1 <- subset(subset_tc, subset_tc$set_num=="5" | subset_tc$set_num=="6" | subset_tc$set_num=="7" )
+subset_tia1 <- subset(subset_tia, subset_tia$set_num=="5" | subset_tia$set_num=="6" | subset_tia$set_num=="7" )
+subset_ts1 <- subset(subset_ts, subset_ts$set_num=="5" | subset_ts$set_num=="6" | subset_ts$set_num=="7" )
+
         #load library
         library(nlme)
         #set working directory

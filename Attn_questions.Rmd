@@ -145,36 +145,280 @@ summary(nlme_ts_ref)
       
 #####9.
 Again, what should my significance level be? This seems like a lot of comparisons. Is there some kind of bootstrapping for these tests? 
-  
-  
-  
-  
-  
-```{r, eval=FALSE}
-attn_int_2 <- read.table("/Users/maydixon/Dropbox/Attention Project/R/attn_for_initial_interest.txt", header=TRUE)
-View(attn_int_2)
-initial_int_1 <-  lme(all_tw_set ~ trial_name_2, random = ~1|Bat_ID, data = attn_int_2)
-summary(initial_int_1)
-attn_int_2$trial_name_2 <- relevel(attn_int_2$trial_name_2, ref= "rra_rt_rra"
+ 
+
+
+# Discrimination
+Call number can be grouped into sets. I want to know if there is a difference between the 5th and 6th sets, and between the 5th and 7th set.  A significantly greater response to the 6th or 7th set from the 5th set is indicative of discrimination between the stimuli. In all cases the response was the total number of ear twitches. I analysed this by subsetting the data and running a lme on each treatment. Since I'm not comparing between treatments in this part I thought this would be acceptable.  
+     
+To analyze these, I used linear mixed models with the following model: 
+     
+       *total twitches ~ set number , random = bat*
+
+      (I used trial_number in other models in this analysis, but it did not explain more of the variance in this case)
+
+Data download and prep:
+```{r, echo=FALSE}
+#download and prep data into treatments with only sets 5-7
+attention_Rcopy_individuals_condensed <- read.delim("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attention_Rcopy_individuals_condensed.txt")
+View(attention_Rcopy_individuals_condensed )
+attention_Rcopy1<- subset(attention_Rcopy_individuals_condensed, attention_Rcopy_individuals_condensed$bat_name != "Blackbeard" & attention_Rcopy_individuals_condensed$bat_name != "Wramplemeier") #removes unresponsive bats
+attention_Rcopy2<-subset(attention_Rcopy1, attention_Rcopy1$trial_name != "t_rt_t" & attention_Rcopy1$trial_name != "rt_t_rt") #removes variables only tested on one bat
+#condenses all the 
+attn_r2 <- attention_Rcopy2 #short version
+#pull partial string match  x.1 for call number using grep
+
+attn_set <- attn_r2[grep(".1", attn_r2$call_num), ]
+class(attn_set$call_num)
+View(attn_set)
+
+
+#2 need to subset data to refer to one treatment at a time
+unique(attn_set$trial_name_2)
+
+subset_de <- subset(attn_set, attn_set$trial_name_2=="de_t_de")
+subset_ra <- subset(attn_set, attn_set$trial_name_2=="ra_t_ra")
+subset_rra <- subset(attn_set, attn_set$trial_name_2=="rra_rt_rra")
+subset_rt <- subset(attn_set, attn_set$trial_name_2=="rt_rra_rt")
+subset_t_de <- subset(attn_set, attn_set$trial_name_2=="t_de_t")
+subset_t_ra <- subset(attn_set, attn_set$trial_name_2=="t_ra_t")
+subset_tc <- subset(attn_set, attn_set$trial_name_2=="tc_ts_tc")
+subset_tia <- subset(attn_set, attn_set$trial_name_2=="tia_tib_tia")
+subset_ts <- subset(attn_set, attn_set$trial_name_2=="ts_tc_ts")
+
+#further subset to only include sets 5, 6, 7
+subset_de1 <- subset(subset_de, subset_de$set_num=="5" | subset_de$set_num=="6" | subset_de$set_num=="7" )
+subset_ra1 <- subset(subset_ra, subset_ra$set_num=="5" | subset_ra$set_num=="6" | subset_ra$set_num=="7" ) 
+subset_rra1 <- subset(subset_rra, subset_rra$set_num=="5" | subset_rra$set_num=="6" | subset_rra$set_num=="7" )
+subset_rt1 <- subset(subset_rt, subset_rt$set_num=="5" | subset_rt$set_num=="6" | subset_rt$set_num=="7" )
+subset_t_de1 <- subset(subset_t_de, subset_t_de$set_num=="5" | subset_t_de$set_num=="6" | subset_t_de$set_num=="7" )
+subset_t_ra1 <- subset(subset_t_ra, subset_t_ra$set_num=="5" | subset_t_ra$set_num=="6" | subset_t_ra$set_num=="7" )
+subset_tc1 <- subset(subset_tc, subset_tc$set_num=="5" | subset_tc$set_num=="6" | subset_tc$set_num=="7" )
+subset_tia1 <- subset(subset_tia, subset_tia$set_num=="5" | subset_tia$set_num=="6" | subset_tia$set_num=="7" )
+subset_ts1 <- subset(subset_ts, subset_ts$set_num=="5" | subset_ts$set_num=="6" | subset_ts$set_num=="7" )
+
 ```
 
 
+Below I am going to include all the tests just in case they are useful, but I really only have one question here: 
+
+#####10.
+   Some of the subsets seem okay reasonably normally distributed, but others really don't. Do you think it is acceptable to run some of the treatments with transformed data, and others without? Or is that a faux pas of some sort? Finally, some of them are pretty awfully 0 weighted, so it doesn't seem as if any sort of transformation is going to make it normal. 
+   
+
+
+#Thank you so so so much for your help
+   
+   ###################################################################################
+   
+   
+
+### *D. ebracattus* v Tungara: 
+normality of data:
+```{r, echo= FALSE}
+qqnorm(subset_de1$all_tw_set)
+
+```
+
+
+Results of linear mixed model: This models asks whether there is a significant difference between set 5 & 6, and 5 & 7. 
+
+```{r, echo=FALSE}
+de_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_de1) # use as.factor so model sees these as factors
+```
+```{r}
+summary(de_desc)
+de_t_de_desc <- boxplot(all_tw_set ~ (as.factor(set_num)), main = "de_t_de", data=subset_de1)
+
+```
+
+
+So, there is no evidence of discrimination between ebracattus and tungara. This may be because there was no habituation to D. ebracattus (actually there was slight sensitization)       
+
+
+### *Rhinella alata* v Tungara
+normality of data: 
+```{r}
+qqnorm(subset_ra1$all_tw_set)
+```
+```{r, include=FALSE}
+ra_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_ra1) # use as.factor so moral sees these as factors
+```
+```{r}
+summary(ra_desc)
+#boxplot
+ra_descrim_plot<- boxplot(all_tw_set ~ (as.factor(set_num)), main = "ra_t_ra", data=subset_ra1)
+```
+
+There is evidence for descrimination between rhinella alata and tungara frogs
+
+### Reversed *R. alata* v tungara
+
+Normality of data:
+```{r}
+qqnorm(subset_rra1$all_tw_set)
+```
+```{r, include=FALSE}
+rra_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_rra1) # use as.factor so morral sees these as factors
+```
+```{r}
+summary(rra_desc)
+#boxplot
+boxplot(all_tw_set ~ (as.factor(set_num)), main = "rra_rt_rra", data=subset_rra1)
+```
+
+There is evidence for descrimination between 5 and 6, but not for dishabituation (5 and 7). There was very steep habituation to reversed rhinella alata, which might explain a part of this trend. 
+
+
+### reversed tungara v reversed *R. alata*
+
+Normality of data: 
+```{r, echo=FALSE}
+qqnorm((subset_rt1$all_tw_set))
+```
+
+This linear mixed model may not be appropriate for this test given its right-skewed distribution
+
+```{r, echo=FALSE}
+rt_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_rt1) # use as.factor so mortl sees these as factors
+```
+``````{r}
+summary(rt_desc)
+#boxplot
+boxplot(all_tw_set ~ (as.factor(set_num)), main = "rt_rra_rt", data=subset_rt1)
+```
+
+Is it okay to transform a subset of data and not all of it? If so, I can maybe log or sqrt some of these contrasts that are more skewed so that this test is appropriate.For example:
+
+##Log +1 transformed reversed tungara v reversed rhinella alata
+
+```{r, echo=FALSE}
+qqnorm(log(subset_rt1$all_tw_set+1))
+
+rt_desc<- lme((log(all_tw_set+1)) ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_rt1) # use as.factor so mortl sees these as factors
+summary(rt_desc)
+#boxplot
+rt_desc_transformed<-boxplot((log(all_tw_set+1)) ~ (as.factor(set_num)), main = "rt_rra_rt log transformed", data=subset_rt1)
+```
+
+Regardless, in this case there is no evidence of descrimination between reversed tungara and reversed alata, due mainly to low overall values. 
+
+
+### Tungara v *D. ebracattus*
+
+```{r, echo=FALSE}
+qqnorm(subset_t_de1$all_tw_set)
+#  Should be twitches/set ~set num*treatment t_dendom= batid #trial number does not add explanatoryness
+t_de_t_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_t_de1) # use as.factor so mot_del sees these as factors
+summary(t_de_t_desc)
+#boxplot
+t_de_t_desc_plot<- boxplot(all_tw_set ~ (as.factor(set_num)), main = "t_de_t", data=subset_t_de1)
+```
+
+There is no evidence for descrimination between tungara and dendrobates Perhaps due to high overall responses
+
+###Tungara v R. alata
+```{r, echo=FALSE}
+
+#remember to reset relevel if running this again
+qqnorm(subset_t_ra1$all_tw_set) 
+hist(subset_t_ra1$all_tw_set)
+#maybe can't justify normal dist
+t_ra_t_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_t_ra1) # use as.factor so  sees these as factors
+summary(t_ra_t_desc)
+#boxplot
+t_ra_t_desc_plot<-boxplot(all_tw_set ~ (as.factor(set_num)), main = "t_ra_t", data=subset_t_ra1)
+```
+No discimination between treatments detected. If it is appropriate to transform these, then: 
+
+# Square-root transformed tungara v R. alata
+```{r, echo=FALSE}
 
 
 
+qqnorm((sqrt(subset_t_ra1$all_tw_set)))
+hist((sqrt(subset_t_ra1$all_tw_set)))
+
+t_ra_t_desc_sqrt_trns<- lme((sqrt(all_tw_set)) ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_t_ra1) # use as.factor so  sees these as factors
+summary(t_ra_t_desc_sqrt_trns)
+#boxplot
+t_ra_t_desc_plot<-boxplot((sqrt(all_tw_set)) ~ (as.factor(set_num)), main = "t_ra_t sq.rt transformed", data=subset_t_ra1)
+#this way there is a significant difference at alpha.01 for 5 and 6, but it goes in the negative direction. no significant between 5 and 7. If I relevel, is there a difference between 6 and 7?
+```
+So there is a significant difference between 5 and 7 (demonstrating dishabituation). To test to see whether there is a significant sifference between 6 and 7, I can relevel, and test this using a linear mixed model. 
+```{r, echo=FALSE}
 
 
-May I transform some of my data but not all of it? 
 
-#######
-Initial Interest: 
-Would it be accurate to use the intercept of the glm's for habituation to state initial interest? When the intercept is significant, that number is the value for initial interest? 
-Is there a better way of doing this? 
-Discrimination: 
-advice for which transformation to use
-is it appropriate to choose some to transform and not others?
-what should by alpha level be for these comparisons? Is there some bootstrapping guideline for that? 
+subset_t_ra1$set_num <- relevel(as.factor(subset_t_ra1$set_num), ref="6")
+t_ra_t_desc_2<- lme((sqrt(all_tw_set)) ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_t_ra1) # releveled lme
+summary(t_ra_t_desc_2)
+```
 
-What are good ways to get rid of outliers? What are guidelines for getting rid of outliers? (tc_ts_tc)
+
+So, there is a marginally significant difference between 6 and 7 (p=0.0945), and 6 and 5 (p=0.0988). But not sure what my alpha level should be. 
+
+# Intraspecific Trials
+
+## Complex tungara v simple tungara
+```{r}
+
+qqnorm(subset_tc1$all_tw_set)
+#one total outlier (what should I do about that?)
+tc_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_tc1) # use as.factor so  sees these as factors
+summary(tc_desc)
+# boxplot
+tc_ts_tc_plot<- boxplot(all_tw_set ~ (as.factor(set_num)), main = "tc_ts_tc", data=subset_tc1)
+```
+
+
+There is no apparent discrimination between complex and simple calls in this test. However, there is an outlier that could easily be messing with this. I'm going to think about this a little.  
+
+If this is accurate, it is probable that discrimination is obscured by simple calls being less salient stimuli, so the interuption in habituation is masked by lower overall interest in the simple call. See the inverse treatment:
+
+##Simple tungara against complex tungara call
+```{r}
+
+qqnorm(subset_ts1$all_tw_set)
+hist(subset_ts1$all_tw_set)
+#looks oookay (pretty 0 weighted)
+ts_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_ts1) # use as.factor so  sees these as factors
+summary(ts_desc)
+# boxplot
+ts_tc_ts_plot<- boxplot(all_tw_set ~ (as.factor(set_num)), main = "ts_tc_ts", data=subset_ts1)    
+
+```
+
+There is support for discrimination between these two treatments, but no evidence of dishabituation. Note how discrimination is evidence when the less salient stimulus is the one that is being habituated. 
+
+## Tungara "A" v Tungara "B" (or the id of individuals trials)
+
+```{r}
+
+qqnorm(subset_tia1$all_tw_set)
+# not justifiably normal (left/0 skewed)
+tia_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_tia1) # use as.factor so  sees these as factors
+summary(tia_desc)
+# boxplot
+tia_tib_tia_plot<- boxplot(all_tw_set ~ (as.factor(set_num)), main = "tia_tib_tia", data=subset_tia1)
+```
+
+There is no apparent discrimination between individual tungaras. But also the data are pretty non-normal, so:
+
+
+##Square-root transformation of individual tungara trials
+```{r}
+
+hist(sqrt(subset_tia1$all_tw_set))
+
+# not justifiably normal (left/0 skewed)
+tia_desc_sqrt_trans<- lme((sqrt(all_tw_set)) ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_tia1) # use as.factor so  sees these as factors
+summary(tia_desc_sqrt_trans)
+# boxplot
+tia_tib_tia_plot_sqrt<- boxplot((sqrt(all_tw_set)) ~ (as.factor(set_num)), main = "tia_tib_tia sqrt transformed", data=subset_tia1)
+```
+
+There is still no evidence of discrimination between individuals
+
 
 
