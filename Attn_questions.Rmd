@@ -4,6 +4,46 @@ author: "May Dixon"
 date: "September 27, 2016"
 output: html_document
 ---
+## Major questions
+
+# Habituation
+
+   This is the main question for which I sought help. To reorient you, I am studying how bats habituate to different frog calls. I measure habituation as a decrease in response (ear twitches/ all_tw_call) over time. I am currently testing to see whether the different treatments (trial_name_2) interact with call number (call_num) (my time proxy) to explain the number of twitches. I have bat ID and trial number (which refers to when in the testing the bat got a given treatment) as random effects. My model looks like: 
+   
+   $$twitches/call ~ call number*treatment , random = batID, trial number$$  
+   
+   I have a few questions about my methods! 
+  
+  So, first, I'm just going to show you my data and the tests I have run. All the raw data can be found on 
+   
+How should I deal with trial number? 
+If anything, I expect there to be a negative relationship between number of twitches and trial number. 
+Other than that I don't really care about it
+if I think it should have a trend, should I make it a fixed or a random effect? How will this affect the power of my model?
+
+
+
+Do I have too many contrasts for my sample size? What is a good guideline? I only have 11 bats, and I have 9 different treatments that I cam comparing, plus call number, plus interactions, plus two random variables. 
+
+
+
+Should I have a random slope? Right now I only have a random intercept model, which i read has a high rate of type 1 errors. How do I code a random slope? Whenever I try to, my model fails to converge. 
+
+Intercepts: 
+It is my 
+May I use intercepts as an indicator of initial interest? 
+
+Is anova simpler? 
+Is a linear mixed model a good way to measure initial interest? 
+
+attn_int_2 <- read.table("/Users/maydixon/Dropbox/Attention Project/R/attn_for_initial_interest.txt", header=TRUE)
+View(attn_int_2)
+initial_int_1 <-  lme(all_tw_set ~ trial_name_2, random = ~1|Bat_ID, data = attn_int_2)
+summary(initial_int_1)
+
+May I transform some of my data but not all of it? 
+
+#######
 Initial Interest: 
 Would it be accurate to use the intercept of the glm's for habituation to state initial interest? When the intercept is significant, that number is the value for initial interest? 
 Is there a better way of doing this? 
@@ -17,22 +57,3 @@ What are good ways to get rid of outliers? What are guidelines for getting rid o
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
-```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
