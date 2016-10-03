@@ -3,6 +3,14 @@
 #if trend is weird could look at only the first presentation for each stimulus type. particularly t and ts 
 #to do that could sort by treatment and then by trial number by hand, just take first one for dataset
 
+ERRORS FROM GITHUB: (COMMAND LINE)
+Marjories-gift:Attn_project_github maydixon$ git pull origin master
+From https://github.com/maydixon/Attn_Project
+* branch            master     -> FETCH_HEAD
+fatal: refusing to merge unrelated histories
+Marjories-gift:Attn_project_github maydixon$ 
+      
+# I think my problems are solved?      
 #rename dataset here
 attn<- attention_Rcopy
 #verify
