@@ -54,8 +54,11 @@ nlme_int3 <- lme(all_tw_call ~ call_num*trial_name_2, random = list(Bat_ID=~1 , 
         sum_lme3 
 ```
 
-So, if I understand this correctly:
 
+      
+
+
+So, if I understand this correctly:
 - The random variables Bat ID  and trial number explain 0.33 (0.33%?) and .41 of the variation. 0.74 is the amount of  variation (the majority, I guess behavior is  just messy?) unexplained by this model.
 
 - Call number is the slope to which I compare everything else (the relationship between call number and # twitches), and it is 0.036

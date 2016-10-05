@@ -809,3 +809,36 @@ multiplot(p...)
         summary(initial_int_1)
         levels(attn_set$trial_name_2)
         
+        
+        ######
+        
+ # Exploring the difference between models fitted with : vs those fitted with *
+        nlme_int3 <- lme(all_tw_call ~ call_num*trial_name_2, random = list(Bat_ID=~1 , trial_number= ~1), data= attn_habit_3) # does glm
+        sum_lme3<- summary(nlme_int3) #summary
+        sum_lme3
+        nlme_int6 <- lme(all_tw_call ~ call_num:trial_name_2, random = list(Bat_ID=~1 , trial_number= ~1), data= attn_habit_3) #only interaction, not main effects
+        sum_lme6<-summary(nlme_int6) 
+        sum_lme6
+        
+        
+        ### try running lme with set num as an ordered categorical response variable (make sure i use the modified dataset)
+#what if trial number is not random?
+        plot(attn_habit_3$all_tw_call ~ attn_habit_3$trial_number) #relationship between trial number and the number of twitches
+        trialnum_twitch<-lm(attn_habit_3$all_tw_call ~ attn_habit_3$trial_number)# linear relationship
+        summary(trialnum_twitch) #summary of results
+       abline(trialnum_twitch) #line on plot
+       dfbeta(trialnum_twitch)
+        
+        nlme_int8 <- lme(all_tw_call ~ call_num*trial_name_2 + trial_number, random = ~1|Bat_ID, data= attn_habit_3)
+        sum_lme8<- summary(nlme_int8)
+        sum_lme8
+        #or if trial name not included at all?
+        nlme_int9<-lme(all_tw_call ~ call_num*trial_name_2, random = ~1|Bat_ID, data= attn_habit_3)
+        sum_lme9<- summary(nlme_int8)
+        sum_lme9
+        #playing with random intercepts
+        nlme_int3 <- lme(all_tw_call ~ call_num*trial_name_2, random = list(Bat_ID=~1 , trial_number= ~1), data= attn_habit_3) # does glm
+        sum_lme3<- summary(nlme_int3) #summary
+        sum_lme3
+        random=~ -1+time|subject
+        
