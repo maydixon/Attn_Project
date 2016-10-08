@@ -821,7 +821,7 @@ multiplot(p...)
         sum_lme6
         
         
-        ### try running lme with set num as an ordered categorical response variable (make sure i use the modified dataset)
+ ### try running lme with set num as an ordered categorical response variable (make sure i use the modified dataset)
 #what if trial number is not random?
         plot(attn_habit_3$all_tw_call ~ attn_habit_3$trial_number) #relationship between trial number and the number of twitches
         trialnum_twitch<-lm(attn_habit_3$all_tw_call ~ attn_habit_3$trial_number)# linear relationship
@@ -837,8 +837,118 @@ multiplot(p...)
         sum_lme9<- summary(nlme_int8)
         sum_lme9
         #playing with random intercepts
-        nlme_int3 <- lme(all_tw_call ~ call_num*trial_name_2, random = list(Bat_ID=~1 , trial_number= ~1), data= attn_habit_3) # does glm
-        sum_lme3<- summary(nlme_int3) #summary
-        sum_lme3
+        nlme_int10 <- lme(all_tw_call ~ call_num*trial_name_2, random = ~Bat_ID|trial_number, data= attn_habit_3) # does glm
+        sum_lme10<- summary(nlme_int10) #summary
+        sum_lme10
         random=~ -1+time|subject
         
+        
+        
+        
+#INITIAL INTEREST RETURNED
+        #initial interest? (can TOTALLY use a lme for this, if not what is already included in model, then->
+        # lme(twitches ~treatment(only in 1.1) random=batID
+        # ***** the good stuff  ****
+        attn_int_2 <- read.table("/Users/maydixon/Dropbox/Attention Project/R/attn_for_initial_interest_w_na.rm.txt", header=TRUE)
+        attn_int_2<-subset(attn_int_2, attn_int_2$bat_name != "Blackbeard") #removes unresponsive bats)
+        #find first time experiencing tungara (first), use that
+        View(attn_int_2)
+        #how is this variable distributed?
+        hist(attn_int_2$all_tw_set)
+        hist(log(attn_int_2$all_tw_set))
+        #These data look way better when normalized with log
+        library(ggplot2)
+        
+        #Should I make variable normal?
+        
+        #plotted after
+        #initial interest with and without logged data
+        ###### running LME with and without logged data
+        #without:
+        attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"De") #MAKE DE REFERENCE
+        nlme_int_rra_ref<- lme(all_tw_set ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), na.action=na.exclude, data = attn_int_2)
+        summary(nlme_int_rra_ref)
+        #De is only significantly different than rra (lower)
+        attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"Ra") #MAKE RA REFERENCE
+        
+        nlme_int_ra_ref<- nlme_int_rra_ref<- lme(all_tw_set ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
+        summary(nlme_int_ra_ref)
+        
+        attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"Rra") #MAKE RRA REFERENCE
+        nlme_int_rra_ref<- nlme_int_rra_ref<- lme(all_tw_set ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
+        summary(nlme_int_rra_ref)
+        
+        attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"Rt") #MAKE RT REFERENCE
+        nlme_int_rt_ref<- nlme_int_rra_ref<- lme(all_tw_set ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
+        summary(nlme_int_rt_ref)
+        
+        attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"T") #MAKE t_de REFERENCE
+        nlme_int_t_de_ref<- nlme_int_rra_ref<- lme(all_tw_set ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
+        summary(nlme_int_t_de_ref)
+        
+        attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"tc_ts_tc") #MAKE TC REFERENCE
+        nlme_int_tc_ref<- nlme_int_rra_ref<- lme(all_tw_set ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
+        summary(nlme_int_tc_ref)
+        
+        attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"ts_tc_ts") #MAKE ts REFERENCE
+        nlme_int_ts_ref<- nlme_int_rra_ref<- lme(all_tw_set ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
+        summary(nlme_int_ts_ref)
+        #
+        
+        #with logged data
+        
+        attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"De") #MAKE DE REFERENCE
+        
+        nlme_int_rra_ref<- lme(log(all_tw_set+1) ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), na.action=na.exclude, data = attn_int_2)
+        summary(nlme_int_rra_ref)
+        #De is only significantly different than rra (lower)
+        
+        attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"Ra") #MAKE RA REFERENCE
+        
+        nlme_int_ra_ref<- lme(log(all_tw_set+1) ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), na.action=na.exclude, data = attn_int_2)
+        summary(nlme_int_ra_ref)
+        
+        attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"Rra") #MAKE RRA REFERENCE
+        nlme_int_rra_ref<- lme(log(all_tw_set+1) ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
+        summary(nlme_int_rra_ref)
+        
+        attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"Rt") #MAKE RT REFERENCE
+        nlme_int_rt_ref<- lme(log(all_tw_set+1) ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
+        summary(nlme_int_rt_ref)
+        
+        attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"T") #MAKE T REFERENCE
+        nlme_int_t_ref<- nlme_int_rra_ref<- lme(log(all_tw_set+1) ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
+        summary(nlme_int_t_ref)
+        
+        attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"Tc") #MAKE TC REFERENCE
+        nlme_int_tc_ref<- nlme_int_rra_ref<- lme(log(all_tw_set+1) ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
+        summary(nlme_int_tc_ref)
+        
+        attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"Ts") #MAKE ts REFERENCE
+        nlme_int_ts_ref<- nlme_int_rra_ref<- lme(log(all_tw_set+1) ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
+        summary(nlme_int_ts_ref)
+        
+        #reordering for plotting: 
+        attn_int_2$first_stim <- factor(attn_int_2$first_stim,levels = c('De','Ra', 'Rra', "Rt", "Ts", "T", "Tc"),ordered = TRUE)
+        #perhaps best order is: Ts, T, Tc, Rt, Rra, Ra, De, can do using relevel() commands from above
+        
+        #plots
+        library(plotly)
+        #with logged +1 (for zero) data
+        p <- ggplot(data = attn_int_2, aes(x = first_stim, y = log(all_tw_set+1), fill=first_stim))
+        p <- p + geom_boxplot()
+        p <- p + theme(axis.text.x = element_text(angle = 90))
+        p <- p + xlab("Acoustic stimuli")
+        p <- p + ylab("log( twitches in first set)")
+        p
+        
+        #with unlogged data
+        p <- ggplot(data = attn_int_2, aes(x = first_stim, y = all_tw_set, fill=first_stim))
+        p <- p + geom_boxplot()
+        p <- p + theme(axis.text.x = element_text(angle = 90))
+        p <- p + ylab("twitches in first set")
+        p + xlab("Acoustic stimuli")
+        p
+        
+        ## can i make a plot of boxplots for each trial type, all the way across trial?
+        attn_whole<-read.table("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attention_Rcopy_individuals_condensed.txt", header=TRUE, sep="/t")
