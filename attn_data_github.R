@@ -3,12 +3,6 @@
 #if trend is weird could look at only the first presentation for each stimulus type. particularly t and ts 
 #to do that could sort by treatment and then by trial number by hand, just take first one for dataset
 
-ERRORS FROM GITHUB: (COMMAND LINE)
-Marjories-gift:Attn_project_github maydixon$ git pull origin master
-From https://github.com/maydixon/Attn_Project
-* branch            master     -> FETCH_HEAD
-fatal: refusing to merge unrelated histories
-Marjories-gift:Attn_project_github maydixon$ 
       
 # I think my problems are solved?      
 #rename dataset here
@@ -951,4 +945,54 @@ multiplot(p...)
         p
         
         ## can i make a plot of boxplots for each trial type, all the way across trial?
-        attn_whole<-read.table("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attention_Rcopy_individuals_condensed.txt", header=TRUE, sep="/t")
+        attn_whole<-read.table("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attention_Rcopy_individuals_condensed.txt", sep="\t", header=TRUE)
+attn_whole <- subset(attn_whole, attn_whole$bat_name != "Blackbeard") 
+# want just one line for each "set"
+#pull partial string match  x.1 for call number using grep
+attn_whole_set <- attn_whole[grep(".1", attn_whole$call_num), ]
+
+library(ggplot2)
+
+#all treatments together, overall trend
+
+p_all<-ggplot(data=attn_whole_set, aes(x = set_num, group=set_num , y = all_tw_set, fill=set_num))      #
+p_all <- p_all + geom_boxplot()
+p_all <- p_all + ylab("Twitches in presentation")
+p_all <- p_all + xlab("presentation number")
+p_all <- p_all + ggtitle("All")
+p_all
+
+
+#making a plot for the entire of one treatment, with each set getting a boxplot
+
+p_de<-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="de_t_de", ], aes(x = set_num, group=set_num , y = all_tw_set, fill=set_num))      #
+p_de <- p_de + geom_boxplot()
+p_de <- p_de + ylab("Twitches in presentation")
+p_de <- p_de + xlab("presentation number")
+p_de<- p_de + ggtitle("D. ebracattus")
+p_de   
+
+### very variable, eh? should check that
+d1<- attn_whole_set[attn_whole_set$trial_name_2=="de_t_de", ]
+plot(d1$Bat_ID, d1$all_tw_set )
+#for Rra
+hist(d1$all_tw_set)
+
+#rra
+p_rra<-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="rra_rt_rra", ], aes(x = set_num, group=set_num , y = all_tw_set, fill=set_num))      
+p_rra <- p_rra + geom_boxplot()
+p_rra <- p_rra + ylab("Twitches in presentation")
+p_rra + xlab("presentation number")
+p_rra <- p_rra + xlab("presentation number")
+p_rra<- p_rra + labs("reversed R. alata")
+
+#ra
+#rra
+p_ra<-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="rra_rt_rra", ], aes(x = set_num, group=set_num , y = all_tw_set, fill=set_num))      
+p_ra <- p_ra + geom_boxplot()
+p_ra <- p_ra + ylab("Twitches in presentation")
+p_ra + xlab("presentation number")
+p_ra <- p_ra + xlab("presentation number")
+p_ra<- p_ra + labs("R. alata")
+
+#rt
