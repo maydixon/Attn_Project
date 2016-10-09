@@ -3,12 +3,6 @@
 #if trend is weird could look at only the first presentation for each stimulus type. particularly t and ts 
 #to do that could sort by treatment and then by trial number by hand, just take first one for dataset
 
-ERRORS FROM GITHUB: (COMMAND LINE)
-Marjories-gift:Attn_project_github maydixon$ git pull origin master
-From https://github.com/maydixon/Attn_Project
-* branch            master     -> FETCH_HEAD
-fatal: refusing to merge unrelated histories
-Marjories-gift:Attn_project_github maydixon$ 
       
 # I think my problems are solved?      
 #rename dataset here
@@ -951,4 +945,129 @@ multiplot(p...)
         p
         
         ## can i make a plot of boxplots for each trial type, all the way across trial?
-        attn_whole<-read.table("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attention_Rcopy_individuals_condensed.txt", header=TRUE, sep="/t")
+        attn_whole<-read.table("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attention_Rcopy_individuals_condensed.txt", sep="\t", header=TRUE)
+attn_whole <- subset(attn_whole, attn_whole$bat_name != "Blackbeard") 
+# want just one line for each "set"
+#pull partial string match  x.1 for call number using grep
+attn_whole_set <- attn_whole[grep(".1", attn_whole$call_num), ]
+
+library(ggplot2)
+
+#all treatments together, overall trend
+
+p_all<-ggplot(data=attn_whole_set, aes(x = set_num, group=set_num , y = all_tw_set, fill=set_num))      #
+p_all <- p_all + geom_boxplot()
+p_all <- p_all + ylab("Twitches in presentation")
+p_all <- p_all + xlab("presentation number")
+p_all <- p_all + ggtitle("All")
+p_all
+
+
+#making a plot for the entire of one treatment, with each set getting a boxplot
+#
+
+p_de <- ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="de_t_de", ], aes(x = set_num, group= set_num , y = all_tw_set, fill=set_num ))
+p_de <- p_de + geom_boxplot()
+p_de <- p_de + scale_fill_manual( values=c("#F966D5", "#F966D5", "#F966D5", "#F966D5", "#F966D5", "#C39921", "#F966D5")) #making opposing other color
+p_de <- p_de + ylab("Twitches in presentation")
+p_de <- p_de + xlab("presentation number")
+p_de <- p_de + labs(title="D. ebracattus / P. pustulosus")
+p_de   
+
+# try 2
+p_de <-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="de_t_de", ], aes(x = set_num, y = all_tw_set))      
+p_de <- p_de + geom_boxplot(aes(fill=factor(set_num)))
+p_de <- p_de + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+      scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                        values=c("#F966D5", "#F966D5", "#F966D5", "#F966D5", "#F966D5", "#C39921", "#F966D5"))
+p_de <- p_de + ylab("Twitches in presentation")
+p_de + xlab("presentation number")
+p_de <- p_de + xlab("presentation number")
+p_de<- p_de + labs(title = "P. pustulosus / D. ebracattus")
+p_de
+ #made using coloring advice from "http://stackoverflow.com/questions/10805643/ggplot2-add-color-to-boxplot-continuous-value-supplied-to-discrete-scale-er"
+
+
+
+### very variable, eh? should check that
+d1<- attn_whole_set[attn_whole_set$trial_name_2=="de_t_de", ]
+plot(d1$Bat_ID, d1$all_tw_set )
+#for Rra
+hist(d1$all_tw_set)
+
+#t_de
+p_t_de<-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="t_de_t", ], aes(x = set_num, group=set_num , y = all_tw_set, fill=set_num))      
+p_t_de <- p_t_de + geom_boxplot()
+p_t_de <- p_t_de + ylab("Twitches in presentation")
+p_t_de + xlab("presentation number")
+p_t_de <- p_t_de + xlab("presentation number")
+p_t_de<- p_t_de + labs(title = "P. pustulosus / D. ebracattus")
+p_t_de
+
+
+#rra
+
+p_rra<-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="rra_rt_rra", ], aes(x = set_num, group=set_num , y = all_tw_set, fill=set_num))      
+p_rra <- p_rra + geom_boxplot()
+p_rra <- p_rra + ylab("Twitches in presentation")
+p_rra + xlab("presentation number")
+p_rra <- p_rra + xlab("presentation number")
+p_rra<- p_rra + labs("reversed R. alata")
+
+#ra
+
+p_ra<-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="ra_t_ra", ], aes(x = set_num, group=set_num , y = all_tw_set, fill))      
+p_ra <- p_ra + geom_boxplot()
+p_ra <- p_ra + ylab("Twitches in presentation")
+p_ra + xlab("presentation number")
+p_ra <- p_ra + xlab("presentation number")
+p_ra<- p_ra + labs(title="R. alata / P. pustulosus")
+
+#t_ra
+p_t_ra<-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="t_ra_t", ], aes(x = set_num, group=set_num , y = all_tw_set, fill=set_num))      
+p_t_ra <- p_t_ra + geom_boxplot()
+p_t_ra <- p_t_ra + ylab("Twitches in presentation")
+p_t_ra + xlab("presentation number")
+p_t_ra <- p_t_ra + xlab("presentation number")
+p_t_ra<- p_t_ra + labs(title="P. pustulosus / R. alata")
+p_t_ra
+
+#rt
+
+p_rt<-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="rt_rra_rt", ], aes(x = set_num, group=set_num , y = all_tw_set, fill=set_num))      
+p_rt <- p_rt + geom_boxplot()
+p_rt <- p_rt + ylab("Twitches in presentation")
+p_rt + xlab("presentation number")
+p_rt <- p_rt + xlab("presentation number")
+p_rt<- p_rt + labs(title="Reversed P. pustulosus / Reversed R. alata")
+p_rt
+
+#tc
+p_tc<-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="tc_ts_tc", ], aes(x = set_num, group=set_num , y = all_tw_set, fill=set_num))      
+p_tc <- p_tc + geom_boxplot()
+p_tc <- p_tc + ylab("Twitches in presentation")
+p_tc + xlab("presentation number")
+p_tc <- p_tc + xlab("presentation number")
+p_tc<- p_tc + labs(title="3 chuck P. pustulosus / simple P. pustulosus")
+p_tc
+
+#ts
+
+p_ts<-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="ts_tc_ts", ], aes(x = set_num, group=set_num , y = all_tw_set, fill=set_num))      
+p_ts <- p_ts + geom_boxplot()
+p_ts <- p_ts + ylab("Twitches in presentation")
+p_ts + xlab("presentation number")
+p_ts <- p_ts + xlab("presentation number")
+p_ts<- p_ts + labs(title="Simple P. pustulosus / complex P. pustulosus")
+p_ts
+
+#tia_tib_tia
+p_tia<-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="tia_tib_tia", ], aes(x = set_num, group=set_num , y = all_tw_set, fill=set_num))      
+p_tia <- p_tia + geom_boxplot()
+p_tia <- p_tia + ylab("Twitches in presentation")
+p_tia + xlab("presentation number")
+p_tia <- p_tia + xlab("presentation number")
+p_tia<- p_tia + labs(title="Tungara individuals")
+p_tia
+
+multiplot(p_ra, p_t_ra, p_rra, p_rt, p_de, p_t_de, p_ts, p_tc, p_tia )
