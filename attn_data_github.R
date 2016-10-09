@@ -964,19 +964,11 @@ p_all
 
 
 #making a plot for the entire of one treatment, with each set getting a boxplot
-#
+#DE
 
-p_de <- ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="de_t_de", ], aes(x = set_num, group= set_num , y = all_tw_set, fill=set_num ))
-p_de <- p_de + geom_boxplot()
-p_de <- p_de + scale_fill_manual( values=c("#F966D5", "#F966D5", "#F966D5", "#F966D5", "#F966D5", "#C39921", "#F966D5")) #making opposing other color
-p_de <- p_de + ylab("Twitches in presentation")
-p_de <- p_de + xlab("presentation number")
-p_de <- p_de + labs(title="D. ebracattus / P. pustulosus")
-p_de   
-
-# try 2
 p_de <-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="de_t_de", ], aes(x = set_num, y = all_tw_set))      
 p_de <- p_de + geom_boxplot(aes(fill=factor(set_num)))
+p_de <- p_de + guides(fill=FALSE)
 p_de <- p_de + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
       scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
                         values=c("#F966D5", "#F966D5", "#F966D5", "#F966D5", "#F966D5", "#C39921", "#F966D5"))
@@ -996,8 +988,12 @@ plot(d1$Bat_ID, d1$all_tw_set )
 hist(d1$all_tw_set)
 
 #t_de
-p_t_de<-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="t_de_t", ], aes(x = set_num, group=set_num , y = all_tw_set, fill=set_num))      
-p_t_de <- p_t_de + geom_boxplot()
+p_t_de <-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="t_de_t", ], aes(x = set_num, y = all_tw_set))      
+p_t_de <- p_t_de + geom_boxplot(aes(fill=factor(set_num)))
+p_t_de <- p_t_de + guides(fill=FALSE)
+p_t_de <- p_t_de + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+      scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                        values=c( "#C39921", "#C39921", "#C39921", "#C39921", "#C39921", "#F966D5", "#C39921"))
 p_t_de <- p_t_de + ylab("Twitches in presentation")
 p_t_de + xlab("presentation number")
 p_t_de <- p_t_de + xlab("presentation number")
@@ -1007,25 +1003,38 @@ p_t_de
 
 #rra
 
-p_rra<-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="rra_rt_rra", ], aes(x = set_num, group=set_num , y = all_tw_set, fill=set_num))      
-p_rra <- p_rra + geom_boxplot()
+p_rra <-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="rra_rt_rra", ], aes(x = set_num, y = all_tw_set))      
+p_rra <- p_rra + geom_boxplot(aes(fill=factor(set_num)))
+p_rra <- p_rra + guides(fill=FALSE)
+p_rra <- p_rra + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+      scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                        values=c( "#1EB7E9","#1EB7E9", "#1EB7E9","#1EB7E9","#1EB7E9","#1EBF95","#1EB7E9" ))
 p_rra <- p_rra + ylab("Twitches in presentation")
 p_rra + xlab("presentation number")
 p_rra <- p_rra + xlab("presentation number")
-p_rra<- p_rra + labs("reversed R. alata")
+p_rra<- p_rra + labs("Reversed R. alata / Reversed P. pustulosus")
 
 #ra
 
-p_ra<-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="ra_t_ra", ], aes(x = set_num, group=set_num , y = all_tw_set, fill))      
-p_ra <- p_ra + geom_boxplot()
+p_ra <-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="ra_t_ra", ], aes(x = set_num, y = all_tw_set))      
+p_ra <- p_ra + geom_boxplot(aes(fill=factor(set_num)))
+p_ra <- p_ra + guides(fill=FALSE)
+p_ra <- p_ra + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+      scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                        values=c( "#A58DFC", "#A58DFC","#A58DFC","#A58DFC","#A58DFC", "#C39921", "#A58DFC" ))
 p_ra <- p_ra + ylab("Twitches in presentation")
 p_ra + xlab("presentation number")
 p_ra <- p_ra + xlab("presentation number")
 p_ra<- p_ra + labs(title="R. alata / P. pustulosus")
+p_ra
 
 #t_ra
-p_t_ra<-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="t_ra_t", ], aes(x = set_num, group=set_num , y = all_tw_set, fill=set_num))      
-p_t_ra <- p_t_ra + geom_boxplot()
+p_t_ra <-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="t_ra_t", ], aes(x = set_num, y = all_tw_set))      
+p_t_ra <- p_t_ra + geom_boxplot(aes(fill=factor(set_num)))
+p_t_ra <- p_t_ra + guides(fill=FALSE)
+p_t_ra <- p_t_ra + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+      scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                        values=c(  "#C39921", "#C39921", "#C39921", "#C39921", "#C39921","#A58DFC","#C39921" ))
 p_t_ra <- p_t_ra + ylab("Twitches in presentation")
 p_t_ra + xlab("presentation number")
 p_t_ra <- p_t_ra + xlab("presentation number")
@@ -1034,8 +1043,12 @@ p_t_ra
 
 #rt
 
-p_rt<-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="rt_rra_rt", ], aes(x = set_num, group=set_num , y = all_tw_set, fill=set_num))      
-p_rt <- p_rt + geom_boxplot()
+p_rt <-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="t_ra_t", ], aes(x = set_num, y = all_tw_set))      
+p_rt <- p_rt + geom_boxplot(aes(fill=factor(set_num)))
+p_rt <- p_rt + guides(fill=FALSE)
+p_rt <- p_rt + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+      scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                  values=c( "#1EBF95","#1EBF95", "#1EBF95", "#1EBF95", "#1EBF95","#1EB7E9", "#1EBF95" ))
 p_rt <- p_rt + ylab("Twitches in presentation")
 p_rt + xlab("presentation number")
 p_rt <- p_rt + xlab("presentation number")
@@ -1043,8 +1056,12 @@ p_rt<- p_rt + labs(title="Reversed P. pustulosus / Reversed R. alata")
 p_rt
 
 #tc
-p_tc<-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="tc_ts_tc", ], aes(x = set_num, group=set_num , y = all_tw_set, fill=set_num))      
-p_tc <- p_tc + geom_boxplot()
+p_tc <-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="tc_ts_tc", ], aes(x = set_num, y = all_tw_set))      
+p_tc <- p_tc + geom_boxplot(aes(fill=factor(set_num)))
+p_tc <- p_tc + guides(fill=FALSE)
+p_tc <- p_tc + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+      scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                        values=c( "#57B21F", "#57B21F","#57B21F","#57B21F","#57B21F", "#F67770", "#57B21F" ))
 p_tc <- p_tc + ylab("Twitches in presentation")
 p_tc + xlab("presentation number")
 p_tc <- p_tc + xlab("presentation number")
@@ -1053,21 +1070,29 @@ p_tc
 
 #ts
 
-p_ts<-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="ts_tc_ts", ], aes(x = set_num, group=set_num , y = all_tw_set, fill=set_num))      
-p_ts <- p_ts + geom_boxplot()
+p_ts <-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="ts_tc_ts", ], aes(x = set_num, y = all_tw_set))      
+p_ts <- p_ts + geom_boxplot(aes(fill=factor(set_num)))
+p_ts <- p_ts + guides(fill=FALSE)
+p_ts <- p_ts + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+      scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                        values=c("#F67770", "#F67770", "#F67770", "#F67770", "#F67770",  "#57B21F", "#F67770" ))
 p_ts <- p_ts + ylab("Twitches in presentation")
 p_ts + xlab("presentation number")
 p_ts <- p_ts + xlab("presentation number")
-p_ts<- p_ts + labs(title="Simple P. pustulosus / complex P. pustulosus")
+p_ts<- p_ts + labs(title="Simple P. pustulosus / 3 chuck P. pustulosus")
 p_ts
 
 #tia_tib_tia
-p_tia<-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="tia_tib_tia", ], aes(x = set_num, group=set_num , y = all_tw_set, fill=set_num))      
-p_tia <- p_tia + geom_boxplot()
+p_tia <-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="tia_tib_tia", ], aes(x = set_num, y = all_tw_set))      
+p_tia <- p_tia + geom_boxplot(aes(fill=factor(set_num)))
+p_tia <- p_tia + guides(fill=FALSE)
+p_tia <- p_tia + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+      scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                        values=c("#AD881D", "#AD881D","#AD881D","#AD881D","#AD881D", "#DEB339", "#AD881D" )) #using 2 tints of the standard yellow
 p_tia <- p_tia + ylab("Twitches in presentation")
 p_tia + xlab("presentation number")
 p_tia <- p_tia + xlab("presentation number")
-p_tia<- p_tia + labs(title="Tungara individuals")
+p_tia<- p_tia + labs(title="Tungara individuals contrast")
 p_tia
 
 multiplot(p_ra, p_t_ra, p_rra, p_rt, p_de, p_t_de, p_ts, p_tc, p_tia )
