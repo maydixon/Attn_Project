@@ -112,6 +112,10 @@ The code for this releveling is below, just in case you want to run it, otherwis
 
 ```{r, eval=FALSE}
 
+attn_habit_3$trial_name_2 <- relevel(attn_habit_3$trial_name_2,"de_t_de") #MAKE DE REFERENCE
+nlme_ra_ref<- lme(all_tw_call ~ call_num*trial_name_2, random = list(Bat_ID=~1 , trial_number= ~1), data= attn_habit_3)
+summary(nlme_ra_ref)
+
 attn_habit_3$trial_name_2 <- relevel(attn_habit_3$trial_name_2,"ra_t_ra") #MAKE RA REFERENCE
 nlme_ra_ref<- lme(all_tw_call ~ call_num*trial_name_2, random = list(Bat_ID=~1 , trial_number= ~1), data= attn_habit_3)
 summary(nlme_ra_ref)

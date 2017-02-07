@@ -1381,6 +1381,9 @@ p<- p + labs(x="Playback period", y="# Call rate (# of calls per 10 s)", title="
 #when deciding the shape of my repsponse variable, di I have to look at the distribution of the subgroups, or can I use the whole pop? (like if age-- 2 levels, should you look for normality of males and females?)
 #if something is a count, bit its pretty normal, is it kosher to use lm()
                         
+    
+
+                    
 =======
 attn_whole <- subset(attn_whole, attn_whole$bat_name != "Blackbeard") 
 # want just one line for each "set"
