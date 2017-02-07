@@ -1,6 +1,6 @@
 #analysis for attention project
 #T1termining initial interest
-#if trend is weird could look at only the first presentation for each stimulus type. particularly t and ts 
+#if strend is weird could look at only the first presentation for each stimulus type. particularly t and ts 
 #to do that could sort by treatment and then by trial number by hand, just take first one for dataset
 
       
@@ -403,9 +403,26 @@ summary(aov((attn_nob1_nob16$lg_tw_set+1 ~ attn_nob1_nob16$primary_stim))
         summary(nlme_int6)
         #for now I am going to just try to work on how to compare slopes between calls with relevel
         
+
+        #### Model selection: 
+        
+        1. Figure out which analysis is appropriate for my data.
+       
+        ```{r}
+        library(lme4)
+        glmer() #glm 
+        
+        ```
+        2. use one of the model selection things to figure out which terms to include. 
+        hist(log(attn_habit_3$all_tw_call))
+        #my data look much more poisson distributed than anything. Should really do a glm with a log link function
+        
+        
         #slope represents the change from prev level to next level, alphabetically. May I relevel first to call number? #why is call number alone positive?
         
         nlme_int3 <- lme(all_tw_call ~ call_num*trial_name_2, random = list(Bat_ID=~1 , trial_number= ~1), data= attn_habit_3) #later should specify this is de ref
+        
+        summary(nlme_int3)
         
         attn_habit_3$trial_name_2 <- relevel(attn_habit_3$trial_name_2,"ra_t_ra") #MAKE RA REFERENCE
         nlme_ra_ref<- lme(all_tw_call ~ call_num*trial_name_2, random = list(Bat_ID=~1 , trial_number= ~1), data= attn_habit_3)
@@ -944,155 +961,422 @@ multiplot(p...)
         p + xlab("Acoustic stimuli")
         p
         
+        
+        
+        
+        
+        # New habituation plots (boxplots)
+        
         ## can i make a plot of boxplots for each trial type, all the way across trial?
         attn_whole<-read.table("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attention_Rcopy_individuals_condensed.txt", sep="\t", header=TRUE)
+        attn_whole <- subset(attn_whole, attn_whole$bat_name != "Blackbeard") 
+        # want just one line for each "set"
+        #pull partial string match  x.1 for call number using grep
+        attn_whole_set <- attn_whole[grep(".1", attn_whole$call_num), ]
+        attn_whole_set1to5 <- subset(attn_whole_set, attn_whole_set$set_num != "6" & attn_whole_set$set_num != "7") #removing last 2 sets
+        library(ggplot2)
+        
+        #all treatments together, overall trend
+        
+        p_all<-ggplot(data=attn_whole_set_1to5, aes(x = set_num, group=set_num , y = all_tw_set, fill=set_num))      #
+        p_all <- p_all + geom_boxplot()
+        p_all <- p_all + ylab("Twitches in presentation")
+        p_all <- p_all + xlab("presentation number")
+        p_all <- p_all + ggtitle("All")
+        p_all
+        
+        
+        #making a plot for the entire of one treatment, with each set getting a boxplot
+        
+        #DE
+        de_data<- attn_whole_set_1to5[attn_whole_set_1to5$trial_name_2=="de_t_de", ]       
+        p_de <-ggplot(data=de_data, aes(x = set_num, y = all_tw_set))      
+        p_de <- p_de + geom_boxplot(aes(fill=factor(set_num)))
+        p_de <- p_de + guides(fill=FALSE)
+        p_de <- p_de + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c("#F966D5", "#F966D5", "#F966D5", "#F966D5", "#F966D5", "#C39921", "#F966D5"))
+        p_de <- p_de + ylab("Twitches in presentation")
+        p_de <- p_de + xlab("presentation number")
+        p_de<- p_de + labs(title = "D. ebraccatus / P. pustulosus")
+        p_de <- p_de + coord_cartesian(ylim = c(0, 25))
+        p_de <- p_de + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(de_data, de_data$set_num!="6" & de_data$set_num!="7")) 
+        p_de
+        #try<-subset(de_data, de_data$set_num!="6" & de_data$set_num!="7")
+        View(try)
+        #made using coloring advice from "http://stackoverflow.com/questions/10805643/ggplot2-add-color-to-boxplot-continuous-value-supplied-to-discrete-scale-er"
+        
+        
+        
+        
+        
+        ### very variable, eh? should check that
+        d1<- attn_whole_set_1to5[attn_whole_set_1to5$trial_name_2=="de_t_de", ]
+        plot(d1$Bat_ID, d1$all_tw_set )
+        #for Rra
+        hist(d1$all_tw_set)
+        
+        
+        #t_de
+        t_de_data <- attn_whole_set_1to5[attn_whole_set_1to5$trial_name_2=="t_de_t", ]
+        p_t_de <-ggplot(data=t_de_data, aes(x = set_num, y = all_tw_set))      
+        p_t_de <- p_t_de + geom_boxplot(aes(fill=factor(set_num)))
+        p_t_de <- p_t_de + guides(fill=FALSE)
+        p_t_de <- p_t_de + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c( "#C39921", "#C39921", "#C39921", "#C39921", "#C39921", "#F966D5", "#C39921"))
+        p_t_de <- p_t_de + ylab("Twitches in presentation")
+        p_t_de + xlab("presentation number")
+        p_t_de <- p_t_de + xlab("presentation number")
+        p_t_de<- p_t_de + labs(title = "P. pustulosus / D. ebraccatus")
+        p_t_de<- p_t_de + coord_cartesian(ylim = c(0, 25))
+        p_t_de <- p_t_de + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(t_de_data, t_de_data$set_num!="6" & t_de_data$set_num!="7")) 
+        p_t_de
+        
+        
+        #rra
+        rra_data<- attn_whole_set_1to5[attn_whole_set_1to5$trial_name_2=="rra_rt_rra", ]
+        p_rra <-ggplot(data=rra_data, aes(x = set_num, y = all_tw_set))      
+        p_rra <- p_rra + geom_boxplot(aes(fill=factor(set_num)))
+        p_rra <- p_rra + guides(fill=FALSE)
+        #P_rra<- p_rra + coord_cartesian(ylim = c(0, 20)
+        p_rra <- p_rra + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c( "#1EB7E9","#1EB7E9", "#1EB7E9","#1EB7E9","#1EB7E9","#1EBF95","#1EB7E9" ))
+        p_rra <- p_rra + ylab("Twitches in presentation")
+        p_rra + xlab("presentation number")
+        p_rra <- p_rra + xlab("presentation number")
+        p_rra<- p_rra + labs(title="Reversed R. alata / Reversed P. pustulosus")
+        p_rra<- p_rra  + coord_cartesian(ylim = c(0, 25))
+        p_rra <- p_rra + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(rra_data, rra_data$set_num!="6" & rra_data$set_num!="7")) 
+        p_rra
+        
+        
+        #ra
+        ra_data<- attn_whole_set_1to5[attn_whole_set_1to5$trial_name_2=="ra_t_ra", ]
+        p_ra <-ggplot(data=ra_data, aes(x = set_num, y = all_tw_set))      
+        p_ra <- p_ra + geom_boxplot(aes(fill=factor(set_num)))
+        p_ra <- p_ra + guides(fill=FALSE)
+        p_ra <- p_ra + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c( "#A58DFC", "#A58DFC","#A58DFC","#A58DFC","#A58DFC", "#C39921", "#A58DFC" ))
+        p_ra <- p_ra + ylab("Twitches in presentation")
+        p_ra + xlab("presentation number")
+        p_ra <- p_ra + xlab("presentation number")
+        p_ra<- p_ra + labs(title="R. alata / P. pustulosus")
+        p_ra<- p_ra + coord_cartesian(ylim = c(0, 25)) #sets y limit
+        p_ra <- p_ra + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(ra_data, ra_data$set_num!="6" & ra_data$set_num!="7")) 
+        
+        p_ra
+        
+        
+        
+        #t_ra
+        t_ra_data <- attn_whole_set_1to5[attn_whole_set_1to5$trial_name_2=="t_ra_t", ]
+        p_t_ra <-ggplot(data=t_ra_data, aes(x = set_num, y = all_tw_set))      
+        p_t_ra <- p_t_ra + geom_boxplot(aes(fill=factor(set_num)))
+        p_t_ra <- p_t_ra + guides(fill=FALSE)
+        p_t_ra <- p_t_ra + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c(  "#C39921", "#C39921", "#C39921", "#C39921", "#C39921","#A58DFC","#C39921" ))
+        p_t_ra <- p_t_ra + ylab("Twitches in presentation")
+        p_t_ra + xlab("presentation number")
+        p_t_ra <- p_t_ra + xlab("presentation number")
+        p_t_ra<- p_t_ra + labs(title="P. pustulosus / R. alata")
+        p_t_ra<- p_t_ra + coord_cartesian(ylim = c(0, 25)) #sets y limit
+        p_t_ra <- p_t_ra + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(t_ra_data, t_ra_data$set_num!="6" & t_ra_data$set_num!="7")) 
+        p_t_ra
+        
+        #rt
+        rt_data<- attn_whole_set_1to5[attn_whole_set_1to5$trial_name_2=="t_ra_t", ]
+        p_rt <-ggplot(data=rt_data, aes(x = set_num, y = all_tw_set))      
+        p_rt <- p_rt + geom_boxplot(aes(fill=factor(set_num)))
+        p_rt <- p_rt + guides(fill=FALSE)
+        p_rt <- p_rt + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c( "#1EBF95","#1EBF95", "#1EBF95", "#1EBF95", "#1EBF95","#1EB7E9", "#1EBF95" ))
+        p_rt <- p_rt + ylab("Twitches in presentation")
+        p_rt + xlab("presentation number")
+        p_rt <- p_rt + xlab("presentation number")
+        p_rt<- p_rt + labs(title="Reversed P. pustulosus / Reversed R. alata")
+        p_rt<- p_rt + coord_cartesian(ylim = c(0, 25)) #sets y limit
+        p_rt <- p_rt + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(rt_data, rt_data$set_num!="6" & rt_data$set_num!="7")) 
+        p_rt
+        
+        
+        #tc
+        tc_data<- attn_whole_set_1to5[attn_whole_set_1to5$trial_name_2=="tc_ts_tc", ]
+        p_tc <-ggplot(data=tc_data, aes(x = set_num, y = all_tw_set))      
+        p_tc <- p_tc + geom_boxplot(aes(fill=factor(set_num)))
+        p_tc <- p_tc + guides(fill=FALSE)
+        p_tc <- p_tc + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c( "#57B21F", "#57B21F","#57B21F","#57B21F","#57B21F", "#F67770", "#57B21F" ))
+        p_tc <- p_tc + ylab("Twitches in presentation")
+        p_tc + xlab("presentation number")
+        p_tc <- p_tc + xlab("presentation number")
+        p_tc<- p_tc + labs(title="3 chuck P. pustulosus / simple P. pustulosus")
+        p_tc<- p_tc + coord_cartesian(ylim = c(0, 25)) #sets y limit
+        p_tc <- p_tc + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(tc_data, tc_data$set_num!="6" & tc_data$set_num!="7")) 
+        p_tc
+        
+        #ts
+        ts_data<- attn_whole_set_1to5[attn_whole_set_1to5$trial_name_2=="ts_tc_ts", ]
+        p_ts <-ggplot(data=ts_data, aes(x = set_num, y = all_tw_set))      
+        p_ts <- p_ts + geom_boxplot(aes(fill=factor(set_num)))
+        p_ts <- p_ts + guides(fill=FALSE)
+        p_ts <- p_ts + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c("#F67770", "#F67770", "#F67770", "#F67770", "#F67770",  "#57B21F", "#F67770" ))
+        p_ts <- p_ts + ylab("Twitches in presentation")
+        p_ts + xlab("presentation number")
+        p_ts <- p_ts + xlab("presentation number")
+        p_ts<- p_ts + labs(title="Simple P. pustulosus / 3 chuck P. pustulosus")
+        p_ts<- p_ts + coord_cartesian(ylim = c(0, 25)) #sets y limit
+        p_ts <- p_ts + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(ts_data, ts_data$set_num!="6" & ts_data$set_num!="7")) 
+        p_ts
+        
+        #tia_tib_tia
+        tia_data <- attn_whole_set_1to5[attn_whole_set_1to5$trial_name_2=="tia_tib_tia", ]
+        p_tia <-ggplot(data=tia_data, aes(x = set_num, y = all_tw_set))      
+        p_tia <- p_tia + geom_boxplot(aes(fill=factor(set_num)))
+        p_tia <- p_tia + guides(fill=FALSE)
+        p_tia <- p_tia + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c("#AD881D", "#AD881D","#AD881D","#AD881D","#AD881D", "#DEB339", "#AD881D" )) #using 2 tints of the standard yellow
+        p_tia <- p_tia + ylab("Twitches in presentation")
+        p_tia + xlab("presentation number")
+        p_tia <- p_tia + xlab("presentation number")
+        p_tia<- p_tia + labs(title="Tungara individuals contrast")
+        p_tia<- p_tia + coord_cartesian(ylim = c(0, 25)) #sets y limit
+        p_tia <- p_tia + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(tia_data, tia_data$set_num!="6" & tia_data$set_num!="7"))
+        p_tia
+        
+        multiplot(p_ra, p_t_ra, p_rra, p_rt, p_de, p_t_de, p_ts, p_tc, p_tia )
+        
+        
+        
+        ## curve
+        habit_curve <- curve(1/x
+        )      
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+       #///////////////////////////// 
+## can i make a plot of boxplots for each trial type, all the way across trial?
+attn_whole<-read.table("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attention_Rcopy_individuals_condensed.txt", sep="\t", header=TRUE)
 attn_whole <- subset(attn_whole, attn_whole$bat_name != "Blackbeard") 
-# want just one line for each "set"
-#pull partial string match  x.1 for call number using grep
+ # want just one line for each "set"
+ #pull partial string match  x.1 for call number using grep
 attn_whole_set <- attn_whole[grep(".1", attn_whole$call_num), ]
-
-library(ggplot2)
-
-#all treatments together, overall trend
-
-p_all<-ggplot(data=attn_whole_set, aes(x = set_num, group=set_num , y = all_tw_set, fill=set_num))      #
-p_all <- p_all + geom_boxplot()
-p_all <- p_all + ylab("Twitches in presentation")
-p_all <- p_all + xlab("presentation number")
+        
+        library(ggplot2)
+        
+        #all treatments together, overall trend
+        
+ p_all<-ggplot(data=attn_whole_set, aes(x = set_num, group=set_num , y = all_tw_set, fill=set_num))      #
+  p_all <- p_all + geom_boxplot()
+ p_all <- p_all + ylab("Twitches in presentation")
+ p_all <- p_all + xlab("presentation number")
 p_all <- p_all + ggtitle("All")
 p_all
+        
+        
+ #making a plot for the entire of one treatment, with each set getting a boxplot
 
-
-#making a plot for the entire of one treatment, with each set getting a boxplot
 #DE
-
-p_de <-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="de_t_de", ], aes(x = set_num, y = all_tw_set))      
-p_de <- p_de + geom_boxplot(aes(fill=factor(set_num)))
-p_de <- p_de + guides(fill=FALSE)
-p_de <- p_de + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+de_data<- attn_whole_set[attn_whole_set$trial_name_2=="de_t_de", ]       
+p_de <-ggplot(data=de_data, aes(x = set_num, y = all_tw_set)      
+ p_de <- p_de + geom_boxplot(aes(fill=factor(set_num)))
+ p_de <- p_de + guides(fill=FALSE)
+ p_de <- p_de + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
       scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
-                        values=c("#F966D5", "#F966D5", "#F966D5", "#F966D5", "#F966D5", "#C39921", "#F966D5"))
-p_de <- p_de + ylab("Twitches in presentation")
-p_de + xlab("presentation number")
+      values=c("#F966D5", "#F966D5", "#F966D5", "#F966D5", "#F966D5", "#C39921", "#F966D5"))
+ p_de <- p_de + ylab("Twitches in presentation")
 p_de <- p_de + xlab("presentation number")
-p_de<- p_de + labs(title = "P. pustulosus / D. ebracattus")
+p_de<- p_de + labs(title = "D. ebraccatus / P. pustulosus")
+p_de <- p_de + coord_cartesian(ylim = c(0, 25))
+p_de <- p_de + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(de_data, de_data$set_num!="6" & de_data$set_num!="7")) 
 p_de
- #made using coloring advice from "http://stackoverflow.com/questions/10805643/ggplot2-add-color-to-boxplot-continuous-value-supplied-to-discrete-scale-er"
+#try<-subset(de_data, de_data$set_num!="6" & de_data$set_num!="7")
+View(try)
+                        #made using coloring advice from "http://stackoverflow.com/questions/10805643/ggplot2-add-color-to-boxplot-continuous-value-supplied-to-discrete-scale-er"
+                        
+                        
+                        
+                       
+                        
+  ### very variable, eh? should check that
+                        d1<- attn_whole_set[attn_whole_set$trial_name_2=="de_t_de", ]
+                        plot(d1$Bat_ID, d1$all_tw_set )
+                        #for Rra
+                        hist(d1$all_tw_set)
+                        
+
+                        #t_de
+                        t_de_data <- attn_whole_set[attn_whole_set$trial_name_2=="t_de_t", ]
+                        p_t_de <-ggplot(data=t_de_data, aes(x = set_num, y = all_tw_set))      
+                        p_t_de <- p_t_de + geom_boxplot(aes(fill=factor(set_num)))
+                        p_t_de <- p_t_de + guides(fill=FALSE)
+                        p_t_de <- p_t_de + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+                              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                                values=c( "#C39921", "#C39921", "#C39921", "#C39921", "#C39921", "#F966D5", "#C39921"))
+                        p_t_de <- p_t_de + ylab("Twitches in presentation")
+                        p_t_de + xlab("presentation number")
+                        p_t_de <- p_t_de + xlab("presentation number")
+                        p_t_de<- p_t_de + labs(title = "P. pustulosus / D. ebraccatus")
+                        p_t_de<- p_t_de + coord_cartesian(ylim = c(0, 25))
+                        p_t_de <- p_t_de + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(t_de_data, t_de_data$set_num!="6" & t_de_data$set_num!="7")) 
+                        p_t_de
+                        
+                        
+                        #rra
+                        rra_data<- attn_whole_set[attn_whole_set$trial_name_2=="rra_rt_rra", ]
+                        p_rra <-ggplot(data=rra_data, aes(x = set_num, y = all_tw_set))      
+                        p_rra <- p_rra + geom_boxplot(aes(fill=factor(set_num)))
+                        p_rra <- p_rra + guides(fill=FALSE)
+                        #P_rra<- p_rra + coord_cartesian(ylim = c(0, 20)
+                        p_rra <- p_rra + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+                              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                                values=c( "#1EB7E9","#1EB7E9", "#1EB7E9","#1EB7E9","#1EB7E9","#1EBF95","#1EB7E9" ))
+                        p_rra <- p_rra + ylab("Twitches in presentation")
+                        p_rra + xlab("presentation number")
+                        p_rra <- p_rra + xlab("presentation number")
+                       p_rra<- p_rra + labs(title="Reversed R. alata / Reversed P. pustulosus")
+                       p_rra<- p_rra  + coord_cartesian(ylim = c(0, 25))
+                       p_rra <- p_rra + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(rra_data, rra_data$set_num!="6" & rra_data$set_num!="7")) 
+                       p_rra
+
+                       
+ #ra
+                        ra_data<- attn_whole_set[attn_whole_set$trial_name_2=="ra_t_ra", ]
+                        p_ra <-ggplot(data=ra_data, aes(x = set_num, y = all_tw_set))      
+                        p_ra <- p_ra + geom_boxplot(aes(fill=factor(set_num)))
+                        p_ra <- p_ra + guides(fill=FALSE)
+                        p_ra <- p_ra + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+                              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                                values=c( "#A58DFC", "#A58DFC","#A58DFC","#A58DFC","#A58DFC", "#C39921", "#A58DFC" ))
+                        p_ra <- p_ra + ylab("Twitches in presentation")
+                        p_ra + xlab("presentation number")
+                        p_ra <- p_ra + xlab("presentation number")
+                        p_ra<- p_ra + labs(title="R. alata / P. pustulosus")
+                        p_ra<- p_ra + coord_cartesian(ylim = c(0, 25)) #sets y limit
+                        p_ra <- p_ra + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(ra_data, ra_data$set_num!="6" & ra_data$set_num!="7")) 
+                        
+                         p_ra
+                        
+                        
+                        
+                        #t_ra
+                         t_ra_data <- attn_whole_set[attn_whole_set$trial_name_2=="t_ra_t", ]
+                        p_t_ra <-ggplot(data=t_ra_data, aes(x = set_num, y = all_tw_set))      
+                        p_t_ra <- p_t_ra + geom_boxplot(aes(fill=factor(set_num)))
+                        p_t_ra <- p_t_ra + guides(fill=FALSE)
+                        p_t_ra <- p_t_ra + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+                              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                                values=c(  "#C39921", "#C39921", "#C39921", "#C39921", "#C39921","#A58DFC","#C39921" ))
+                        p_t_ra <- p_t_ra + ylab("Twitches in presentation")
+                        p_t_ra + xlab("presentation number")
+                        p_t_ra <- p_t_ra + xlab("presentation number")
+                        p_t_ra<- p_t_ra + labs(title="P. pustulosus / R. alata")
+                        p_t_ra<- p_t_ra + coord_cartesian(ylim = c(0, 25)) #sets y limit
+                        p_t_ra <- p_t_ra + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(t_ra_data, t_ra_data$set_num!="6" & t_ra_data$set_num!="7")) 
+                        p_t_ra
+                        
+            #rt
+                        rt_data<- attn_whole_set[attn_whole_set$trial_name_2=="t_ra_t", ]
+                        p_rt <-ggplot(data=rt_data, aes(x = set_num, y = all_tw_set))      
+                        p_rt <- p_rt + geom_boxplot(aes(fill=factor(set_num)))
+                        p_rt <- p_rt + guides(fill=FALSE)
+                        p_rt <- p_rt + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+                              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                                values=c( "#1EBF95","#1EBF95", "#1EBF95", "#1EBF95", "#1EBF95","#1EB7E9", "#1EBF95" ))
+                        p_rt <- p_rt + ylab("Twitches in presentation")
+                        p_rt + xlab("presentation number")
+                        p_rt <- p_rt + xlab("presentation number")
+                        p_rt<- p_rt + labs(title="Reversed P. pustulosus / Reversed R. alata")
+                        p_rt<- p_rt + coord_cartesian(ylim = c(0, 25)) #sets y limit
+                        p_rt <- p_rt + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(rt_data, rt_data$set_num!="6" & rt_data$set_num!="7")) 
+                        p_rt
+                        
+                        
+                        #tc
+                        tc_data<- attn_whole_set[attn_whole_set$trial_name_2=="tc_ts_tc", ]
+                        p_tc <-ggplot(data=tc_data, aes(x = set_num, y = all_tw_set))      
+                        p_tc <- p_tc + geom_boxplot(aes(fill=factor(set_num)))
+                        p_tc <- p_tc + guides(fill=FALSE)
+                        p_tc <- p_tc + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+                              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                                values=c( "#57B21F", "#57B21F","#57B21F","#57B21F","#57B21F", "#F67770", "#57B21F" ))
+                        p_tc <- p_tc + ylab("Twitches in presentation")
+                        p_tc + xlab("presentation number")
+                        p_tc <- p_tc + xlab("presentation number")
+                        p_tc<- p_tc + labs(title="3 chuck P. pustulosus / simple P. pustulosus")
+                        p_tc<- p_tc + coord_cartesian(ylim = c(0, 25)) #sets y limit
+                        p_tc <- p_tc + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(tc_data, tc_data$set_num!="6" & tc_data$set_num!="7")) 
+                        p_tc
+                        
+                        #ts
+                        ts_data<- attn_whole_set[attn_whole_set$trial_name_2=="ts_tc_ts", ]
+                        p_ts <-ggplot(data=ts_data, aes(x = set_num, y = all_tw_set))      
+                        p_ts <- p_ts + geom_boxplot(aes(fill=factor(set_num)))
+                        p_ts <- p_ts + guides(fill=FALSE)
+                        p_ts <- p_ts + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+                              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                                values=c("#F67770", "#F67770", "#F67770", "#F67770", "#F67770",  "#57B21F", "#F67770" ))
+                        p_ts <- p_ts + ylab("Twitches in presentation")
+                        p_ts + xlab("presentation number")
+                        p_ts <- p_ts + xlab("presentation number")
+                        p_ts<- p_ts + labs(title="Simple P. pustulosus / 3 chuck P. pustulosus")
+                        p_ts<- p_ts + coord_cartesian(ylim = c(0, 25)) #sets y limit
+                        p_ts <- p_ts + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(ts_data, ts_data$set_num!="6" & ts_data$set_num!="7")) 
+                        p_ts
+                        
+                        #tia_tib_tia
+                        tia_data <- attn_whole_set[attn_whole_set$trial_name_2=="tia_tib_tia", ]
+                        p_tia <-ggplot(data=tia_data, aes(x = set_num, y = all_tw_set))      
+                        p_tia <- p_tia + geom_boxplot(aes(fill=factor(set_num)))
+                        p_tia <- p_tia + guides(fill=FALSE)
+                        p_tia <- p_tia + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+                              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                                values=c("#AD881D", "#AD881D","#AD881D","#AD881D","#AD881D", "#DEB339", "#AD881D" )) #using 2 tints of the standard yellow
+                        p_tia <- p_tia + ylab("Twitches in presentation")
+                        p_tia + xlab("presentation number")
+                        p_tia <- p_tia + xlab("presentation number")
+                        p_tia<- p_tia + labs(title="Tungara individuals contrast")
+                        p_tia<- p_tia + coord_cartesian(ylim = c(0, 25)) #sets y limit
+                        p_tia <- p_tia + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(tia_data, tia_data$set_num!="6" & tia_data$set_num!="7"))
+                        p_tia
+                        
+                        multiplot(p_ra, p_t_ra, p_rra, p_rt, p_de, p_t_de, p_ts, p_tc, p_tia )
+                       
+                        
+                        
+## curve
+habit_curve <- curve(1/x
+                     )
+### sample code for doing the discrimination. 
+
+p<- ggplot(data=bat_m_voc, aes(x=variable, y=value))
+p<- p + geom_boxplot(aes(fill=factor(variable)))
+p<- p + guides(fill=FALSE)
+p<- p + scale_x_discrete( breaks = c("vocal.first", "vocal.mid", "vocal.last", "vocal.test", "vocal.post", "vocal.last.post")) +
+      scale_fill_manual( values=c("darkslategray4", "darkslategray4","darkslategray4","darkseagreen4","darkslategray4", "darkslategray4"  ))
+p<- p + labs(x="Playback period", y="# Call rate (# of calls per 10 s)", title="Vocal responses to periods of a habituation-discrimination playback sequence")
 
 
-
-### very variable, eh? should check that
-d1<- attn_whole_set[attn_whole_set$trial_name_2=="de_t_de", ]
-plot(d1$Bat_ID, d1$all_tw_set )
-#for Rra
-hist(d1$all_tw_set)
-
-#t_de
-p_t_de <-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="t_de_t", ], aes(x = set_num, y = all_tw_set))      
-p_t_de <- p_t_de + geom_boxplot(aes(fill=factor(set_num)))
-p_t_de <- p_t_de + guides(fill=FALSE)
-p_t_de <- p_t_de + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
-      scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
-                        values=c( "#C39921", "#C39921", "#C39921", "#C39921", "#C39921", "#F966D5", "#C39921"))
-p_t_de <- p_t_de + ylab("Twitches in presentation")
-p_t_de + xlab("presentation number")
-p_t_de <- p_t_de + xlab("presentation number")
-p_t_de<- p_t_de + labs(title = "P. pustulosus / D. ebracattus")
-p_t_de
-
-
-#rra
-
-p_rra <-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="rra_rt_rra", ], aes(x = set_num, y = all_tw_set))      
-p_rra <- p_rra + geom_boxplot(aes(fill=factor(set_num)))
-p_rra <- p_rra + guides(fill=FALSE)
-p_rra <- p_rra + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
-      scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
-                        values=c( "#1EB7E9","#1EB7E9", "#1EB7E9","#1EB7E9","#1EB7E9","#1EBF95","#1EB7E9" ))
-p_rra <- p_rra + ylab("Twitches in presentation")
-p_rra + xlab("presentation number")
-p_rra <- p_rra + xlab("presentation number")
-p_rra<- p_rra + labs("Reversed R. alata / Reversed P. pustulosus")
-
-#ra
-
-p_ra <-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="ra_t_ra", ], aes(x = set_num, y = all_tw_set))      
-p_ra <- p_ra + geom_boxplot(aes(fill=factor(set_num)))
-p_ra <- p_ra + guides(fill=FALSE)
-p_ra <- p_ra + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
-      scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
-                        values=c( "#A58DFC", "#A58DFC","#A58DFC","#A58DFC","#A58DFC", "#C39921", "#A58DFC" ))
-p_ra <- p_ra + ylab("Twitches in presentation")
-p_ra + xlab("presentation number")
-p_ra <- p_ra + xlab("presentation number")
-p_ra<- p_ra + labs(title="R. alata / P. pustulosus")
-p_ra
-
-#t_ra
-p_t_ra <-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="t_ra_t", ], aes(x = set_num, y = all_tw_set))      
-p_t_ra <- p_t_ra + geom_boxplot(aes(fill=factor(set_num)))
-p_t_ra <- p_t_ra + guides(fill=FALSE)
-p_t_ra <- p_t_ra + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
-      scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
-                        values=c(  "#C39921", "#C39921", "#C39921", "#C39921", "#C39921","#A58DFC","#C39921" ))
-p_t_ra <- p_t_ra + ylab("Twitches in presentation")
-p_t_ra + xlab("presentation number")
-p_t_ra <- p_t_ra + xlab("presentation number")
-p_t_ra<- p_t_ra + labs(title="P. pustulosus / R. alata")
-p_t_ra
-
-#rt
-
-p_rt <-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="t_ra_t", ], aes(x = set_num, y = all_tw_set))      
-p_rt <- p_rt + geom_boxplot(aes(fill=factor(set_num)))
-p_rt <- p_rt + guides(fill=FALSE)
-p_rt <- p_rt + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
-      scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
-                  values=c( "#1EBF95","#1EBF95", "#1EBF95", "#1EBF95", "#1EBF95","#1EB7E9", "#1EBF95" ))
-p_rt <- p_rt + ylab("Twitches in presentation")
-p_rt + xlab("presentation number")
-p_rt <- p_rt + xlab("presentation number")
-p_rt<- p_rt + labs(title="Reversed P. pustulosus / Reversed R. alata")
-p_rt
-
-#tc
-p_tc <-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="tc_ts_tc", ], aes(x = set_num, y = all_tw_set))      
-p_tc <- p_tc + geom_boxplot(aes(fill=factor(set_num)))
-p_tc <- p_tc + guides(fill=FALSE)
-p_tc <- p_tc + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
-      scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
-                        values=c( "#57B21F", "#57B21F","#57B21F","#57B21F","#57B21F", "#F67770", "#57B21F" ))
-p_tc <- p_tc + ylab("Twitches in presentation")
-p_tc + xlab("presentation number")
-p_tc <- p_tc + xlab("presentation number")
-p_tc<- p_tc + labs(title="3 chuck P. pustulosus / simple P. pustulosus")
-p_tc
-
-#ts
-
-p_ts <-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="ts_tc_ts", ], aes(x = set_num, y = all_tw_set))      
-p_ts <- p_ts + geom_boxplot(aes(fill=factor(set_num)))
-p_ts <- p_ts + guides(fill=FALSE)
-p_ts <- p_ts + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
-      scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
-                        values=c("#F67770", "#F67770", "#F67770", "#F67770", "#F67770",  "#57B21F", "#F67770" ))
-p_ts <- p_ts + ylab("Twitches in presentation")
-p_ts + xlab("presentation number")
-p_ts <- p_ts + xlab("presentation number")
-p_ts<- p_ts + labs(title="Simple P. pustulosus / 3 chuck P. pustulosus")
-p_ts
-
-#tia_tib_tia
-p_tia <-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="tia_tib_tia", ], aes(x = set_num, y = all_tw_set))      
-p_tia <- p_tia + geom_boxplot(aes(fill=factor(set_num)))
-p_tia <- p_tia + guides(fill=FALSE)
-p_tia <- p_tia + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
-      scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
-                        values=c("#AD881D", "#AD881D","#AD881D","#AD881D","#AD881D", "#DEB339", "#AD881D" )) #using 2 tints of the standard yellow
-p_tia <- p_tia + ylab("Twitches in presentation")
-p_tia + xlab("presentation number")
-p_tia <- p_tia + xlab("presentation number")
-p_tia<- p_tia + labs(title="Tungara individuals contrast")
-p_tia
-
-multiplot(p_ra, p_t_ra, p_rra, p_rt, p_de, p_t_de, p_ts, p_tc, p_tia )
+##I should probably have used glm rather than lme
+#when deciding the shape of my repsponse variable, di I have to look at the distribution of the subgroups, or can I use the whole pop? (like if age-- 2 levels, should you look for normality of males and females?)
+#if something is a count, bit its pretty normal, is it kosher to use lm()
+                        
