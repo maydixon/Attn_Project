@@ -969,6 +969,7 @@ multiplot(p...)
         
         ## can i make a plot of boxplots for each trial type, all the way across trial?
         attn_whole<-read.table("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attention_Rcopy_individuals_condensed.txt", sep="\t", header=TRUE)
+<<<<<<< HEAD
         attn_whole <- subset(attn_whole, attn_whole$bat_name != "Blackbeard") 
         # want just one line for each "set"
         #pull partial string match  x.1 for call number using grep
@@ -1380,3 +1381,55 @@ p<- p + labs(x="Playback period", y="# Call rate (# of calls per 10 s)", title="
 #when deciding the shape of my repsponse variable, di I have to look at the distribution of the subgroups, or can I use the whole pop? (like if age-- 2 levels, should you look for normality of males and females?)
 #if something is a count, bit its pretty normal, is it kosher to use lm()
                         
+=======
+attn_whole <- subset(attn_whole, attn_whole$bat_name != "Blackbeard") 
+# want just one line for each "set"
+#pull partial string match  x.1 for call number using grep
+attn_whole_set <- attn_whole[grep(".1", attn_whole$call_num), ]
+
+library(ggplot2)
+
+#all treatments together, overall trend
+
+p_all<-ggplot(data=attn_whole_set, aes(x = set_num, group=set_num , y = all_tw_set, fill=set_num))      #
+p_all <- p_all + geom_boxplot()
+p_all <- p_all + ylab("Twitches in presentation")
+p_all <- p_all + xlab("presentation number")
+p_all <- p_all + ggtitle("All")
+p_all
+
+
+#making a plot for the entire of one treatment, with each set getting a boxplot
+
+p_de<-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="de_t_de", ], aes(x = set_num, group=set_num , y = all_tw_set, fill=set_num))      #
+p_de <- p_de + geom_boxplot()
+p_de <- p_de + ylab("Twitches in presentation")
+p_de <- p_de + xlab("presentation number")
+p_de<- p_de + ggtitle("D. ebracattus")
+p_de   
+
+### very variable, eh? should check that
+d1<- attn_whole_set[attn_whole_set$trial_name_2=="de_t_de", ]
+plot(d1$Bat_ID, d1$all_tw_set )
+#for Rra
+hist(d1$all_tw_set)
+
+#rra
+p_rra<-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="rra_rt_rra", ], aes(x = set_num, group=set_num , y = all_tw_set, fill=set_num))      
+p_rra <- p_rra + geom_boxplot()
+p_rra <- p_rra + ylab("Twitches in presentation")
+p_rra + xlab("presentation number")
+p_rra <- p_rra + xlab("presentation number")
+p_rra<- p_rra + labs("reversed R. alata")
+
+#ra
+#rra
+p_ra<-ggplot(data=attn_whole_set[attn_whole_set$trial_name_2=="rra_rt_rra", ], aes(x = set_num, group=set_num , y = all_tw_set, fill=set_num))      
+p_ra <- p_ra + geom_boxplot()
+p_ra <- p_ra + ylab("Twitches in presentation")
+p_ra + xlab("presentation number")
+p_ra <- p_ra + xlab("presentation number")
+p_ra<- p_ra + labs("R. alata")
+
+#rt
+>>>>>>> 746aa6736335b4ee428a833e34567497197c1bff
