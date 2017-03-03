@@ -2,124 +2,44 @@
 title: "Attn_habituation_glm"
 author: "May Dixon"
 date: "September 21, 2016"
-output: html_document
+output:
+  html_document:
+    toc: true
+    toc_float: true
 ---
-trying to push....
+
 ## Three main sections
 *initial preference*
 *rates of habituation*
 *discrimination*
 
-## Initial interest
-In this section we are assessing which treatments had the highest initial responses (the most twitches in the first "set" of calls for each treatment per bat)
 
-Some results using glm (general linear modelling):
- W/ logged data, from greatest response to least response:
-     - Rra mean/sd: 2.2234920 0.2420203, significantly greater than De (0.0205), RRa (p=0.0773)
-     - T mean/sd: 1.9824794 0.2325272, not different than anything
-   - Tc mean/sd: 1.9764097 0.2325272, not different than anything
-   - Ra mean/sd: 1.6645485 0.2420203, barely significantly different from Rra (p=0.0773)
- 
-   - Rt mean/sd: 1.6540395 0.2420203, almost significantly smaller than Rra (0.0720)
-   - Ts mean/sd: 1.5010945 0.2325272, significant;y less than rra (0.0211)
-    - De mean/sd: 1.4977549 0.2325272, only significantly different than Rra (p=0.0205)
-    
-    The data (line 817 in original): 
+
+# Initial interest
+In this section we are assessing which treatments had the highest initial responses (the most twitches in the first "set" of calls for each treatment per bat)
+\
+
+
+## Initital interest  with generalized linear mixed model (log-linked)
+load these libraries: 
+
+```{r, echo=TRUE}
+library(lme4)
+library(ggplot2)
+```
 ```{r}
- attn_int_2 <- read.table("/Users/maydixon/Dropbox/Attention Project/R/attn_for_initial_interest.txt", header=TRUE)
-        View(attn_int_2)
-        initial_int_1 <-  lme(all_tw_set ~ trial_name_2, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
-        summary(initial_int_1)
-        levels(attn_set$trial_name_2)
-        
-        
-#initial interest with and without logged data
-        # running LME with and without logged data
-        # using relevel to find the true value (intercept) for each variable, and what is significantly different from each variable. 
-        
-         #without:
-        attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"De") #MAKE DE REFERENCE
-        nlme_int_rra_ref<- lme(all_tw_set ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), na.action=na.exclude, data = attn_int_2)
-        summary(nlme_int_rra_ref)
-        #De is only significantly different than rra (lower)
-        attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"Ra") #MAKE RA REFERENCE
-        
-        nlme_int_ra_ref<- nlme_int_rra_ref<- lme(all_tw_set ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
-        summary(nlme_int_ra_ref)
-        
-        attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"Rra") #MAKE RRA REFERENCE
-        nlme_int_rra_ref<- nlme_int_rra_ref<- lme(all_tw_set ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
-        summary(nlme_int_rra_ref)
-        
-        attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"Rt") #MAKE RT REFERENCE
-        nlme_int_rt_ref<- nlme_int_rra_ref<- lme(all_tw_set ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
-        summary(nlme_int_rt_ref)
-        
-        attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"T") #MAKE t_de REFERENCE
-        nlme_int_t_de_ref<- nlme_int_rra_ref<- lme(all_tw_set ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
-        summary(nlme_int_t_de_ref)
-        
-        attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"tc_ts_tc") #MAKE TC REFERENCE
-        nlme_int_tc_ref<- nlme_int_rra_ref<- lme(all_tw_set ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
-        summary(nlme_int_tc_ref)
-        
-        attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"ts_tc_ts") #MAKE ts REFERENCE
-        nlme_int_ts_ref<- nlme_int_rra_ref<- lme(all_tw_set ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
-        summary(nlme_int_ts_ref)
-        #
-        
-        #with logged data
-        
-        attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"De") #MAKE DE REFERENCE
-        
-        nlme_int_rra_ref<- lme(log(all_tw_set+1) ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), na.action=na.exclude, data = attn_int_2)
-        summary(nlme_int_rra_ref)
-        #De is only significantly different than rra (lower)
-        
-        attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"Ra") #MAKE RA REFERENCE
-        
-        nlme_int_ra_ref<- lme(log(all_tw_set+1) ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), na.action=na.exclude, data = attn_int_2)
-        summary(nlme_int_ra_ref)
-        
-        attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"Rra") #MAKE RRA REFERENCE
-        nlme_int_rra_ref<- lme(log(all_tw_set+1) ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
-        summary(nlme_int_rra_ref)
-        
-        attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"Rt") #MAKE RT REFERENCE
-        nlme_int_rt_ref<- lme(log(all_tw_set+1) ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
-        summary(nlme_int_rt_ref)
-        
-        attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"T") #MAKE T REFERENCE
-        nlme_int_t_ref<- nlme_int_rra_ref<- lme(log(all_tw_set+1) ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
-        summary(nlme_int_t_ref)
-        
-        attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"Tc") #MAKE TC REFERENCE
-        nlme_int_tc_ref<- nlme_int_rra_ref<- lme(log(all_tw_set+1) ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
-        summary(nlme_int_tc_ref)
-        
-        attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"Ts") #MAKE ts REFERENCE
-        nlme_int_ts_ref<- nlme_int_rra_ref<- lme(log(all_tw_set+1) ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
-        summary(nlme_int_ts_ref)
-        
-        #reordering for plotting: 
-        attn_int_2$first_stim <- factor(attn_int_2$first_stim,levels = c('De','Ra', 'Rra', "Rt", "Ts", "T", "Tc"),ordered = TRUE)
-        #perhaps best order is: Ts, T, Tc, Rt, Rra, Ra, De, can do using relevel() commands from above
+ attn_int_2 <- read.table("/Users/maydixon/Dropbox/Attention Project/R/attn_for_initial_interest.txt", header=TRUE) #local
+# OR
+ # attn_int_2<- read.table("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attn_for_initial_interest_2.7.17.txt", sep="\t", header=TRUE) #on github
+        head(attn_int_2)
 ```
 
-
-
-
-### OK, now redoing the above except with generalized linear mixed model (log-linked), which is more statistically appropriate
-
+## Model Selection
 ```{r}
-library(lme4)
-
- attn_int_2 <- read.table("/Users/maydixon/Dropbox/Attention Project/R/attn_for_initial_interest.txt", header=TRUE)
-        head(attn_int_2)
         
         # model: the number of initial twitches is explained by the playback type, with bat id and/ or trial # as a random effect:
         
-        initial_int_1 <- glmer(all_tw_set ~ first_stim + (trial_number|Bat_ID), family= "poisson", data = attn_int_2) #model with nested interaction effect
+        initial_int_1 <- glmer(all_tw_set ~ first_stim + (trial_number|Bat_ID), family= "poisson", data = attn_int_2) #model with nested interaction effect/ full model
       
        initial_int_2 <- glmer(all_tw_set ~ first_stim + (1|Bat_ID), family= "poisson", data = attn_int_2) #model with nested interaction effect #
         s_ii1 <- summary(initial_int_1)
@@ -131,13 +51,14 @@ library(lme4)
 ```
 So this model is best:  initial_int_1 <- glmer(all_tw_set ~ trial_name_2 + (trial_number|Bat_ID), family= "poisson", data = attn_int_2) 
    
+## Initial interest results
 ```{r}
         
 #continuing to run initial interest with glmer 
-        levels(attn_set$trial_name_2)
+        levels(attn_int_2$trial_name_2)
         initial_int_1 <- glmer(all_tw_set ~ first_stim + (trial_number|Bat_ID), family= "poisson", data = attn_int_2) #model with nested interaction effect
         
-# running glmer with and without logged data
+# running glmer 
 # using relevel to find the true value (intercept) for each variable, and what is significantly different from each variable. 
         
         
@@ -158,33 +79,48 @@ So this model is best:  initial_int_1 <- glmer(all_tw_set ~ trial_name_2 + (tria
         nlme_int_rt_ref<- glmer(all_tw_set ~ first_stim + (trial_number|Bat_ID), family= "poisson", data = attn_int_2)
         summary(nlme_int_rt_ref)
         
-        attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"T") #MAKE T REFERENCE
-        nlme_int_t_de_ref<- glmer(all_tw_set ~ first_stim + (trial_number|Bat_ID), family= "poisson", data = attn_int_2)
-        summary(nlme_int_t_de_ref)
-        
-        attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"TC") #MAKE TC REFERENCE
-        nlme_int_tc_ref<- glmer(all_tw_set ~ first_stim + (trial_number|Bat_ID), family= "poisson", data = attn_int_2)
-        summary(nlme_int_tc_ref)
-        
-        attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"TS") #MAKE ts REFERENCE
+        attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"Ts") #MAKE Ts REFERENCE
         nlme_int_ts_ref<- glmer(all_tw_set ~ first_stim + (trial_number|Bat_ID), family= "poisson", data = attn_int_2)
         summary(nlme_int_ts_ref)
+        
+        attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"T1c") #MAKE T1c REFERENCE
+        nlme_int_t1c_ref<- glmer(all_tw_set ~ first_stim + (trial_number|Bat_ID), family= "poisson", data = attn_int_2)
+        summary(nlme_int_t1c_ref)
+        
+        attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"T2c") #MAKE T2c REFERENCE
+        nlme_int_t2c_ref<- glmer(all_tw_set ~ first_stim + (trial_number|Bat_ID), family= "poisson", data = attn_int_2)
+        summary(nlme_int_t2c_ref)
         #
         
         
         #perhaps best order is: Ts, T, Tc, Rt, Rra, Ra, De, can do using relevel() commands from above
 ```
+This falls out into the following result: 
+
+| stim           | value_est |	sig_vals |
+| :--------------|-----------|------|
+| first_stimDe |	1.67581 |	a |
+| first_stimTs |	1.72707 |	a  |
+| first_stimT1c|	1.81813 |	a  |
+| first_stimRt |	1.83019 |	ab |
+| first_stimRa |	1.95817 |	ab |
+| first_stimT2c |	2.25382 |	bc |
+| first_stimRra |	2.61047 |	c |
 
 
+Wherein  *stim* are the treatments, *value_est* are the intercept levels- meaning the relative values for the numbers of twitches, and sig_vals denotes which stim are significant'y different, with treatments that are not significantly different sharing letters
+
+## Plotting initial interest
 Then plotting those data: 
 ```{r}
 library(plotly)
 library(nlme)
 library(lme4)
+attn_int_2 <- read.table("/Users/maydixon/Dropbox/Attention Project/R/attn_for_initial_interest.txt", header=TRUE) #local
 #code for above
- attn_int_2 <- read.table("/Users/maydixon/Dropbox/Attention Project/R/attn_for_initial_interest_w_na.rm.txt", header=TRUE)
+ #attn_int_2 <- read.table("/Users/maydixon/Dropbox/Attention Project/R/attn_for_initial_interest_w_na.rm.txt", header=TRUE)
     attn_int_2<-subset(attn_int_2, attn_int_2$bat_name != "Blackbeard") #removes unresponsive bat)
-    #find first time experiencing tungara (first), use that
+ #find first time experiencing tungara (first), use that
 head(attn_int_2)
 #how is this variable distributed?
 hist(attn_int_2$all_tw_set, breaks=10)
@@ -192,91 +128,26 @@ hist(log(attn_int_2$all_tw_set))
 #These data look way better when normalized with log
 library(ggplot2)
 
-#Should I make variable normal?
-
-#plotted after
-#boxplot(data=attn_int_2, all_tw_set~Bat_ID)
-###### running LME with and without logged data
-#without:
-attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"De") #MAKE DE REFERENCE
-nlme_int_de_ref<- lme(all_tw_set ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), na.action=na.exclude, data = attn_int_2)
-summary(nlme_int_de_ref)
-#glm_int_de_ref<- glmer(all_tw_set ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), family="poisson", na.action=na.exclude, data = attn_int_2)
-#^don't know how to do glmer
-#De is only significantly different than rra (lower)
-attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"Ra") #MAKE RA REFERENCE
-
-nlme_int_ra_ref<- nlme_int_rra_ref<- lme(all_tw_set ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
-summary(nlme_int_ra_ref)
-
-attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"Rra") #MAKE RRA REFERENCE
-nlme_int_rra_ref<- nlme_int_rra_ref<- lme(all_tw_set ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
-summary(nlme_int_rra_ref)
-
-attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"Rt") #MAKE RT REFERENCE
-nlme_int_rt_ref<- nlme_int_rra_ref<- lme(all_tw_set ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
-summary(nlme_int_rt_ref)
-
-attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"T") #MAKE t_de REFERENCE
-nlme_int_t_de_ref<- nlme_int_rra_ref<- lme(all_tw_set ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
-summary(nlme_int_t_de_ref)
-
-attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"Tc") #MAKE TC REFERENCE
-nlme_int_tc_ref<- nlme_int_rra_ref<- lme(all_tw_set ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
-summary(nlme_int_tc_ref)
-
-attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"Ts") #MAKE ts REFERENCE
-nlme_int_ts_ref<- nlme_int_rra_ref<- lme(all_tw_set ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
-summary(nlme_int_ts_ref)
-#
-
-#with logged data
-
-attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"De") #MAKE DE REFERENCE
-
-nlme_int_rra_ref<- lme(log(all_tw_set+1) ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), na.action=na.exclude, data = attn_int_2)
-summary(nlme_int_rra_ref)
-#De is only significantly different than rra (lower)
-
-attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"Ra") #MAKE RA REFERENCE
-
- nlme_int_ra_ref<- lme(log(all_tw_set+1) ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), na.action=na.exclude, data = attn_int_2)
-summary(nlme_int_ra_ref)
-
-attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"Rra") #MAKE RRA REFERENCE
- nlme_int_rra_ref<- lme(log(all_tw_set+1) ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
-summary(nlme_int_rra_ref)
-
-attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"Rt") #MAKE RT REFERENCE
-nlme_int_rt_ref<- lme(log(all_tw_set+1) ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
-summary(nlme_int_rt_ref)
-
-attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"T") #MAKE T REFERENCE
-nlme_int_t_ref<- nlme_int_rra_ref<- lme(log(all_tw_set+1) ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
-summary(nlme_int_t_ref)
-
-attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"Tc") #MAKE TC REFERENCE
-nlme_int_tc_ref<- nlme_int_rra_ref<- lme(log(all_tw_set+1) ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
-summary(nlme_int_tc_ref)
-
-attn_int_2$first_stim <- relevel(attn_int_2$first_stim,"Ts") #MAKE ts REFERENCE
-nlme_int_ts_ref<- nlme_int_rra_ref<- lme(log(all_tw_set+1) ~ first_stim, random = list(Bat_ID=~1, trial_number= ~1), data = attn_int_2)
-summary(nlme_int_ts_ref)
 
 #reordering for plotting: 
-      attn_int_2$first_stim <- factor(attn_int_2$first_stim,levels = c('De','Ra', 'Rra', "Rt", "Ts", "T", "Tc"),ordered = TRUE)
+      attn_int_2$first_stim <- factor(attn_int_2$first_stim,levels = c("Ts" ,"T1c", "T2c" , "De","Rt" , "Ra" , "Rra"),ordered = TRUE)
+      
 #perhaps best order is: Ts, T, Tc, Rt, Rra, Ra, De, can do using relevel() commands from above
 
       #plots
       library(plotly)
-      attn_int_2$md_lg_tw_set<- attn_int_2$md_tw_set + attn_int_2$lg_tw_set
+      #attn_int_2$md_lg_tw_set<- attn_int_2$md_tw_set + attn_int_2$lg_tw_set
 #with logged +1 (for zero) data
 p <- ggplot(data = attn_int_2, aes(x = first_stim, y = log(all_tw_set+1), fill=first_stim))
 p <- p + geom_boxplot()
-p <- p + theme(axis.text.x = element_text(angle = 90))
+p <- p + geom_point(position = position_jitter(width = 0.1))
+p <- p + theme(axis.text.x = element_text(angle = 90), legend.position = "none") #format x-axis, and remove side legend
 p <- p + xlab("Acoustic stimuli")
-p <- p + ylab("log( twitches in first set)")
+p <- p + ylab("log( twitches in first set + 1)")
 p
+gg<-ggplotly(p)
+
+#look at dots and textures or whatever
 
 #with unlogged data
 p <- ggplot(data = attn_int_2, aes(x = first_stim, y = all_tw_set, fill=first_stim))
@@ -287,58 +158,38 @@ p + xlab("Acoustic stimuli")
 p
 ```
 
-#Habituation
+# Habituation
 
-Code and models: 
-```{r}
- #web
-        attn_habit_3<-read.table("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attn_habit_1.txt", sep="\t", header=TRUE)
-        library(nlme)
+## Code and models: 
 
-        View(attn_habit_3)
-        #glm for all twitches with an interaction between call number and trial name as main effect, bat ID as random effect, for all twitches
-        nlme_int <- lme(all_tw_call ~ call_num*trial_name_2, random = ~1|Bat_ID, data= attn_habit_3) # does glm
-       
-        sum_lme<- summary(nlme_int)
-        sum_lme
-        
-        #glm for medium and large twitches with  an interaction between call number and trial name as main effect, bat ID as random effect
-        nlme_int2 <- lme(mdlg_tw_call ~ call_num*trial_name_2, random = ~1|Bat_ID, data= attn_habit_3) # does glm
-        sum_lme2<- summary(nlme_int)
-        sum_lme2
-        
-        # can I explain any more of the variation by including trial number as a random variable? or a fixed for that matter...
-        # glm for all twitches with  an interaction between call number and trial name as main effect, bat ID *and trial number* as random effect
-        # work on this, right now the way I am calling random isn't right 
-        nlme_int3 <- lme(all_tw_call ~ call_num*trial_name_2, random = list(Bat_ID=~1 , trial_number= ~1), data= attn_habit_3) # does glm
-        sum_lme3<- summary(nlme_int3)
-        sum_lme3
-        
-       
-```
 
-But really, several things. 
+1) a Generalized linear mixed model is better than a general linear mixed model, bc this is technically "count" data and it seems to follow more of a poisson distribution than a normal distribution, dispite the large number of cases. 
+2) Use model selection to  formally see whether adding trial number and bat ID as random effects makes the model better, not to mention the relationship between call number and trial name. Would also be good to try trial number as a fixed effect.  
 
-1) a Generalized linear mixed model would be better, bc this is technically "count" data and it seems to follow more of a poisson distribution than a normal districution, dispite the large number of cases. 
-2) Using model selection would be better, to really formally see whether adding trial number and bat ID as random effects makes the model better, not to mention the relationship between call number nad trial name. Would also be good to try trial number as a fixed effect.  
+all possible models proposed are built on "substantive sense" based on what is logical in this test, then using AIC and stepwise selection to see which add explanatory power.
 
-study tells me that stepwise model selection isn't always a great idea. i should start with common sense (why do I think these variables are important?), and then make a few models and then compare them, using AIC, for example. Most likely they won't be radically different
+* blind stepwise model selection isn't always a good idea, has a tendency to choose more parameterized models. I should start with common sense (why do I think these variables are important?), and then make a few models and then compare them, using AIC, for example. Most likely they won't be radically different
+#Possible models:
 
-possible models built on "substantive sense"
+      #1. twitches ~ call num + call_num:trial_name , random = bat_ID  # main effect of call number and interaction of call and trial, one random
+      
+      #2. twitches ~ call num + call_num:trial_name , random = bat_ID , trial_number (nested in bat_ID)   # this would remove trial name in and of itself had an impact on twitch number
+      #3.  twitches ~ call_num * trial_name random = bat_ID 
+      #4.  twitches ~ call_num * trial_name random = bat_ID , trial_number (nested in bat_ID)
+      #5.  twitches ~ call_num * trial_name + trial_number random  = bat_ID  #fullest model I think, trial # as main effect 
+
+      #6. all_tw_call ~ call_num*trial_name_2, random = list(Bat_ID=~1 , trial_number= ~1), data= attn_habit_3
+
+
 
 ```{r}
-#1. twitches ~ call num + call_num:trial_name , random = bat_ID  # main effect of call number and interaction of call and trial, one random
 
-#2. twitches ~ call num + call_num:trial_name , random = bat_ID , trial_number (nested in bat_ID)   # this would remove trial name in and of itself had an impact on twitch number
-#3.  twitches ~ call_num * trial_name random = bat_ID 
-#4.  twitches ~ call_num * trial_name random = bat_ID , trial_number (nested in bat_ID)
-#5.  twitches ~ call_num * trial_name + trial_number random  = bat_ID  #fullest model I think, trial # as main effect 
-
-all_tw_call ~ call_num*trial_name_2, random = list(Bat_ID=~1 , trial_number= ~1), data= attn_habit_3
 
 #make models
 #
-attn_habit_3<-read.table("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attn_habit_1.txt", sep="\t", header=TRUE)
+#attn_habit_3<-read.table("/Users/maydixon/GitHub/Attn_Project/Attn_project_github/attn_habit_1.txt", sep="\t", header=TRUE) #local
+#or
+attn_habit_3<-read.table("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attn_habit_1.txt", sep="\t", header=TRUE) #web
 library(nlme)
 library(lme4)
 d<- attn_habit_3 
@@ -471,24 +322,30 @@ sm2<- summary(m2)  #make summary
 sm2
 
 ```
+
+## Habituation results summary
+
 So, the below table shows all the the treatments with their slopes, from biggest to smallest, and their tests of significant difference  tests (all ***) denoted by letters. If two treatments share a letter, they were not significantly different (1), and if they do, they were significantly different (0): 
 
-trial_name	slope_coeff	slope_est	sig.dif
-call_num:trial_name_2de_t_de	0.45847131	-0.07455272	a
-call_num:trial_name_2tc_ts_tc	-0.00334758	-0.07790228	a
-call_num:trial_name_2t_de_t	-0.10200029	-0.17655499	b
-call_num:trial_name_2tia_tib_tia	-0.11624862	-0.19080332	b
-call_num:trial_name_2t_ra_t	-0.13224066	-0.20679536	b
-call_num:trial_name_2rt_rra_rt	-0.13963957	-0.21419427	b
-call_num:trial_name_2ts_tc_ts	-0.14339025	-0.21794495	b
-call_num:trial_name_2rra_rt_rra	-0.27034559	-0.34490029	c
-call_num:trial_name_2ra_t_ra	-0.45847568	-0.53303038	d
+| trial_name |	slope_coeff |	slope_est |	sig.dif
+|:---------------------------|-----------|------------|-----|
+| call_num:trial_name_2de_t_de |	0.45847131 |	-0.07455272 |	a |
+| call_num:trial_name_2tc_ts_tc |	-0.00334758 |	-0.07790228 |a |
+| call_num:trial_name_2t_de_t |	-0.10200029 |	-0.17655499 |	b |
+| call_num:trial_name_2tia_tib_tia |	-0.11624862 |	-0.19080332 |	b |
+| call_num:trial_name_2t_ra_t |	-0.13224066 |	-0.20679536 |	b |
+| call_num:trial_name_2rt_rra_rt |	-0.13963957 |	-0.21419427 |	b |
+| call_num:trial_name_2ts_tc_ts |	-0.14339025 |	-0.21794495 |	b |
+| call_num:trial_name_2rra_rt_rra |	-0.27034559 |	-0.34490029 |	c |
+| call_num:trial_name_2ra_t_ra |	-0.45847568 |	-0.53303038 |	d |
 
+   *organization of this table can be found in glmer_results_summaries.xls excel sheet
+   
 So, the bats habituated most slowly to the DE and The TC, which makes sense, becuase each of these is quite attractive, and the bats are less likely to be habituated. No difference in the amount that they habituated to DE and TC
 
 bats habituated to all the simpler tungaras at the same rate (sanity check)
 
-Nats habituted to RRA very quickly, and habituated fastest to the reversed rhinella alata. 
+Bats habituted to RRA very quickly, and habituated fastest to the regular rhinella alata. 
 
 So, they did habituate fastest to calls that were less biologically relevent to them. 
 
@@ -500,7 +357,7 @@ So, they did habituate fastest to calls that were less biologically relevent to 
 ## Habituation plots, various: 
 
 ```{r}
-
+library(ggplot2)
     # New habituation plots (boxplots)
         
         ## can i make a plot of boxplots for each trial type, all the way across trial?
@@ -509,8 +366,8 @@ So, they did habituate fastest to calls that were less biologically relevent to 
         # want just one line for each "set"
         #pull partial string match  x.1 for call number using grep
         attn_whole_set <- attn_whole[grep(".1", attn_whole$call_num), ]
-        attn_whole_set1to5 <- subset(attn_whole_set, attn_whole_set$set_num != "6" & attn_whole_set$set_num != "7") #removing last 2 sets
-        library(ggplot2)
+        attn_whole_set_1to5 <- subset(attn_whole_set, attn_whole_set$set_num != "6" & attn_whole_set$set_num != "7") #removing last 2 sets
+        
         
         #all treatments together, overall trend
         
@@ -539,7 +396,7 @@ So, they did habituate fastest to calls that were less biologically relevent to 
         p_de <- p_de + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(de_data, de_data$set_num!="6" & de_data$set_num!="7")) 
         p_de
         #try<-subset(de_data, de_data$set_num!="6" & de_data$set_num!="7")
-        View(try)
+        #View(try)
         #made using coloring advice from "http://stackoverflow.com/questions/10805643/ggplot2-add-color-to-boxplot-continuous-value-supplied-to-discrete-scale-er"
         
         
@@ -688,16 +545,62 @@ So, they did habituate fastest to calls that were less biologically relevent to 
         p_tia <- p_tia + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(tia_data, tia_data$set_num!="6" & tia_data$set_num!="7"))
         p_tia
         
+        
+        # Multiple plot function
+#
+# ggplot objects can be passed in ..., or to plotlist (as a list of ggplot objects)
+# - cols:   Number of columns in layout
+# - layout: A matrix specifying the layout. If present, 'cols' is ignored.
+#
+# If the layout is something like matrix(c(1,2,3,3), nrow=2, byrow=TRUE),
+# then plot 1 will go in the upper left, 2 will go in the upper right, and
+# 3 will go all the way across the bottom.
+#
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  require(grid)
+
+  # Make a list from the ... arguments and plotlist
+  plots <- c(list(...), plotlist)
+
+  numPlots = length(plots)
+
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                    ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+
+ if (numPlots==1) {
+    print(plots[[1]])
+
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
+}
         multiplot(p_ra, p_t_ra, p_rra, p_rt, p_de, p_t_de, p_ts, p_tc, p_tia )
       
 ```
 
 
-#####Summary stats:
+
 
 ```{r, echo=FALSE}
 attn_habit_3<-read.table("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attn_habit_1.txt", sep="\t", header=TRUE)
-        View(attn_habit_3)
+        #View(attn_habit_3)
         str(attn_habit_3) #there is a lot in here I'm not using now
         #glm for all twitches with an interaction between call number and trial name as main effect, bat ID as random effect, for all twitches
         library(nlme)
@@ -706,7 +609,7 @@ attn_habit_3<-read.table("https://raw.githubusercontent.com/maydixon/Attn_Projec
   
    
    
-## Discrimination
+# Discrimination
 
 The following are all the tests for discimination. In each of the following trials, we are comparing the response to the 5th set to the 6th set (the discrimination stimulus), and the 7th set (the dishabituation simulus). A significantly greater response to the 6th or 7th set from the 5th set is indicative of discrimination between the stimuli. In all cases the response was the total number of ear twitches. 
      
@@ -716,20 +619,40 @@ To analyze these, I used linear mixed models with the following model:
 
       (I used trial_number in other models in this analysis, but it did not explain more of the variance in this case)
       
-      
+
+
+##quickie summary chart version: 
+
+| trial_name | descrim? |dishabit? | comments
+|:----------|------|------|-------------------------------------------|
+|de_t_de  | no | no | probably bc no habituation in first place |
+|t_de_t | no |no | probably bc high overall responses, low habit |
+|ra_t_ta |yes, strong | yes | model failed to converge tho |
+|t_ra_t | no | no | model didn't converge, failed hessian? |
+|rra_rt_rra | yes, strong | no |  |
+|rt_rra_rt | yes | no |  |
+|tc_ts_tc |no |no |  crazy outlier to deal with, nothing either way, possibly no habituation|
+|ts_tc_ts | yes | no | more clear bc better habituation|
+| tia_tib_tia | no | no | not even at all. should have habituated too |
+
+##Discrimination stats      
       
 ```{r, include=FALSE}
 
+######################
+
 #import data, remove duds, remove bad treatments
  attention_Rcopy_individuals_condensed <- read.delim("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attention_Rcopy_individuals_condensed.txt", header=TRUE) #this file has all sets, and a row with condensed Tia_tib_Tia
+#or local
+attention_Rcopy_individuals_condensed <- read.table("/Users/maydixon/GitHub/Attn_Project/Attn_project_github/attention_Rcopy_individuals_condensed.txt", header=TRUE )
 
-attention_Rcopy1<- subset(attention_Rcopy_individuals_condensed, attention_Rcopy_individuals_condensed$bat_name != "Blackbeard" & attention_Rcopy_individuals_condensed$bat_name != "Wramplemeier") #removes unresponsive bats
+attention_Rcopy1<- subset(attention_Rcopy_individuals_condensed, attention_Rcopy_individuals_condensed$bat_name != "Blackbeard" ) #removes unresponsive bat
 attention_Rcopy2<-subset(attention_Rcopy1, attention_Rcopy1$trial_name != "t_rt_t" & attention_Rcopy1$trial_name != "rt_t_rt") #removes variables only tested on one bat
  attn_r2 <- attention_Rcopy2 #short same version
 #pull partial string match  x.1 for call number using grep
         
 attn_set <- attn_r2[grep(".1", attn_r2$call_num), ]
-View(attn_set)
+#View(attn_set)
 ```
  
 
@@ -761,6 +684,7 @@ subset_ts1 <- subset(subset_ts, subset_ts$set_num=="5" | subset_ts$set_num=="6" 
 
 #load library
 library(nlme)
+library(lme4)
 #set working directory if running on wherever
 #setwd("~/Dropbox/Attention Project/R/Sessions/09.26.16")        
 # run one of the lme
@@ -778,10 +702,13 @@ qqnorm(subset_de1$all_tw_set)
 Results of linear mixed model: This models asks whether there is a significant difference between set 5 & 6, and 5 & 7. 
 
 ```{r, echo=FALSE}
-de_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_de1) # use as.factor so model sees these as factors
+#de_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_de1) # use as.factor so model sees these as factors
+de_desc_glm <- glmer(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subset_de1, family= "poisson")
+
 ```
 ```{r}
-summary(de_desc)
+#summary(de_desc)
+summary(de_desc_glm)
 de_t_de_desc <- boxplot(all_tw_set ~ (as.factor(set_num)), main = "de_t_de", data=subset_de1)
 
 ```
@@ -796,10 +723,11 @@ normality of data:
 qqnorm(subset_ra1$all_tw_set)
 ```
 ```{r, include=FALSE}
-ra_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_ra1) # use as.factor so moral sees these as factors
+#ra_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_ra1) # use as.factor so moral sees these as factors
+ra_desc_glm <- glmer(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subset_ra1, family= "poisson")
 ```
 ```{r}
-summary(ra_desc)
+summary(ra_desc_glm)
 #boxplot
 ra_descrim_plot<- boxplot(all_tw_set ~ (as.factor(set_num)), main = "ra_t_ra", data=subset_ra1)
 ```
@@ -813,15 +741,20 @@ Normality of data:
 qqnorm(subset_rra1$all_tw_set)
 ```
 ```{r, include=FALSE}
-rra_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_rra1) # use as.factor so morral sees these as factors
+rra_desc_glm <- glmer(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subset_rra1, family= "poisson")
+
+#rra_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_rra1) # use as.factor so morral sees these as factors
 ```
 ```{r}
-summary(rra_desc)
+#summary(rra_desc)
+summary(rra_desc_glm)
 #boxplot
 boxplot(all_tw_set ~ (as.factor(set_num)), main = "rra_rt_rra", data=subset_rra1)
 ```
 
 There is evidence for descrimination between 5 and 6, but not for dishabituation (5 and 7). There was very steep habituation to reversed rhinella alata, which might explain a part of this trend. 
+
+So, clearly they discriminate / can discriminate to the sounds of the reversed rhinella and the reversed tungara. 
 
 
 ### reversed tungara v reversed *R. alata*
@@ -834,28 +767,22 @@ qqnorm((subset_rt1$all_tw_set))
 This linear mixed model may not be appropriate for this test given its right-skewed distribution
 
 ```{r, echo=FALSE}
-rt_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_rt1) # use as.factor so mortl sees these as factors
+#rt_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_rt1) # use as.factor so mortl sees these as factors
+rt_desc_glm <- glmer(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subset_rt1, family= "poisson")
+
+
 ```
 ``````{r}
-summary(rt_desc)
+summary(rt_desc_glm)
 #boxplot
 boxplot(all_tw_set ~ (as.factor(set_num)), main = "rt_rra_rt", data=subset_rt1)
-```
+#logged boxplot:
 
-Is it okay to transform a subset of data and not all of it? If so, I can maybe log or sqrt some of these contrasts that are more skewed so that this test is appropriate.For example:
-
-##Log +1 transformed reversed tungara v reversed rhinella alata
-
-```{r, echo=FALSE}
-qqnorm(log(subset_rt1$all_tw_set+1))
-
-rt_desc<- lme((log(all_tw_set+1)) ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_rt1) # use as.factor so mortl sees these as factors
-summary(rt_desc)
-#boxplot
 rt_desc_transformed<-boxplot((log(all_tw_set+1)) ~ (as.factor(set_num)), main = "rt_rra_rt log transformed", data=subset_rt1)
 ```
 
-Regardless, in this case there is no evidence of descrimination between reversed tungara and reversed alata, due mainly to low overall values. 
+
+So again, there is discrimination, if not dishabituation between reversed tungara and reversed alata. 
 
 
 ### Tungara v *D. ebracattus*
@@ -863,13 +790,16 @@ Regardless, in this case there is no evidence of descrimination between reversed
 ```{r, echo=FALSE}
 qqnorm(subset_t_de1$all_tw_set)
 #  Should be twitches/set ~set num*treatment t_dendom= batid #trial number does not add explanatoryness
-t_de_t_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_t_de1) # use as.factor so mot_del sees these as factors
-summary(t_de_t_desc)
+#t_de_t_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_t_de1) # use as.factor so mot_del sees these as factors
+#boxplot
+t_de_desc_glm <- glmer(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subset_t_de1, family= "poisson")
+
+summary(t_de_desc_glm)
 #boxplot
 t_de_t_desc_plot<- boxplot(all_tw_set ~ (as.factor(set_num)), main = "t_de_t", data=subset_t_de1)
 ```
 
-There is no evidence for descrimination between tungara and dendrobates Perhaps due to high overall responses
+There is no evidence for descrimination between tungara and dendrobates Perhaps/ likley due to high overall responses
 
 ###Tungara v R. alata
 ```{r, echo=FALSE}
@@ -878,28 +808,22 @@ There is no evidence for descrimination between tungara and dendrobates Perhaps 
 qqnorm(subset_t_ra1$all_tw_set) 
 hist(subset_t_ra1$all_tw_set)
 #maybe can't justify normal dist
-t_ra_t_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_t_ra1) # use as.factor so  sees these as factors
-summary(t_ra_t_desc)
+#t_ra_t_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_t_ra1) # use as.factor so  sees these as factors
+
+t_ra_t_desc_glm <- glmer(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subset_t_ra1, family= "poisson")
+#not converging?
+summary(t_ra_t_desc_glm)
 #boxplot
 t_ra_t_desc_plot<-boxplot(all_tw_set ~ (as.factor(set_num)), main = "t_ra_t", data=subset_t_ra1)
+
+
 ```
-No discimination between treatments detected. If it is appropriate to transform these, then: 
+####*** Probably not converging bc the ra is so close to 0 (hessian boundry?)
+## return to this to troubleshoot. 
 
-# Square-root transformed tungara v R. alata
-```{r, echo=FALSE}
+No discimination between treatments detected. 
 
-
-
-qqnorm((sqrt(subset_t_ra1$all_tw_set)))
-hist((sqrt(subset_t_ra1$all_tw_set)))
-
-t_ra_t_desc_sqrt_trns<- lme((sqrt(all_tw_set)) ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_t_ra1) # use as.factor so  sees these as factors
-summary(t_ra_t_desc_sqrt_trns)
-#boxplot
-t_ra_t_desc_plot<-boxplot((sqrt(all_tw_set)) ~ (as.factor(set_num)), main = "t_ra_t sq.rt transformed", data=subset_t_ra1)
-#this way there is a significant difference at alpha.01 for 5 and 6, but it goes in the negative direction. no significant between 5 and 7. If I relevel, is there a difference between 6 and 7?
-```
-So there is a significant difference between 5 and 7 (demonstrating dishabituation). To test to see whether there is a significant sifference between 6 and 7, I can relevel, and test this using a linear mixed model. 
+#### Use relevel to see whether there is a difference between set 6 and 7
 ```{r, echo=FALSE}
 
 
@@ -909,24 +833,32 @@ t_ra_t_desc_2<- lme((sqrt(all_tw_set)) ~ as.factor(set_num), random = ~1|Bat_ID,
 summary(t_ra_t_desc_2)
 ```
 
+. 
 
-So, there is a marginally significant difference between 6 and 7 (p=0.0945), and 6 and 5 (p=0.0988). But not sure what my alpha level should be. 
-
-# Intraspecific Trials
+## Intraspecific Trials
 
 ## Complex tungara v simple tungara
 ```{r}
 
 qqnorm(subset_tc1$all_tw_set)
 #one total outlier (what should I do about that?)
-tc_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_tc1) # use as.factor so  sees these as factors
-summary(tc_desc)
+tc_desc_glm <- glmer(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subset_tc1, family= "poisson")
+summary(tc_desc_glm)
 # boxplot
 tc_ts_tc_plot<- boxplot(all_tw_set ~ (as.factor(set_num)), main = "tc_ts_tc", data=subset_tc1)
+
+#dealing with outlier
+#View(subset_tc1)
+subset_tc1$all_tw_set.no<-subset_tc1$all_tw_set
+subset_tc1$all_tw_set.no <- ifelse(subset_tc1$all_tw_set.no > 15, NA, subset_tc1$all_tw_set.no) #removing points over 15
+tc_ts_tc_plot.no<- boxplot(all_tw_set.no ~ (as.factor(set_num)), main = "tc_ts_tc", data=subset_tc1)
+tc_desc_glm.no <- glmer(all_tw_set.no ~ as.factor(set_num) + (1|Bat_ID) , data = subset_tc1, family= "poisson")
+summary(tc_desc_glm.no)
+#makes nothing significant at all. Diff between last 2? 
 ```
 
 
-There is no apparent discrimination between complex and simple calls in this test. However, there is an outlier that could easily be messing with this. I'm going to think about this a little.  
+There is no apparent discrimination between complex and simple calls in this test. However, there is an outlier that could easily be messing with this. Outlier doesn't change the relationship. It just makes them all the more the same
 
 If this is accurate, it is probable that discrimination is obscured by simple calls being less salient stimuli, so the interuption in habituation is masked by lower overall interest in the simple call. See the inverse treatment:
 
@@ -936,14 +868,15 @@ If this is accurate, it is probable that discrimination is obscured by simple ca
 qqnorm(subset_ts1$all_tw_set)
 hist(subset_ts1$all_tw_set)
 #looks oookay (pretty 0 weighted)
-ts_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_ts1) # use as.factor so  sees these as factors
-summary(ts_desc)
+ts_desc_glm <- glmer(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subset_ts1, family= "poisson")
+#ts_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_ts1) # use as.factor so  sees these as factors
+summary(ts_desc_glm)
 # boxplot
 ts_tc_ts_plot<- boxplot(all_tw_set ~ (as.factor(set_num)), main = "ts_tc_ts", data=subset_ts1)    
 
 ```
 
-There is support for discrimination between these two treatments, but no evidence of dishabituation. Note how discrimination is evidence when the less salient stimulus is the one that is being habituated. 
+This shows that bats discriminate between complex and simple tungara calls (0c v 2c). There is clear evidence of discrimination, but not of dishabituation  Note how discrimination is more apparent when the less salient stimulus is the one that is being habituated. ((Also, more habituation=more evidence of discrimination))
 
 ## Tungara "A" v Tungara "B" (or the id of individuals trials)
 
@@ -951,32 +884,114 @@ There is support for discrimination between these two treatments, but no evidenc
 
 qqnorm(subset_tia1$all_tw_set)
 # not justifiably normal (left/0 skewed)
-tia_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_tia1) # use as.factor so  sees these as factors
-summary(tia_desc)
+#tia_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_tia1) # use as.factor so  sees these as factors
+tia_desc_glm <- glmer(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subset_tia1, family= "poisson")
+summary(tia_desc_glm)
 # boxplot
 tia_tib_tia_plot<- boxplot(all_tw_set ~ (as.factor(set_num)), main = "tia_tib_tia", data=subset_tia1)
 ```
 
-There is no apparent discrimination between individual tungaras. But also the data are pretty non-normal, so:
+There is no apparent discrimination between individual tungaras. 
+
+## Summary chart
 
 
-##Square-root transformation of individual tungara trials
+| trial_name | descrim? |dishabit? | comments
+|:----------|------|------|-------------------------------------------|
+|de_t_de  | no | no | probably bc no habituation in first place |
+|t_de_t | no |no | probably bc high overall responses, low habit |
+|ra_t_ta |yes, strong | yes | model failed to converge tho |
+|t_ra_t | no | no | model didn't converge, failed hessian? |
+|rra_rt_rra | yes, strong | no |  |
+|rt_rra_rt | yes | no |  |
+|tc_ts_tc |no |no |  crazy outlier to deal with, possbily no habituation|
+|ts_tc_ts | yes | no | more clear bc better habituation|
+| tia_tib_tia | no | no | not even at all. should have habituated too |
+
+
+###Verbal explanation of discrimination results
+
+Habituated fastest to Rhinella, followed by the reversed rhinella, followed by all the simple and one chuck tungaras, followed by the dendropsophes and the complex tungara, which they habituated to least. 
+Consistent with expectations. 
+	- Habituated faster to less biologically relevent simuli
+	- But could it be that they didn't habituate to dendropsophes bc initial interest was so low, and there wasn't much of a place to habituate to? Depends on initial interest to TC, with second highest slope. If ithe initial interest is higher, and they still didn't habituate, more suggestive of higher interest indicated by low habituation rates. Redo initial interest to check. 
+	- Could also be that the groups that showed lower habituation rates only did so bc they had less initial interest, and there was a floor effect-- less downward interest space in which to move.
+ Is there a difference between the interest scores during test 5? Or are they all basically 0:
+
+##Investigating response to 5th set
+ 
 ```{r}
-
-hist(sqrt(subset_tia1$all_tw_set))
-
-# not justifiably normal (left/0 skewed)
-tia_desc_sqrt_trans<- lme((sqrt(all_tw_set)) ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_tia1) # use as.factor so  sees these as factors
-summary(tia_desc_sqrt_trans)
-# boxplot
-tia_tib_tia_plot_sqrt<- boxplot((sqrt(all_tw_set)) ~ (as.factor(set_num)), main = "tia_tib_tia sqrt transformed", data=subset_tia1)
+#investigating difs in response to 5th stimulus
+# running glmer 
+# using relevel to find the true value (intercept) for each variable, and what is significantly different from each variable. 
+ attn_set_5 <- read.table("/Users/maydixon/Dropbox/Attention Project/R/attn_set5_only.txt", header=TRUE) #local      
+      
+attn_set_5$primary_stim<-factor(attn_set_5$primary_stim, ordered=FALSE)   #make it a factor so it can be ranked     
+attn_set_5$primary_stim <- relevel(attn_set_5$primary_stim,"De") #MAKE DE REFERENCE
+        nlme_5set_de_ref<- glmer(all_tw_set ~ primary_stim + (trial_number|Bat_ID), family= "poisson", data = attn_set_5)
+        summary(nlme_5set_de_ref)
+        
+        
+        attn_set_5$primary_stim <- relevel(attn_set_5$primary_stim,"Ra") #MAKE RA REFERENCE
+        nlme_5set_ra_ref<- glmer(all_tw_set ~ primary_stim + (trial_number|Bat_ID), family= "poisson", data = attn_set_5)
+        summary(nlme_5set_ra_ref)
+        
+        attn_set_5$primary_stim <- relevel(attn_set_5$primary_stim,"Rra") #MAKE RRA REFERENCE
+        nlme_5set_rra_ref<- glmer(all_tw_set ~ primary_stim + (trial_number|Bat_ID), family= "poisson", data = attn_set_5)
+        summary(nlme_5set_rra_ref)
+        
+        attn_set_5$primary_stim <- relevel(attn_set_5$primary_stim,"Rt") #MAKE RT REFERENCE
+        nlme_5set_rt_ref<- glmer(all_tw_set ~ primary_stim + (trial_number|Bat_ID), family= "poisson", data = attn_set_5)
+        summary(nlme_5set_rt_ref)
+        
+        attn_set_5$primary_stim <- relevel(attn_set_5$primary_stim,"Ts") #MAKE Ts REFERENCE
+        nlme_5set_ts_ref<- glmer(all_tw_set ~ primary_stim + (trial_number|Bat_ID), family= "poisson", data = attn_set_5)
+        summary(nlme_5set_ts_ref)
+        
+        attn_set_5$primary_stim <- relevel(attn_set_5$primary_stim,"T1c") #MAKE T1c REFERENCE
+        nlme_5set_t1c_ref<- glmer(all_tw_set ~ primary_stim + (trial_number|Bat_ID), family= "poisson", data = attn_set_5)
+        summary(nlme_5set_t1c_ref)
+        
+        attn_set_5$primary_stim <- relevel(attn_set_5$primary_stim,"T2c") #MAKE T2c REFERENCE
+        nlme_5set_t2c_ref<- glmer(all_tw_set ~ primary_stim + (trial_number|Bat_ID), family= "poisson", data = attn_set_5)
+        summary(nlme_5set_t2c_ref)
+        #
+        
+        
+        
+#reordering for plotting: 
+      attn_set_5$primary_stim <- factor(attn_set_5$primary_stim,levels = c("Ts" ,"T1c", "T2c" , "De","Rt" , "Ra" , "Rra"),ordered = TRUE)
+      
+#perhaps best order is: Ts, T, Tc, Rt, Rra, Ra, De, can do using relevel() commands from above
 ```
 
-There is still no evidence of discrimination between individuals
-
+##Plotting set 5
 ```{r}
+      #plots
+      library(plotly)
+      #attn_set_5$md_lg_tw_set<- attn_set_5$md_tw_set + attn_set_5$lg_tw_set
+#with logged +1 (for zero) data
+p <- ggplot(data = attn_set_5, aes(x = primary_stim, y = log(all_tw_set+1), fill=primary_stim))
+p <- p + geom_boxplot()
+p <- p + geom_point(position = position_jitter(width = 0.1))
+p <- p + theme(axis.text.x = element_text(angle = 90), legend.position = "none") #format x-axis, and remove side legend
+p <- p + xlab("Acoustic stimuli")
+p <- p + ylab("log( twitches in set 5 + 1)")
+p
+gg<-ggplotly(p)
+``` 
+#Summary chart
+| stim           | value_est |	sig_vals |
+| :--------------|-----------|------|
+|De|	1.4648|	a|
+|t2c|	1.3472|	ab|
+|t1c|	0.7578|	cd|
+|ts|	0.776	| bcd|
+|rt|	0.5023|	d|
+|rra|	-0.7505|	e|
+|ra|	-0.8318|	e|
 
-```
+
 
 ---
 
