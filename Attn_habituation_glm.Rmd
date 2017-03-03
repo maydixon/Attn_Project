@@ -4,8 +4,11 @@ author: "May Dixon"
 date: "September 21, 2016"
 output:
   html_document:
-    toc: true
-    toc_float: true
+    toc: yes
+    toc_float: yes
+    keep_md: TRUE
+  pdf_document:
+    toc: yes
 ---
 
 ## Three main sections
@@ -20,7 +23,7 @@ In this section we are assessing which treatments had the highest initial respon
 \
 
 
-## Initital interest  with generalized linear mixed model (log-linked)
+## Initial interest  with generalized linear mixed model (log-linked)
 load these libraries: 
 
 ```{r, echo=TRUE}
@@ -41,7 +44,7 @@ library(ggplot2)
         
         initial_int_1 <- glmer(all_tw_set ~ first_stim + (trial_number|Bat_ID), family= "poisson", data = attn_int_2) #model with nested interaction effect/ full model
       
-       initial_int_2 <- glmer(all_tw_set ~ first_stim + (1|Bat_ID), family= "poisson", data = attn_int_2) #model with nested interaction effect #
+       initial_int_2 <- glmer(all_tw_set ~ first_stim + (1|Bat_ID), family= "poisson", data = attn_int_2) #model with only subject as random effect #
         s_ii1 <- summary(initial_int_1)
         s_ii2 <- summary(initial_int_2)
         s_ii1
@@ -94,8 +97,25 @@ So this model is best:  initial_int_1 <- glmer(all_tw_set ~ trial_name_2 + (tria
         
         
         #perhaps best order is: Ts, T, Tc, Rt, Rra, Ra, De, can do using relevel() commands from above
+        
+CONVENTIONAL ANOVA: 
+      
+      # Randomized Block Design (Bat is the blocking factor) 
+      #logged data +1
+fit <- aov(y ~ A + B, data=mydataframe)
+anova_ini_int<- aov(log(all_tw_set+1) ~ trial_name_2 + bat_name, data=attn_int_2)
+anova_ini_int_summary<- summary.aov(anova_ini_int)
+anova_ini_int_summary #summary output
+
+#posthocs
+ posthoc_ini_int<- TukeyHSD(anova_ini_int) # where fit comes from aov()
+ 
+
 ```
+
 This falls out into the following result: 
+
+##Summary of habituation Results 
 
 | stim           | value_est |	sig_vals |
 | :--------------|-----------|------|
@@ -130,7 +150,7 @@ library(ggplot2)
 
 
 #reordering for plotting: 
-      attn_int_2$first_stim <- factor(attn_int_2$first_stim,levels = c("Ts" ,"T1c", "T2c" , "De","Rt" , "Ra" , "Rra"),ordered = TRUE)
+      attn_int_2$first_stim <- factor(attn_int_2$first_stim,levels = c("Ts" ,"T1c", "T2c" , "De", "Ra" , "Rra","Rt" ),ordered = TRUE)
       
 #perhaps best order is: Ts, T, Tc, Rt, Rra, Ra, De, can do using relevel() commands from above
 
@@ -138,13 +158,52 @@ library(ggplot2)
       library(plotly)
       #attn_int_2$md_lg_tw_set<- attn_int_2$md_tw_set + attn_int_2$lg_tw_set
 #with logged +1 (for zero) data
+Ts  = "#0E0E0E"
+T1c ="#2B2B2B"
+T2c = "#474747"
+Rt  ="#636363"
+De  = "#D5D5D5"
+Ra  ="#9C9C9C"
+Rra ="#808080"      
+      
 p <- ggplot(data = attn_int_2, aes(x = first_stim, y = log(all_tw_set+1), fill=first_stim))
 p <- p + geom_boxplot()
 p <- p + geom_point(position = position_jitter(width = 0.1))
-p <- p + theme(axis.text.x = element_text(angle = 90), legend.position = "none") #format x-axis, and remove side legend
+p <- p + theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position = "none") #format x-axis, and remove side legend #hjust 1 aligns labels
+p <- p + scale_x_discrete(labels=c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))  +
+              scale_fill_manual(breaks = c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"),
+                                values=c(Ts, T1c, T2c, De, Ra, Rra, Rt))
+p <- p + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"))  #gets rid of background
 p <- p + xlab("Acoustic stimuli")
 p <- p + ylab("log( twitches in first set + 1)")
 p
+
+p_t_de <-ggplot(data=t_de_data, aes(x = set_num, y = all_tw_set))      
+        p_t_de <- p_t_de + geom_boxplot(aes(fill=factor(set_num)))
+        p_t_de <- p_t_de + guides(fill=FALSE)
+        p_t_de <- p_t_de + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("Ts", "T1c", "T2c", "De", "Ra", "Rra", "Rt"),
+                                values=c( Ts, Ts, Ts, Ts, Ts, De, Ts))
+        p_t_de <- p_t_de + ylab("Twitches in presentation")
+        p_t_de + xlab("presentation number")
+        p_t_de <- p_t_de + xlab("presentation number")
+        p_t_de<- p_t_de + labs(title = "0-chuck P. pustulosus / D. ebraccatus")+
+       theme(plot.title = element_text(face="italic")) #this makes the plot title italic
+         p_t_de <- p_t_de + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) #this gets rid of grey background and lines, adds 2 axes
+        p_t_de<- p_t_de + coord_cartesian(ylim = c(0, 25))
+        p_t_de <- p_t_de + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(t_de_data, t_de_data$set_num!="6" & t_de_data$set_num!="7")) 
+        p_t_de
+        
+Ts  = "#0E0E0E"
+T1c ="#2B2B2B"
+T2c = "#474747"
+Rt  ="#636363"
+De  = "#D5D5D5"
+Ra  ="#9C9C9C"
+Rra ="#808080"
+
 gg<-ggplotly(p)
 
 #look at dots and textures or whatever
@@ -195,6 +254,7 @@ library(lme4)
 d<- attn_habit_3 
 head(d)
 
+
  #1 twitches ~ call num + call_num:trial_name , random = bat_ID  # main effect of call number and interaction of call and trial, one random
 m1<- glmer(all_tw_call ~ call_num + call_num:trial_name_2 + (1|Bat_ID), data= attn_habit_3, family="poisson")
 sm1<- summary(m1)
@@ -218,6 +278,18 @@ m4<- glmer(all_tw_call ~ call_num *trial_name_2  + (trial_number| Bat_ID), data=
 
 #5 twitches ~ call_num * trial_name + trial_number random  = bat_ID  #fullest model I think, trial # as main effect ((WHICH HAS LOWEST AIC?, WHICH MAKES MOST SENSE))
 m5<- glmer(all_tw_call ~ call_num *trial_name_2 +trial_number + (1| Bat_ID), data= attn_habit_3, family="poisson") 
+
+#trying this by set #
+m6<- glmer(all_tw_set ~ set_num + set_num:trial_name_2 + (trial_number| Bat_ID), data= attn_habit_3, family="poisson")
+sm6<- summary(m6)
+sm6
+#now without an intercept, hypothetically to give true slope values. 
+m7<- glmer(all_tw_set ~ set_num + set_num:trial_name_2 -1 + (trial_number| Bat_ID), data= attn_habit_3, family="poisson")
+sm7<- summary(m7)
+sm7
+confint_m6<- confint(m6, method="boot")
+fixef_m6<- 
+
 ```
 
 Ok, so we know that more complex models, any that include trial_name trial_name as a main effect fail to converge. So which of the three models (m1, m2, and m2_5) explains the data best?
@@ -259,10 +331,11 @@ sm2$coefficients[1,1]
 This is the estimate for the slope of responses to dendropsophes. It is different than tungara complex, but not different than anything else
 
 So, the way to interpret this is: 
-The *intercept* is the number of twitches at call 0, for whatever the reference is. Pretty similar for all the treatments. 
-The *slope* value for call number is the main effect of change in the number of twitches with time, with all the differences compared against the reference value. 
+The *intercept* is the value of the dependent variable when all the independent variables are 0. So in our case, the intercept is the number of twitches at call 0, for whatever the reference is, when the reference cofficient is held at 0 (I think). Pretty similar for all the treatments. 
 
-To find the slopes of each of the other treatments and how they differ from call number, add the interaction effect to the effect for call number to get the true value. Relevel to get the one that is the current reference. 
+The *slope/ estimate/ coeffient* value for call number is the main effect of change in the number of twitches with time, with all the differences compared against the reference value (in this case, De). 
+
+To find the slopes of each of the other treatments and how they differ from the slope of De with call number, add the interaction effect to the effect for call number to get the true value. Relevel to get the one that is the current reference. 
 
 To see whether there is a significant difference between treatments, relevel, and see what the values are. These are kind of complicated with glmm, so don't read into them everything. 
 
@@ -274,9 +347,10 @@ This is a sheet with a summary of the slopes of the results:
 #tmts<- c("call_num", "de", "ra", "rra", "rt", "t_de", "t_ra", "tc", "tia", "ts")
 attn_habit_3$trial_name_2 <- relevel(attn_habit_3$trial_name_2,"de_t_de") #MAKE DE REFERENCE
 m2<- glmer(all_tw_call ~ call_num + call_num:trial_name_2 + (trial_number| Bat_ID), data= attn_habit_3, family="poisson") #run model
+
 sm2<- summary(m2)  #make summary
 slope_coeff<- c(sm2$coefficients[,1]) #grab row with the coefficients
-slope_est <- slope_coeff + (sm2$coefficients[2,1]) #add the interactions to call# coeff
+slope_est <- slope_coeff + (sm2$coefficients[2,1]) #add the interactions to call# coeff (main effect) to get the true values of the slopes
 slopes <- cbind(slope_coeff, slope_est) #make into a sheet
 slopes<- slopes[3:10,] #remove the first two rows that don't make sense
 attn_habit_3$trial_name_2 <- relevel(attn_habit_3$trial_name_2,"ra_t_ra") #MAKE RA REFERENCE so that DE interaction coefficients show in output
@@ -350,10 +424,101 @@ Bats habituted to RRA very quickly, and habituated fastest to the regular rhinel
 So, they did habituate fastest to calls that were less biologically relevent to them. 
 
 
+### So, now I would like to bootstrap the values for the slopes of the different treatments.
+I would like to repeat the models over and over again, x times, so I can get a 95% confidence interval of the true value of the slope. I would then like to plot each of the slopes on a graph, with treatment on the x axis and slope on the y axis, with 95% confidence interval bars around the points. If the 95% intervals do not cross 0, then the slopes are significantly negative. 
+```{r}
+#mock up of the code: 
+#run glmer()
+#extract main effect of call number, add the interaction effect to get the slopes for each treatment
+  #maybe do this all those times with De as reference, then change the reference value, and do it again with Ra as reference, and just extract the De values (which won't show in the first output bc De values are held constant)
+#store the slope values for each treatment somewhere
+#run again, x times (1000?)
+   # alternatively, I could run and store the main effect and the interaction effects over and over, and then substract each of them after
+#calculate 95% confidence interval for the slope of each treatment
+#apparently bca is the best way to bootstrap
+
+#alternatively, I could just bootstrap each value independently. 
+
+## ok, so I should keep looking through bolker's worked tutorials. Then I should figure out exactly how I can get my slopes bootstrapped. ((I just want to know if they overlap, and if they are different than 0, not sure how to pull the true slopes from the coefficients ))
+
+#* My best guess is to take the bootstrapped value for the effect of call #, and then add/substract the bootMER values for each of the interactions from it to get the high/low conf intervals. 
+- 
+bb <- bootMer(m2,
+              FUN=function(m2)
+              predict(m2,re.form=NA,nsim=20, seed = TRUE, newdata=attn_habit_3,type="response"),
+              nsim=500, verbose = TRUE)
+
+just looking at regular confints produced ny lme4
+fixeffectsm2<- fixef(m2) #extracting fixed effects from model
+m2confint<- confint(m2) #generating conf-ints on fixed effects
+plot(m2confint)
+m2confint <- data.frame(m2confint)
+m2confint <- m2confint[-1,]
+
+lcol <- m2confint[[1]] #pulling out the lower column
+ucol <- m2confint[[2]] #pulling out the upper column
+
+dt <- data.frame(fit   = c(fixeffectsm2[1],  fixeffectsm2[1] + fixeffectsm2[2:length(fixeffectsm2)]), 
+                 lower = c(lcol[1],  lcol[1] + lcol[2:length(lcol)]), 
+                 upper = c(ucol[1],  ucol[1] + ucol[2:length(ucol)]) )
+dt$Treatment <- c("D. ebraccatus", "R. alata", "Rev. R. alata", "Rev. P. pustulosus 1c", " P. pustulosus 1c", "P. pustulosus 1c", "P. pustulosus 2c", "P. pustulosus 1c", "P. pustulosus 0c") 
+LETTERS[1:nrow(dt)]
+dt<- dt[, -4]
+plot<-ggplot(dt, aes(x = batch, y = fit, ymin = lower, ymax = upper)) +
+  
+  geom_errorbar(width = 0.2) + geom_point() + theme_bw()
+
+#^^ apparently this method is wrong bc it doesn't account for covariences in the coefficients. The following model apparently  accounts for that by not having an intercept? https://stats.stackexchange.com/questions/117641/how-trustworthy-are-the-confidence-intervals-for-lmer-objects-through-effects-pa 
+fm2 <- lmer(strength ~ batch - 1 + (1 | cask), Pastes)
+
+m2_ni<- glmer(all_tw_call ~ call_num + call_num:trial_name_2 -1 + (trial_number| Bat_ID), data= attn_habit_3, family="poisson") #mostly won't converge
+
+m2_ni<- glmer(all_tw_call ~ call_num + call_num:trial_name_2 -1 + (1| Bat_ID), data= attn_habit_3, family="poisson")#trying to run model w/0 intercept, so coefficients are true values, took out trial number as random variable
+
+m2_ni_confint <- confint(m2_ni,method="boot") #calculating confint
+s_m2_ni<- summary(m2_ni_confint)
+fixef_m2_ni <- fixef(m2_ni)
+fixef_m2_ni_1<- fixef_m2_ni[-1]
+m2_ni_confintdf <- data.frame(m2_ni_confint)
+m2_ni_confintdf1 <- m2_ni_confintdf[-1:-2,]
+
+lcol <- m2_ni_confintdf1[[1]] #pulling out the lower column
+ucol <- m2_ni_confintdf1[[2]] #pulling out the upper column
+
+dt <- data.frame(fit   = fixef_m2_ni_1, 
+                 lower = lcol, 
+                 upper = ucol )
+dt$Treatment <- c("D. ebraccatus", "R. alata", "Rev. R. alata", "Rev. P. pustulosus 1c", " P. pustulosus 1c", "P. pustulosus 1c", "P. pustulosus 2c", "P. pustulosus 1c" )
+
+
+plot<-ggplot(dt, aes(x = fixef_m2_ni_1, y = fit, ymin = lower, ymax = upper)) +
+  
+  geom_errorbar(width = 0.01) + geom_point() + theme_bw()
+plot
+#
+#This is another package that calculates confidence intervals. run this and see how it compares:
+library("lsmeans")
+lsmeans_m2_ni<- lsmeans(m2_ni, "trial_name_2")
+sum_lsmeans<- summary(lsmeans_m2_ni)
+sum_lsmeans
+
+lsmeans_m2_ni_2<- lsmeans(m2_ni, "trial_name_2", transform="response")
+sum_lsmeans2<- summary(lsmeans_m2_ni_2)
+sum_lsmeans2
+
+# Figure out what transform means
+# try with all_tw_set
+#0 inflated model?
+#make a data thing with regular standard error as well as the boot strapped standard error
 
 
 
 
+```
+
+
+
+gray(0gr)
 ## Habituation plots, various: 
 
 ```{r}
@@ -366,34 +531,58 @@ library(ggplot2)
         # want just one line for each "set"
         #pull partial string match  x.1 for call number using grep
         attn_whole_set <- attn_whole[grep(".1", attn_whole$call_num), ]
-        attn_whole_set_1to5 <- subset(attn_whole_set, attn_whole_set$set_num != "6" & attn_whole_set$set_num != "7") #removing last 2 sets
+        
+        #If you want to look at habituation alone, use the following code. Hash out if you want discrimination as well:
+        
+       # attn_whole_set <- subset(attn_whole_set, attn_whole_set$set_num != "6" & attn_whole_set$set_num != "7") #removing last 2 sets
+        #then do a "find all", and replace all attn_whole_set with attn_whole_set_1to5
         
         
         #all treatments together, overall trend
         
-        p_all<-ggplot(data=attn_whole_set_1to5, aes(x = set_num, group=set_num , y = all_tw_set, fill=set_num))      #
+        p_all<-ggplot(data=attn_whole_set, aes(x = set_num, group=set_num , y = all_tw_set, fill=set_num))      #
         p_all <- p_all + geom_boxplot()
         p_all <- p_all + ylab("Twitches in presentation")
         p_all <- p_all + xlab("presentation number")
         p_all <- p_all + ggtitle("All")
         p_all
-        
-        
+#Checking out a palette of colors:
+        plotCol(gray(.5:7.8 /9)
+#finding the name of those colors:
+      gray(.5:7.8 /9)
+#Assigning colors to the different treatments to use in the following graphs. This way I can easily change the colors. 
+    #   "#0E0E0E" "#2B2B2B" "#474747" "#636363" "#808080" "#9C9C9C" "#B8B8B8" "#D5D5D5"
+Ts  = "#0E0E0E"
+T1c ="#2B2B2B"
+T2c = "#474747"
+Rt  ="#636363"
+De  = "#D5D5D5"
+Ra  ="#9C9C9C"
+Rra ="#808080"
+
+      
+
+
+      
         #making a plot for the entire of one treatment, with each set getting a boxplot
         
         #DE
-        de_data<- attn_whole_set_1to5[attn_whole_set_1to5$trial_name_2=="de_t_de", ]       
+        de_data<- attn_whole_set[attn_whole_set$trial_name_2=="de_t_de", ]       
         p_de <-ggplot(data=de_data, aes(x = set_num, y = all_tw_set))      
         p_de <- p_de + geom_boxplot(aes(fill=factor(set_num)))
         p_de <- p_de + guides(fill=FALSE)
         p_de <- p_de + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
               scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
-                                values=c("#F966D5", "#F966D5", "#F966D5", "#F966D5", "#F966D5", "#C39921", "#F966D5"))
+                                values=c(De, De, De, De, De, Ts, De))
         p_de <- p_de + ylab("Twitches in presentation")
-        p_de <- p_de + xlab("presentation number")
-        p_de<- p_de + labs(title = "D. ebraccatus / P. pustulosus")
+        p_de <- p_de + xlab("Trial number")
+        p_de<- p_de + labs(title = "D. ebraccatus / 0-chuck P. pustulosus") +
+                  theme(plot.title = element_text(face="italic")) #this makes the plot title italic
+         p_de <- p_de + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) #this gets rid of grey background and lines, adds 2 axes
         p_de <- p_de + coord_cartesian(ylim = c(0, 25))
         p_de <- p_de + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(de_data, de_data$set_num!="6" & de_data$set_num!="7")) 
+       
         p_de
         #try<-subset(de_data, de_data$set_num!="6" & de_data$set_num!="7")
         #View(try)
@@ -404,59 +593,68 @@ library(ggplot2)
         
         
         ### very variable, eh? should check that
-        d1<- attn_whole_set_1to5[attn_whole_set_1to5$trial_name_2=="de_t_de", ]
+        d1<- attn_whole_set[attn_whole_set$trial_name_2=="de_t_de", ]
         plot(d1$Bat_ID, d1$all_tw_set )
         #for Rra
         hist(d1$all_tw_set)
         
-        
+        # all plots, with xy labels
         #t_de
-        t_de_data <- attn_whole_set_1to5[attn_whole_set_1to5$trial_name_2=="t_de_t", ]
+        t_de_data <- attn_whole_set[attn_whole_set$trial_name_2=="t_de_t", ]
         p_t_de <-ggplot(data=t_de_data, aes(x = set_num, y = all_tw_set))      
         p_t_de <- p_t_de + geom_boxplot(aes(fill=factor(set_num)))
         p_t_de <- p_t_de + guides(fill=FALSE)
         p_t_de <- p_t_de + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
               scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
-                                values=c( "#C39921", "#C39921", "#C39921", "#C39921", "#C39921", "#F966D5", "#C39921"))
+                                values=c( Ts, Ts, Ts, Ts, Ts, De, Ts))
         p_t_de <- p_t_de + ylab("Twitches in presentation")
         p_t_de + xlab("presentation number")
         p_t_de <- p_t_de + xlab("presentation number")
-        p_t_de<- p_t_de + labs(title = "P. pustulosus / D. ebraccatus")
+        p_t_de<- p_t_de + labs(title = "0-chuck P. pustulosus / D. ebraccatus")+
+       theme(plot.title = element_text(face="italic")) #this makes the plot title italic
+         p_t_de <- p_t_de + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) #this gets rid of grey background and lines, adds 2 axes
         p_t_de<- p_t_de + coord_cartesian(ylim = c(0, 25))
         p_t_de <- p_t_de + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(t_de_data, t_de_data$set_num!="6" & t_de_data$set_num!="7")) 
         p_t_de
         
-        
+       
         #rra
-        rra_data<- attn_whole_set_1to5[attn_whole_set_1to5$trial_name_2=="rra_rt_rra", ]
+        rra_data<- attn_whole_set[attn_whole_set$trial_name_2=="rra_rt_rra", ]
         p_rra <-ggplot(data=rra_data, aes(x = set_num, y = all_tw_set))      
         p_rra <- p_rra + geom_boxplot(aes(fill=factor(set_num)))
         p_rra <- p_rra + guides(fill=FALSE)
         #P_rra<- p_rra + coord_cartesian(ylim = c(0, 20)
         p_rra <- p_rra + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
               scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
-                                values=c( "#1EB7E9","#1EB7E9", "#1EB7E9","#1EB7E9","#1EB7E9","#1EBF95","#1EB7E9" ))
+                                values=c( Rra, Rra, Rra, Rra, Rra, Rt, Rra ))
         p_rra <- p_rra + ylab("Twitches in presentation")
         p_rra + xlab("presentation number")
         p_rra <- p_rra + xlab("presentation number")
-        p_rra<- p_rra + labs(title="Reversed R. alata / Reversed P. pustulosus")
+        p_rra<- p_rra + labs(title="Reversed R. alata / Reversed P. pustulosus") +
+       theme(plot.title = element_text(face="italic")) #this makes the plot title italic
+        p_rra <- p_rra + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) #this gets rid of grey background and lines, adds 2 axes
         p_rra<- p_rra  + coord_cartesian(ylim = c(0, 25))
         p_rra <- p_rra + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(rra_data, rra_data$set_num!="6" & rra_data$set_num!="7")) 
         p_rra
         
         
         #ra
-        ra_data<- attn_whole_set_1to5[attn_whole_set_1to5$trial_name_2=="ra_t_ra", ]
+        ra_data<- attn_whole_set[attn_whole_set$trial_name_2=="ra_t_ra", ]
         p_ra <-ggplot(data=ra_data, aes(x = set_num, y = all_tw_set))      
         p_ra <- p_ra + geom_boxplot(aes(fill=factor(set_num)))
         p_ra <- p_ra + guides(fill=FALSE)
         p_ra <- p_ra + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
               scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
-                                values=c( "#A58DFC", "#A58DFC","#A58DFC","#A58DFC","#A58DFC", "#C39921", "#A58DFC" ))
+                                values=c( Ra, Ra, Ra, Ra, Ra, Ts, Ra ))
         p_ra <- p_ra + ylab("Twitches in presentation")
         p_ra + xlab("presentation number")
         p_ra <- p_ra + xlab("presentation number")
-        p_ra<- p_ra + labs(title="R. alata / P. pustulosus")
+        p_ra<- p_ra + labs(title="R. alata / 0-chuck P. pustulosus") +
+       theme(plot.title = element_text(face="italic")) #this makes the plot title italic
+        p_ra <- p_ra + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) #this gets rid of grey background and lines, adds 2 axes
         p_ra<- p_ra + coord_cartesian(ylim = c(0, 25)) #sets y limit
         p_ra <- p_ra + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(ra_data, ra_data$set_num!="6" & ra_data$set_num!="7")) 
         
@@ -465,86 +663,299 @@ library(ggplot2)
         
         
         #t_ra
-        t_ra_data <- attn_whole_set_1to5[attn_whole_set_1to5$trial_name_2=="t_ra_t", ]
+        t_ra_data <- attn_whole_set[attn_whole_set$trial_name_2=="t_ra_t", ]
         p_t_ra <-ggplot(data=t_ra_data, aes(x = set_num, y = all_tw_set))      
         p_t_ra <- p_t_ra + geom_boxplot(aes(fill=factor(set_num)))
         p_t_ra <- p_t_ra + guides(fill=FALSE)
         p_t_ra <- p_t_ra + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
               scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
-                                values=c(  "#C39921", "#C39921", "#C39921", "#C39921", "#C39921","#A58DFC","#C39921" ))
+                                values=c(  Ts, Ts, Ts, Ts, Ts, Ra, Ts ))
         p_t_ra <- p_t_ra + ylab("Twitches in presentation")
         p_t_ra + xlab("presentation number")
         p_t_ra <- p_t_ra + xlab("presentation number")
-        p_t_ra<- p_t_ra + labs(title="P. pustulosus / R. alata")
+        p_t_ra<- p_t_ra + labs(title="0-chuck P. pustulosus / R. alata") +
+       theme(plot.title = element_text(face="italic")) #this makes the plot title italic
+        p_t_ra <- p_t_ra + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) #this gets rid of grey background and lines, adds 2 axes
         p_t_ra<- p_t_ra + coord_cartesian(ylim = c(0, 25)) #sets y limit
         p_t_ra <- p_t_ra + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(t_ra_data, t_ra_data$set_num!="6" & t_ra_data$set_num!="7")) 
         p_t_ra
         
+       
         #rt
-        rt_data<- attn_whole_set_1to5[attn_whole_set_1to5$trial_name_2=="t_ra_t", ]
+        rt_data<- attn_whole_set[attn_whole_set$trial_name_2=="t_ra_t", ]
         p_rt <-ggplot(data=rt_data, aes(x = set_num, y = all_tw_set))      
         p_rt <- p_rt + geom_boxplot(aes(fill=factor(set_num)))
         p_rt <- p_rt + guides(fill=FALSE)
         p_rt <- p_rt + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
               scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
-                                values=c( "#1EBF95","#1EBF95", "#1EBF95", "#1EBF95", "#1EBF95","#1EB7E9", "#1EBF95" ))
+                                values=c( Rt, Rt, Rt, Rt, Rt, Rra, Rt  ))
         p_rt <- p_rt + ylab("Twitches in presentation")
         p_rt + xlab("presentation number")
         p_rt <- p_rt + xlab("presentation number")
-        p_rt<- p_rt + labs(title="Reversed P. pustulosus / Reversed R. alata")
+        p_rt<- p_rt + labs(title="Reversed P. pustulosus / Reversed R. alata") +
+       theme(plot.title = element_text(face="italic")) #this makes the plot title italic
+        p_rt <- p_rt + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) #this gets rid of grey background and lines, adds 2 axes
         p_rt<- p_rt + coord_cartesian(ylim = c(0, 25)) #sets y limit
         p_rt <- p_rt + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(rt_data, rt_data$set_num!="6" & rt_data$set_num!="7")) 
         p_rt
         
-        
+         
         #tc
-        tc_data<- attn_whole_set_1to5[attn_whole_set_1to5$trial_name_2=="tc_ts_tc", ]
+        tc_data<- attn_whole_set[attn_whole_set$trial_name_2=="tc_ts_tc", ]
         p_tc <-ggplot(data=tc_data, aes(x = set_num, y = all_tw_set))      
         p_tc <- p_tc + geom_boxplot(aes(fill=factor(set_num)))
         p_tc <- p_tc + guides(fill=FALSE)
         p_tc <- p_tc + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
               scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
-                                values=c( "#57B21F", "#57B21F","#57B21F","#57B21F","#57B21F", "#F67770", "#57B21F" ))
+                                values=c( T2c, T2c, T2c, T2c, T2c, Ts, T2c ))
         p_tc <- p_tc + ylab("Twitches in presentation")
         p_tc + xlab("presentation number")
         p_tc <- p_tc + xlab("presentation number")
-        p_tc<- p_tc + labs(title="3 chuck P. pustulosus / simple P. pustulosus")
+        p_tc<- p_tc + labs(title="2-chuck P. pustulosus / 0-chuck P. pustulosus") +
+       theme(plot.title = element_text(face="italic")) #this makes the plot title italic
+        p_tc <- p_tc + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) #this gets rid of grey background and lines, adds 2 axes
         p_tc<- p_tc + coord_cartesian(ylim = c(0, 25)) #sets y limit
         p_tc <- p_tc + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(tc_data, tc_data$set_num!="6" & tc_data$set_num!="7")) 
         p_tc
         
+        
         #ts
-        ts_data<- attn_whole_set_1to5[attn_whole_set_1to5$trial_name_2=="ts_tc_ts", ]
+        ts_data<- attn_whole_set[attn_whole_set$trial_name_2=="ts_tc_ts", ]
         p_ts <-ggplot(data=ts_data, aes(x = set_num, y = all_tw_set))      
         p_ts <- p_ts + geom_boxplot(aes(fill=factor(set_num)))
         p_ts <- p_ts + guides(fill=FALSE)
         p_ts <- p_ts + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
               scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
-                                values=c("#F67770", "#F67770", "#F67770", "#F67770", "#F67770",  "#57B21F", "#F67770" ))
+                                values=c(Ts, Ts, Ts, Ts, Ts, T2c, Ts ))
         p_ts <- p_ts + ylab("Twitches in presentation")
         p_ts + xlab("presentation number")
         p_ts <- p_ts + xlab("presentation number")
-        p_ts<- p_ts + labs(title="Simple P. pustulosus / 3 chuck P. pustulosus")
+        p_ts<- p_ts + labs(title="0-chuck P. pustulosus / 2-chuck P. pustulosus")+
+       theme(plot.title = element_text(face="italic")) #this makes the plot title italic
+        p_ts <- p_ts + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) #this gets rid of grey background and lines, adds 2 axes
         p_ts<- p_ts + coord_cartesian(ylim = c(0, 25)) #sets y limit
         p_ts <- p_ts + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(ts_data, ts_data$set_num!="6" & ts_data$set_num!="7")) 
         p_ts
         
+        
         #tia_tib_tia
-        tia_data <- attn_whole_set_1to5[attn_whole_set_1to5$trial_name_2=="tia_tib_tia", ]
+        tia_data <- attn_whole_set[attn_whole_set$trial_name_2=="tia_tib_tia", ]
         p_tia <-ggplot(data=tia_data, aes(x = set_num, y = all_tw_set))      
         p_tia <- p_tia + geom_boxplot(aes(fill=factor(set_num)))
         p_tia <- p_tia + guides(fill=FALSE)
         p_tia <- p_tia + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
               scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
-                                values=c("#AD881D", "#AD881D","#AD881D","#AD881D","#AD881D", "#DEB339", "#AD881D" )) #using 2 tints of the standard yellow
+                                values=c(T1c, T1c, T1c, T1c,T1c,T1c, T1c))
         p_tia <- p_tia + ylab("Twitches in presentation")
         p_tia + xlab("presentation number")
         p_tia <- p_tia + xlab("presentation number")
-        p_tia<- p_tia + labs(title="Tungara individuals contrast")
+        p_tia<- p_tia + labs(title="Different individual P. pustulosus") +
+       theme(plot.title = element_text(face="italic")) #this makes the plot title italic
+        p_tia <- p_tia + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) #this gets rid of grey background and lines, adds 2 axes
         p_tia<- p_tia + coord_cartesian(ylim = c(0, 25)) #sets y limit
         p_tia <- p_tia + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(tia_data, tia_data$set_num!="6" & tia_data$set_num!="7"))
         p_tia
         
+        
+        
+        
+        
+        #### plots without x and y titles for a combined plot
+        
+         de_data<- attn_whole_set[attn_whole_set$trial_name_2=="de_t_de", ]       
+        p_de <-ggplot(data=de_data, aes(x = set_num, y = all_tw_set))      
+        p_de <- p_de + geom_boxplot(aes(fill=factor(set_num)))
+        p_de <- p_de + guides(fill=FALSE)
+        p_de <- p_de + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c(De, De, De, De, De, Ts, De))
+        p_de <- p_de + ylab("")
+        p_de <- p_de + xlab("")
+        p_de<- p_de + labs(title = "D. ebraccatus / 0-chuck P. pustulosus") +
+                  theme(plot.title = element_text(face="italic")) #this makes the plot title italic
+         p_de <- p_de + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) #this gets rid of grey background and lines, adds 2 axes
+         p_de<- p_de +scale_y_continuous(name= "", breaks=c(0,10,20), limits=c(0,25)) +
+               theme(axis.text.x = element_text(size=14), axis.text.y = element_text(size=14)) #setting the size of the numbering, the limits of the y axes
+        p_de <- p_de + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(de_data, de_data$set_num!="6" & de_data$set_num!="7")) 
+        p_de
+        
+        
+         #t_de
+        t_de_data <- attn_whole_set[attn_whole_set$trial_name_2=="t_de_t", ]
+        p_t_de <-ggplot(data=t_de_data, aes(x = set_num, y = all_tw_set))      
+        p_t_de <- p_t_de + geom_boxplot(aes(fill=factor(set_num)))
+        p_t_de <- p_t_de + guides(fill=FALSE)
+        p_t_de <- p_t_de + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c( Ts, Ts, Ts, Ts, Ts, De, Ts))
+        p_t_de <- p_t_de + ylab("")
+        p_t_de <- p_t_de + xlab("")
+        p_t_de<- p_t_de + labs(title = "0-chuck P. pustulosus / D. ebraccatus")+
+       theme(plot.title = element_text(face="italic")) #this makes the plot title italic
+         p_t_de <- p_t_de + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) #this gets rid of grey background and lines, adds 2 axes
+         p_t_de<- p_t_de +scale_y_continuous(name= "", breaks=c(0,10,20), limits=c(0,25)) +
+               theme(axis.text.x = element_text(size=14), axis.text.y = element_text(size=14)) #setting the size of the numbering, the limits of the y axes
+        p_t_de <- p_t_de + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(t_de_data, t_de_data$set_num!="6" & t_de_data$set_num!="7")) 
+        p_t_de
+        
+       
+        #rra
+        rra_data<- attn_whole_set[attn_whole_set$trial_name_2=="rra_rt_rra", ]
+        p_rra <-ggplot(data=rra_data, aes(x = set_num, y = all_tw_set))      
+        p_rra <- p_rra + geom_boxplot(aes(fill=factor(set_num)))
+        p_rra <- p_rra + guides(fill=FALSE)
+        #P_rra<- p_rra + coord_cartesian(ylim = c(0, 20)
+        p_rra <- p_rra + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c( Rra, Rra, Rra, Rra, Rra, Rt, Rra ))
+        p_rra <- p_rra + ylab("")
+        p_rra <- p_rra + xlab("")
+        p_rra<- p_rra + labs(title="Reversed R. alata / Reversed P. pustulosus") +
+       theme(plot.title = element_text(face="italic")) #this makes the plot title italic
+        p_rra <- p_rra + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) #this gets rid of grey background and lines, adds 2 axes
+        p_rra<- p_rra  +scale_y_continuous(name= "", breaks=c(0,10,20), limits=c(0,25)) +                theme(axis.text.x = element_text(size=14), axis.text.y = element_text(size=14)) #setting the size of the numbering, the limits of the y axes
+        p_rra <- p_rra + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(rra_data, rra_data$set_num!="6" & rra_data$set_num!="7")) 
+        p_rra
+        
+        
+        #ra
+        ra_data<- attn_whole_set[attn_whole_set$trial_name_2=="ra_t_ra", ]
+        p_ra <-ggplot(data=ra_data, aes(x = set_num, y = all_tw_set))      
+        p_ra <- p_ra + geom_boxplot(aes(fill=factor(set_num)))
+        p_ra <- p_ra + guides(fill=FALSE)
+        p_ra <- p_ra + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c( Ra, Ra, Ra, Ra, Ra, Ts, Ra ))
+        p_ra <- p_ra + ylab("")
+        p_ra <- p_ra + xlab("")
+        p_ra<- p_ra + labs(title="R. alata / 0-chuck P. pustulosus") +
+       theme(plot.title = element_text(face="italic")) #this makes the plot title italic
+        p_ra <- p_ra + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) #this gets rid of grey background and lines, adds 2 axes
+        p_ra<- p_ra +scale_y_continuous(name= "", breaks=c(0,10,20), limits=c(0,25)) +                theme(axis.text.x = element_text(size=14), axis.text.y = element_text(size=14)) #setting the size of the numbering, the limits of the y axes #sets y limit
+        p_ra <- p_ra + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(ra_data, ra_data$set_num!="6" & ra_data$set_num!="7")) 
+        
+        p_ra
+        
+        
+        
+        #t_ra
+        t_ra_data <- attn_whole_set[attn_whole_set$trial_name_2=="t_ra_t", ]
+        p_t_ra <-ggplot(data=t_ra_data, aes(x = set_num, y = all_tw_set))      
+        p_t_ra <- p_t_ra + geom_boxplot(aes(fill=factor(set_num)))
+        p_t_ra <- p_t_ra + guides(fill=FALSE)
+        p_t_ra <- p_t_ra + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c(  Ts, Ts, Ts, Ts, Ts, Ra, Ts ))
+        p_t_ra <- p_t_ra + ylab("")
+        p_t_ra <- p_t_ra + xlab("")
+        p_t_ra<- p_t_ra + labs(title="0-chuck P. pustulosus / R. alata") +
+       theme(plot.title = element_text(face="italic")) #this makes the plot title italic
+        p_t_ra <- p_t_ra + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) #this gets rid of grey background and lines, adds 2 axes
+        p_t_ra<- p_t_ra +scale_y_continuous(name= "", breaks=c(0,10,20), limits=c(0,25)) +                theme(axis.text.x = element_text(size=14), axis.text.y = element_text(size=14)) #setting the size of the numbering, the limits of the y axes #sets y limit
+        p_t_ra <- p_t_ra + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(t_ra_data, t_ra_data$set_num!="6" & t_ra_data$set_num!="7")) 
+        p_t_ra
+        
+       
+        #rt
+        rt_data<- attn_whole_set[attn_whole_set$trial_name_2=="t_ra_t", ]
+        p_rt <-ggplot(data=rt_data, aes(x = set_num, y = all_tw_set))      
+        p_rt <- p_rt + geom_boxplot(aes(fill=factor(set_num)))
+        p_rt <- p_rt + guides(fill=FALSE)
+        p_rt <- p_rt + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c( Rt, Rt, Rt, Rt, Rt, Rra, Rt  ))
+        p_rt <- p_rt + ylab("")
+        p_rt <- p_rt + xlab("")
+        p_rt<- p_rt + labs(title="Reversed P. pustulosus / Reversed R. alata") +
+       theme(plot.title = element_text(face="italic")) #this makes the plot title italic
+        p_rt <- p_rt + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) #this gets rid of grey background and lines, adds 2 axes
+        p_rt<- p_rt +scale_y_continuous(name= "", breaks=c(0,10,20), limits=c(0,25)) +                theme(axis.text.x = element_text(size=14), axis.text.y = element_text(size=14)) #setting the size of the numbering, the limits of the y axes #sets y limit
+        p_rt <- p_rt + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(rt_data, rt_data$set_num!="6" & rt_data$set_num!="7")) 
+        p_rt
+        
+         
+        #tc
+        tc_data<- attn_whole_set[attn_whole_set$trial_name_2=="tc_ts_tc", ]
+        p_tc <-ggplot(data=tc_data, aes(x = set_num, y = all_tw_set))      
+        p_tc <- p_tc + geom_boxplot(aes(fill=factor(set_num)))
+        p_tc <- p_tc + guides(fill=FALSE)
+        p_tc <- p_tc + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c( T2c, T2c, T2c, T2c, T2c, Ts, T2c ))
+        p_tc <- p_tc + ylab("")
+        p_tc <- p_tc + xlab("")
+        p_tc<- p_tc + labs(title="2-chuck P. pustulosus / 0-chuck P. pustulosus") +
+       theme(plot.title = element_text(face="italic")) #this makes the plot title italic
+        p_tc <- p_tc + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) #this gets rid of grey background and lines, adds 2 axes
+        p_tc<- p_tc +scale_y_continuous(name= "", breaks=c(0,10,20), limits=c(0,25)) +                theme(axis.text.x = element_text(size=14), axis.text.y = element_text(size=14)) #setting the size of the numbering, the limits of the y axes #sets y limit
+        p_tc <- p_tc + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(tc_data, tc_data$set_num!="6" & tc_data$set_num!="7")) 
+        p_tc
+        
+        
+        #ts
+        ts_data<- attn_whole_set[attn_whole_set$trial_name_2=="ts_tc_ts", ]
+        p_ts <-ggplot(data=ts_data, aes(x = set_num, y = all_tw_set))      
+        p_ts <- p_ts + geom_boxplot(aes(fill=factor(set_num)))
+        p_ts <- p_ts + guides(fill=FALSE)
+        p_ts <- p_ts + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c(Ts, Ts, Ts, Ts, Ts, T2c, Ts ))
+        p_ts <- p_ts + ylab("")
+        p_ts <- p_ts + xlab("")
+        p_ts<- p_ts + labs(title="0-chuck P. pustulosus / 2-chuck P. pustulosus")+
+       theme(plot.title = element_text(face="italic")) #this makes the plot title italic
+        p_ts <- p_ts + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) #this gets rid of grey background and lines, adds 2 axes
+        p_ts<- p_ts +scale_y_continuous(name= "", breaks=c(0,10,20), limits=c(0,25)) +                theme(axis.text.x = element_text(size=14), axis.text.y = element_text(size=14)) #setting the size of the numbering, the limits of the y axes #sets y limit
+        p_ts <- p_ts + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(ts_data, ts_data$set_num!="6" & ts_data$set_num!="7")) 
+        p_ts
+        
+        
+        #tia_tib_tia
+        tia_data <- attn_whole_set[attn_whole_set$trial_name_2=="tia_tib_tia", ]
+        p_tia <-ggplot(data=tia_data, aes(x = set_num, y = all_tw_set))      
+        p_tia <- p_tia + geom_boxplot(aes(fill=factor(set_num)))
+        p_tia <- p_tia + guides(fill=FALSE)
+        p_tia <- p_tia + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c(T1c, T1c, T1c, T1c,T1c,T1c, T1c))
+        p_tia <- p_tia + ylab("")
+        p_tia <- p_tia + xlab("")
+        p_tia<- p_tia + labs(title="Different individual P. pustulosus") +
+       theme(plot.title = element_text(face="italic")) #this makes the plot title italic
+        p_tia <- p_tia + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) #this gets rid of grey background and lines, adds 2 axes
+        p_tia<- p_tia +scale_y_continuous(name= "", breaks=c(0,10,20), limits=c(0,25)) +                theme(axis.text.x = element_text(size=14), axis.text.y = element_text(size=14)) #setting the size of the numbering, the limits of the y axes #sets y limit
+        p_tia <- p_tia + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(tia_data, tia_data$set_num!="6" & tia_data$set_num!="7"))
+        p_tia
+        #430 x 295 export
+        
+        
+        ####
+        
+        
+ # all plots:
+         p_de
+        p_t_de
+         p_rra
+         p_ra
+         p_t_ra
+         p_rt
+         p_tc
+         p_ts
+         p_tia
         
         # Multiple plot function
 #
