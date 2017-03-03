@@ -4,8 +4,11 @@ author: "May Dixon"
 date: "September 21, 2016"
 output:
   html_document:
-    toc: true
-    toc_float: true
+    toc: yes
+    toc_float: yes
+    keep_md: TRUE
+  pdf_document:
+    toc: yes
 ---
 
 ## Three main sections
@@ -20,7 +23,7 @@ In this section we are assessing which treatments had the highest initial respon
 \
 
 
-## Initital interest  with generalized linear mixed model (log-linked)
+## Initial interest  with generalized linear mixed model (log-linked)
 load these libraries: 
 
 ```{r, echo=TRUE}
@@ -95,7 +98,10 @@ So this model is best:  initial_int_1 <- glmer(all_tw_set ~ trial_name_2 + (tria
         
         #perhaps best order is: Ts, T, Tc, Rt, Rra, Ra, De, can do using relevel() commands from above
 ```
+
 This falls out into the following result: 
+
+##Summary of habituation Results 
 
 | stim           | value_est |	sig_vals |
 | :--------------|-----------|------|
