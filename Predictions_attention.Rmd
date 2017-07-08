@@ -1,0 +1,167 @@
+---
+title: "predictions_attention"
+author: "may"
+date: "June 29, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Predictions
+
+1. comparing models with and without intercepts, with call as grouping and with set as grouping. 
+```{r}
+library(lme4)
+mm1<- glmer(all_tw_call ~ call_num + call_num:trial_name_2 + (trial_number| Bat_ID), data= attn_habit_3, family="poisson") #run model
+smm1<- summary(mm1)  #make summary
+smm1
+mm1a<- glmer(all_tw_call ~ call_num_2 + call_num_2:trial_name_2 + (trial_number| Bat_ID), data= attn_habit_3, family="poisson") #trying model with a different coding of call number. 
+smm1a<- summary(mm1a)  #make summary
+smm1a
+
+mm1b <- glmer(all_tw_call ~ call_num  + trial_name_2 + call_num:trial_name_2 + (trial_number| Bat_ID), data= attn_habit_3, family="poisson") #with trial_name_2 as main effect
+smm1b<- summary(mm1b)  #make summary
+smm1b
+
+mm1c <- glmer(all_tw_call ~ call_num  + trial_name_2 + call_num:trial_name_2 - 1 + (trial_number| Bat_ID), data= attn_habit_3, family="poisson") #run model with trial name as main effect and no intercept
+smm1c<- summary(mm1c)  #make summary
+smm1c
+
+mm1d <- glmer(all_tw_call ~ call_num  + primary_stim + call_num:primary_stim + (trial_number| Bat_ID), data= attn_habit_3, family="poisson") #run model
+smm1d<- summary(mm1d)  #make summary
+smm1d # model with trial as main effect, no intercept, primary stim as group 
+
+mm1e <- glmer(all_tw_call ~ call_num  + primary_stim + call_num:primary_stim + (1| Bat_ID), data= attn_habit_3, family="poisson") #run model
+smm1e<- summary(mm1d)  #make summary
+smm1e # same as mm1d but w/o trial number to see effect on hessian convergence
+
+
+mm1_5<- glmer(all_tw_call ~ call_num + call_num:trial_name_2 -1 + (trial_number| Bat_ID), data= attn_habit_3, family="poisson") #run model
+smm1_5<- summary(mm1_5)  #make summary
+smm1_5  #
+
+mm1epsilon <- glmer(all_tw_call ~ call_num  + primary_stim + call_num:primary_stim + (1| Bat_ID), data= attn_habit_3, family="poisson")
+smm1epsilon<- summary(mm1epsilon)  #make summary
+smm1epsilon
+#######Ok, trying to fix hessian convergence issues. 
+#try to scale numeric predictors (don't think this will work for me but whatever)
+#so I am centering the call numbers around 0 and making the variance normal. 
+attn_habit_3$scaled_call_num<- scale(attn_habit_3$call_num, center=TRUE, scale=TRUE)  #scaling call number
+plot(attn_habit_3$scaled_call_num, attn_habit_3$call_num)
+
+#also going to center call_num_2, which won't have the weird gaps that are weird
+attn_habit_3$scaled_call_num_2<- scale(attn_habit_3$call_num_2, center=TRUE, scale=TRUE)  #scaling call number
+plot(attn_habit_3$scaled_call_num_2, attn_habit_3$call_num_2) #this one won't have weird arbitrary gaps
+
+#run model with scaled numeric variable, using 1.1...1.5 call_num scale
+mm1f <- glmer(all_tw_call ~ scaled_call_num  + primary_stim + scaled_call_num:primary_stim + (1| Bat_ID), data= attn_habit_3, family="poisson")
+smm1f<- summary(mm1f)  #make summary
+smm1f
+
+#run model with regular integer scale
+mm1g <- glmer(all_tw_call ~ scaled_call_num_2  + primary_stim + scaled_call_num_2:primary_stim + (1| Bat_ID), data= attn_habit_3, family="poisson") #run model with scaled numeric variable, using scaled call nums from 1-~35 scale
+smm1g<- summary(mm1g)  #make summary
+smm1g
+
+#run model with the  regular integer call num scale, this time without intercepts
+mm1h <- glmer(all_tw_call ~ scaled_call_num  + primary_stim + scaled_call_num:primary_stim -1 + (1| Bat_ID), data= attn_habit_3, family="poisson") #run model with scaled numeric variable, using scaled call nums from 1.1...1.5 scale
+smm1h<- summary(mm1h)  #make summary
+smm1h
+
+## So basically, scaling the call number to normal does help just a little bit, and is generally a good thing to do. 
+#BUt still not converging, what if I add trial_number back in (full model)
+#run model with the  decimal call num scale, this time without intercepts:
+
+mm1i <- glmer(all_tw_call ~ scaled_call_num  + primary_stim + scaled_call_num:primary_stim -1 + (trial_number| Bat_ID), data= attn_habit_3, family="poisson") #run model with scaled numeric variable, using scaled call nums from 1.1...1.5 scale
+smm1i<- summary(mm1i)
+smm1i
+
+#and with integer scale?    VVVVVVVVVVVVV
+
+mm1j <- glmer(all_tw_call ~ scaled_call_num_2  + primary_stim + scaled_call_num_2:primary_stim -1 + (trial_number| Bat_ID), data= attn_habit_3, family="poisson") #run model with scaled numeric variable, using scaled call nums from integer scale
+smm1j<- summary(mm1j)
+smm1j
+## This is the best model
+## It is a full model, has all the main effects of call number and of the interaction effects
+## It has both trial number and subject as random effects
+## It converges
+## It's "time" value is normalized and scaled (centered, etc), which is good bc the names for time are arbitrary anyway
+## We used the call number scale that makes the most sense, isn't interpreted as different weights of differences between each chunk. 
+
+
+
+## This is just for me to look at what the values of the slope are for the interactions:
+smm1jnames<- rownames(smm1j$coefficients)
+Estimate1<- smm1j$coefficients + smm1j$coefficients[1,1] #adding the main effect of call number, using De as reference. 
+cbind(smm1jnames, as.numeric(Estimate1))
+
+
+##Hookay. So now I have a model with some values that are things. I can try to estimate the confidence intervals now, I believe. 
+
+confint_coefficients<- confint(, type="bca")
+
+##################
+mm2<- glmer(all_tw_call ~ call_num + call_num:trial_name_2 + (1| Bat_ID), data= attn_habit_3, family="poisson") #run model
+smm2<- summary(mm2)  #make summary
+smm2
+
+mm2_5<- glmer(all_tw_call ~ call_num + call_num:trial_name_2 -1+ (1| Bat_ID), data= attn_habit_3, family="poisson") #run model
+smm2_5<- summary(mm2_5)  #make summary
+smm2_5
+
+
+mm3<- glmer(all_tw_set ~ set_num + set_num:trial_name_2 + (trial_number| Bat_ID), data= attn_habit_3, family="poisson") #run model
+smm3<- summary(mm3)  #make summary
+smm3
+
+mm3_5<- glmer(all_tw_set ~ set_num + set_num:trial_name_2 -1 + (trial_number| Bat_ID), data= attn_habit_3, family="poisson") #run model
+smm3_5<- summary(mm3_5)  #make summary
+smm3_5
+
+mm4<- glmer(all_tw_set ~ set_num + set_num:trial_name_2 + (1| Bat_ID), data= attn_habit_3, family="poisson") #run model
+smm4<- summary(mm4)  #make summary
+smm4
+
+
+mm4_5<- glmer(all_tw_set ~ set_num + set_num:trial_name_2 -1 + (1| Bat_ID), data= attn_habit_3, family="poisson") #run model
+smm4_5<- summary(mm4_5)  #make summary
+smm4_5
+
+mm5<- glmer(all_tw_set ~ set_num:trial_name_2 -1 + (trial_number| Bat_ID), data= attn_habit_3, family="poisson") #run model
+smm5<- summary(mm5)  #make summary    #interaction only model
+smm5
+
+
+
+names<-c("smm1$AICtab", "smm1_5$AICtab", "smm2$AICtab", "smm2_5$AICtab", "smm3$AICtab", "smm3_5$AICtab", "smm4$AICtab", "smm4_5$AICtab, "smm5")
+AIC_comp<- rbind( smm1$AICtab, smm1_5$AICtab, smm2$AICtab, smm2_5$AICtab, smm3$AICtab, smm3_5$AICtab, smm4$AICtab, smm4_5$AICtab, smm5)
+AIC_comp<- cbind(names, AIC_comp)
+AIC_comp
+
+coeff_comp<- cbind(smm1$coefficients, smm1_5$coefficients, smm2$coefficients, smm2_5$coefficients, smm3$coefficients, smm3_5$coefficients, smm4$coefficients, smm4_5$coefficients)
+coeff_comp
+
+
+
+
+```
+
+
+
+```{r}
+library(lme4)
+library(boot)
+#2.5 #this adds call number as a main effect, but doesn't include the main effect of trial type
+m2_5<- glmer(all_tw_call ~ call_num + call_num:trial_name_2 + trial_number + (1| Bat_ID), data= attn_habit_3, family="poisson")
+sm25<- summary(m2_5)
+sm25
+
+boot_habit<-bootMer(x=sm25,FUN=fixef,nsim=200)
+boot.ci(b_par,type="perc",index=1)
+
+
+
+
+```
