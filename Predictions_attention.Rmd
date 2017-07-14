@@ -81,8 +81,13 @@ smm1i
 #and with integer scale?    VVVVVVVVVVVVV
 
 mm1j <- glmer(all_tw_call ~ scaled_call_num_2  + primary_stim + scaled_call_num_2:primary_stim -1 + (trial_number| Bat_ID), data= attn_habit_3, family="poisson") #run model with scaled numeric variable, using scaled call nums from integer scale
+mm1i <-glmer(all_tw_call ~ scaled_call_num_2  + primary_stim + scaled_call_num_2:primary_stim + (trial_number| Bat_ID))
+smm1i<- summary(mm1i)            
 smm1j<- summary(mm1j)
 smm1j
+anova(mm1j) # This just demonstrates that is appropriate to further look for an interaction between  call number and primary stimulus. 
+
+effects(scaled_call_num_2*primary_stim, mm1j) #this isn't called right
 ## This is the best model
 ## It is a full model, has all the main effects of call number and of the interaction effects
 ## It has both trial number and subject as random effects
@@ -99,8 +104,91 @@ cbind(smm1jnames, as.numeric(Estimate1))
 
 
 ##Hookay. So now I have a model with some values that are things. I can try to estimate the confidence intervals now, I believe. 
+#These are estimated confindence intervals:
+confint_full_model<- confint(mm1j, type="bca")
+CFM<- confint_full_model
 
-confint_coefficients<- confint(, type="bca")
+#Now to make a dataframe with the fixed effect values of the interactions, and their confidence intervals
+
+#now I am going to try to make a dataframe including only the interaction effects, and really, only the interaction effects when added to the reference value, so the true values of each of the interactions
+# fixef_mm1j <- cbind(fixef(mm1j))
+# fixef_mm1j_ie<-rbind(fixef_mm1j[1,],cbind(fixef_mm1j[9:14,] + fixef_mm1j[1,])) #deleting the no interaction effect fixed effects
+# colnames(fixef_mm1j_ie)<- "fixeffects"
+# fixef_mm1j_ie     
+#       
+# #Doing the same to the confidence intervals
+# conf_frame<-rbind(CFM[4,], (CFM[12:17,] + CFM[4,])) #making all interactions true values by adding the main effect of call number which is referenced to de to the other values
+# rownames(conf_frame)[1]<- "scaled_call_num_2:primary_stimde" #adding rowname to the first column
+# TMT<-c("De", "Ra", "Rra", "Rt1c", "T1c", "T2c", "Ts") 
+# row.names(conf_frame)<-NULL
+# interaction_cis<-as.data.frame(cbind(TMT, fixef_mm1j_ie, conf_frame)) #data frame with the 95%cis for the interactions bectween call number and treatments
+# interaction_cis$`2.5 %`<-as.numeric(as.character(interaction_cis$`2.5 %`))
+# interaction_cis$`97.5 %`<-as.numeric(as.character(interaction_cis$`97.5 %`))
+# interaction_cis$fixeffects<-as.numeric(as.character(interaction_cis$fixeffects))
+# colnames(interaction_cis)<- c("TMT", "fixeffects", "lower_ci", "upper_ci")
+# interaction_cis$midval<- apply(interaction_cis[,3:4],1, mean)
+# row.names(interaction_cis) <- NULL 
+# interaction_cis
+
+
+### Alternatively, just use Tidy?
+Mm1j_tidy<- tidy(mm1j, conf.int=TRUE)
+#makes lovely dataframe with all my lovely values
+
+#cleaning a bit:
+MM1j_ceoffs<- Mm1j_tidy[-2:-8,]
+MM1j_coeffss<- MM1j_ceoffs[-8:-10,]
+MM1j_coeff3<- cbind(TMT, MM1j_coeffss)
+
+#now to adjust for reference value. Make new columns adding reference to the interactions
+
+MM1j_coeff3$slopes<- MM1j_coeff3[,3] + 0.05044288 #adding value of De/reference to the slopes
+MM1j_coeff3$slopes[1]<-0.05044288 #fixing the effect for de
+MM1j_coeff3$conf.low.adj<-MM1j_coeff3$conf.low + 0.05044288 #adding value of De/reference to the low.ci
+MM1j_coeff3$conf.low.adj[1]<- -0.08649563 #fixing high ci for de
+
+MM1j_coeff3$conf.high.adj<-MM1j_coeff3$conf.high + 0.05044288 #adding value of De/reference to the low.ci
+MM1j_coeff3$conf.high.adj[1]<- 0.1873814 #fixing high ci for de
+
+```
+Now to graph these
+
+```{r}
+#graphing the slopes and their CI's
+
+plot_ci_slopes<- ggplot(data= MM1j_coeff3, aes(x=TMT, y= slopes)) +
+geom_point() +
+geom_errorbar(ymin = MM1j_coeff3$conf.low.adj  , ymax = MM1j_coeff3$conf.high.adj )
+plot_ci_slopes
+
+plot_ci_slopes<- ggplot(data=interaction_cis,  aes(x=(lower_ci+upper_ci/2))) +
+geom_errorbar(ymin = interaction_cis$lower_ci  , ymax = interaction_cis$upper_ci )
+
+plot_ci_slopes
+```
+Show in New WindowClear OutputExpand/Collapse Output
+estimate
+<dbl>
+std.error
+<dbl>
+statistic
+<dbl>
+p.value
+<dbl>
+conf.low
+<dbl>
+conf.high
+<dbl>
+group
+<chr>
+0.05044288	0.06986787	0.7219753	4.703096e-01	-0.08649563	0.1873814	fixed
+-1.07186301	0.12024991	-8.9136282	4.938922e-19	-1.30754850	-0.8361775	fixed
+-0.86674770	0.09873082	-8.7788968	1.650859e-18	-1.06025655	-0.6732388	fixed
+-0.41473021	0.10785571	-3.8452320	1.204385e-04	-0.62612350	-0.2033369	fixed
+-0.25967210	0.08068247	-3.2184451	1.288877e-03	-0.41780684	-0.1015374	fixed
+-0.17686792	0.09734415	-1.8169343	6.922717e-02	-0.36765894	0.0139231	fixed
+-0.36817611	0.10992532	-3.3493293	8.100745e-04	-0.58362578	-0.1527264	fixed
+7 rows | 3-9 of 8 columns
 
 ##################
 mm2<- glmer(all_tw_call ~ call_num + call_num:trial_name_2 + (1| Bat_ID), data= attn_habit_3, family="poisson") #run model
