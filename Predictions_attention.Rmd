@@ -80,12 +80,64 @@ smm1i
 
 #and with integer scale?    VVVVVVVVVVVVV
 
-mm1j <- glmer(all_tw_call ~ scaled_call_num_2  + primary_stim + scaled_call_num_2:primary_stim -1 + (trial_number| Bat_ID), data= attn_habit_3, family="poisson") #run model with scaled numeric variable, using scaled call nums from integer scale
+mm1j <- glmer(all_tw_call ~ scaled_call_num_2  * primary_stim  -1 + (trial_number| Bat_ID), data= attn_habit_3, family="poisson") #run model with scaled numeric variable, using scaled call nums from integer scale
 mm1i <-glmer(all_tw_call ~ scaled_call_num_2  + primary_stim + scaled_call_num_2:primary_stim + (trial_number| Bat_ID))
+
 smm1i<- summary(mm1i)            
 smm1j<- summary(mm1j)
 smm1j
-anova(mm1j) # This just demonstrates that is appropriate to further look for an interaction between  call number and primary stimulus. 
+
+library(car)
+Anovamm1j<-Anova(mm1j, type = 3) # This just demonstrates that is appropriate to further look for an interaction between  call number and primary stimulus. 
+Anovamm1j
+```
+^^^ This is the type 3 anova. Shows that there is a significant interaction between call number and primary stimulus and invites you to look closer. 
+
+
+# anovamm1j<-anova(mm1j)
+# anovamm1j
+# summary(anovamm1j)
+# library(lmerTest)
+
+#trying to work out how to bootstrap coefficient estimates
+
+mySumm <- function(.) {
+  predict(., newdata=attn_habit_3, re.form=NULL)
+}
+
+####Collapse bootstrap into median, 95% PI
+sumBoot <- function(merBoot) {
+  return(
+    data.frame(fit = apply(merBoot$t, 2, function(x) as.numeric(quantile(x, probs=.5, na.rm=TRUE))),
+               lwr = apply(merBoot$t, 2, function(x) as.numeric(quantile(x, probs=.025, na.rm=TRUE))),
+               upr = apply(merBoot$t, 2, function(x) as.numeric(quantile(x, probs=.975, na.rm=TRUE)))
+    )
+  )
+}
+
+
+PI.boot1.time <- system.time(
+  boot1 <- lme4::bootMer(mm1j, mySumm, nsim=1000, use.u=FALSE, type="parametric")
+)
+
+PI.boot1 <- sumBoot(boot1)
+
+comp.data <- rbind(data.frame(Predict.Method="predictInterval()", x=(1:nrow(PI))-0.1, PI),
+                   data.frame(Predict.Method="lme4::bootMer() - Method 1", x=(1:nrow(PI.boot1))+0.1, PI.boot1))
+
+ggplot(aes(x=x, y=fit, ymin=lwr, ymax=upr, color=Predict.Method), data=comp.data[c(1:30,181:210),]) +
+  geom_point() + 
+  geom_linerange() +
+  labs(x="Index", y="Prediction w/ 95% PI") +
+  theme_bw() +  theme(legend.position="bottom") +
+  scale_color_brewer(type = "qual", palette = 2)
+  
+  
+  
+  
+bootMermm1j<- bootMer(mm1j, )
+
+
 
 effects(scaled_call_num_2*primary_stim, mm1j) #this isn't called right
 ## This is the best model
@@ -107,6 +159,9 @@ cbind(smm1jnames, as.numeric(Estimate1))
 #These are estimated confindence intervals:
 confint_full_model<- confint(mm1j, type="bca")
 CFM<- confint_full_model
+
+
+
 
 #Now to make a dataframe with the fixed effect values of the interactions, and their confidence intervals
 
@@ -134,6 +189,9 @@ CFM<- confint_full_model
 ### Alternatively, just use Tidy?
 Mm1j_tidy<- tidy(mm1j, conf.int=TRUE)
 #makes lovely dataframe with all my lovely values
+```
+
+```{r}
 
 #cleaning a bit:
 MM1j_ceoffs<- Mm1j_tidy[-2:-8,]
@@ -189,6 +247,18 @@ group
 -0.17686792	0.09734415	-1.8169343	6.922717e-02	-0.36765894	0.0139231	fixed
 -0.36817611	0.10992532	-3.3493293	8.100745e-04	-0.58362578	-0.1527264	fixed
 7 rows | 3-9 of 8 columns
+
+
+
+```{r}
+library(lsmeans)
+library(multcomp)
+multiple_comp<- lsmeans(mm1j,  ~ primary_stim :  scaled_call_num_2)
+multiple_comp<- glht(mm1j, mcp(condition="Tukey"))
+
+```
+
+
 
 ##################
 mm2<- glmer(all_tw_call ~ call_num + call_num:trial_name_2 + (1| Bat_ID), data= attn_habit_3, family="poisson") #run model
