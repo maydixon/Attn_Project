@@ -11,12 +11,13 @@ knitr::opts_chunk$set(echo = TRUE)
 
 Libraries:
 ```{r}
+library(car)
 library(dplyr)
 library(lme4)
 library("aods3")     ## overdispersion diagnostics
 library("bbmle")     ## AICtab
 library("pbkrtest")  ## parametric bootstrap
-library(car)
+
 
 ```
 
@@ -213,7 +214,7 @@ This justifies that different treatments change at different rates, can look for
 So now on to post hoc demonstrating that the different fixed effects are different from one another 
 ```{r}
 
-###I DONT KNOW WHY I WONT CONVERGE WHEN BOOTSTAPPED, here it is anyway
+## Some bootstapped failures, noted below
 bootMer()
 
 boot_habit<-bootMer(x=update(mm1j,start=ss,control=glmerControl(optCtrl=list(maxfun=1e4))),FUN=fixef,nsim=1)
@@ -222,11 +223,18 @@ mm1j.ci<- boot.ci(boot.out = boot_habit, type = "perc")
 ## just making a lot of confidence intervals
 
 
-c0 <- confint(mm1jx,method="Wald")
+c0 <- confint(mm1bob,method="Wald")
 ```
 ran with no errors
 ```{r}
-c1 <- confint(mm1jx)
+c1 <- confint(mm1bob)
+c1test <- confint(mm1bob) #rerun later
+ #in the meantime, so i don't have to rerun it:
+c1 <- as.data.frame(read_csv("~/GitHub/Attn_Project/Attn_project_github/c1_boot_output_mac.csv"))
+namesc1<-(c1[,1])
+c1<-c1[,-1]
+rownames(c1)<-namesc1
+c1
 ```
 ran with around 78 errors:
 1: failure to converge in 10000 evaluations
@@ -235,9 +243,13 @@ ran with around 78 errors:
   
 ```{r}
 #c2 <- confint(mm1jx,method="boot")  #can't run without way too many failed convergences
-c2<- confint(mm1jx, type="bca")
+##running these two
+c2test<- confint(mm1bob, method="boot")
+c1test <- confint(mm1bob) #rerun later
+
 ```
-Warnings:
+c2test: 1 run failed, 6 warnings
+c2 Warnings:
 failure to converge in 10000 evaluations : 43 
 expected decrease in profile: using minstep:27
 non-monotonic profile for primary_stimde: 6
@@ -246,25 +258,71 @@ bad spline fit for primary_stimt1c: falling back to linear interpolation: 6
 total: 82
 ```{r}
 library(effects)
-c3 <- with(effect("scaled_call_num_2*primary_stim",mm1jx),cbind(lower,upper))
-c4 <- with(summary(lsmeans(mm1jx,spec="scaled_call_num_2*primary_stim")),cbind(lower.CL,upper.CL))
+library(lsmeans)
+
+eff<-effect("scaled_call_num_2*primary_stim",mm1bob)
+eff$lower
+
+#c3 <- with(effect("scaled_call_num_2*primary_stim",mm1bob),cbind(lower,upper)) #this is pulling up more # than its supposed to
+#c4 <- with(summary(lsmeans(mm1bob,spec="scaled_call_num_2*primary_stim")),cbind(lower.CL,upper.CL)) #can't get this to work
 tmpf <- function(method,val) {
     data.frame(method=method,
-               v=names(fixef(mm1jx)),
+               v=names(fixef(mm1bob)),
                setNames(as.data.frame(tail(val,14)),
                         c("lwr","upr")))
 }
 library(ggplot2); theme_set(theme_bw())
 allCI <- rbind(tmpf("lme4_wald",c0),
       tmpf("lme4_prof",c1),
-      tmpf("lme4_bca",c2),
-      tmpf("effects",c3))
-               
+      tmpf("lme4_boot",c2test)
+      #tmpf("effects",c3)
+      )
+
 confint_comp<- ggplot(allCI,aes(v,ymin=lwr,ymax=upr,colour=method))+
     geom_linerange(position=position_dodge(width=0.8)) +
                      theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 
 confint_comp
+
+
+#######
+#messing around with above
+#cutting out extra non-interaction values
+tmpf <- function(method,val) {
+    data.frame(method=method,
+               v=names(fixef(mm1bob))[c(1,9:14)],
+               setNames(as.data.frame(val[c(4,12:17),]), #pulls relevent rows
+                        c("lwr","upr"))
+               setNames(as.data.frame(val[c(4,12:17),]), #pulls relevent rows
+                        c("lwradj","upradj")))
+}
+
+as.data.frame(c2test[c(4,12:17),])[1+c(2:7),]
+apply()
+as.list(as.data.frame(c2test[c(4,12:17),])[1,])
+(as.data.frame(c2test[c(4,12:17),])+as.list(as.data.frame(c2test[c(4,12:17),])[1,]))
+
+
+#####THis is horribly ugly. trying to make 2 rows that add the value of de to get the true slope. trying to add the row with the scaled call number to the value of the scaled call number added to all the other rows. 
+cbind( as.data.frame( rbind( as.data.frame(c2test)[1,]  , ((as.data.frame(c2test[c(12:17),]))[,1]+ (as.data.frame(c2test))[1,1] )) , as.data.frame(as.data.frame(c2test[c(12:17),]))[,2]+ (as.data.frame(c2test))[1,2])
+```
+```{r}
+library(ggplot2); theme_set(theme_bw())
+allCI <- rbind(tmpf("lme4_wald",c0),
+      tmpf("lme4_prof",c1),
+      tmpf("lme4_boot",c2test)
+)
+
+confint_comp<- ggplot(allCI,aes(v,ymin=lwr,ymax=upr,colour=method))+
+    geom_linerange(position=position_dodge(width=0.8)) +
+                     theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+
+confint_comp
+
+
+#######
+               
+
 
 ggsave("pastes_confint_mac.png",width=10)
 
@@ -274,11 +332,15 @@ c0df<- as.data.frame(c0)
 c1df<- as.data.frame(c1)
 c2df<- as.data.frame(c2)
 c3df<- as.data.frame(c3)
+c2dftest<- as.data.frame(c2test)
 
 write.csv(c0df, file="c0_boot_ouput_mac.csv")
 write.csv(c1df, file="c1_boot_output_mac.csv")
 write.csv(c2df, file="c2_boot_output_mac.csv")
 write.csv(c3df, file="c3_boot_output_mac.csv")
+write.csv(c2dftest, file="c2test_boot_output_mac.csv")
+
+
 
 ```
 trying to do post-hoc comparisons to compare if the interactions are different from one another 
