@@ -9,29 +9,54 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-##GOTTA FIX PRIMARY STIM CODING:
-
+Libraries:
 ```{r}
 library(dplyr)
+library(lme4)
+library("aods3")     ## overdispersion diagnostics
+library("bbmle")     ## AICtab
+library("pbkrtest")  ## parametric bootstrap
+library(car)
+
+```
+
+##GOTTA FIX PRIMARY STIM CODING:
+
+
+```{r}
 attn_habit_3$primary_stim<- attn_habit_3$trial_name_2
 attn_habit_3$primary_stim<-recode(attn_habit_3$primary_stim, t_ra_t = "ts")
 attn_habit_3$primary_stim<-recode(attn_habit_3$primary_stim, de_t_de = "de", tc_ts_tc = "t2c")
-attn_habit_3$primary_stim<-recode(attn_habit_3$primary_stim, tc_ts_tx = "t2c")
+attn_habit_3$primary_stim<-recode(attn_habit_3$primary_stim, tc_ts_tc = "t2c")
 attn_habit_3$primary_stim<-recode(attn_habit_3$primary_stim, t_de_t = "ts")
 
 attn_habit_3$primary_stim<-recode(attn_habit_3$primary_stim, tia_tib_tia = "t1c")
 attn_habit_3$primary_stim<-recode(attn_habit_3$primary_stim, rt_rra_rt = "rts")
 attn_habit_3$primary_stim<-recode(attn_habit_3$primary_stim, ts_tc_ts = "ts")
 attn_habit_3$primary_stim<-recode(attn_habit_3$primary_stim, rra_rt_rra = "rra")
-attn_habit_3$primary_stim<-recode(attn_habit_3$primary_stim, ra_rt_ra = "ra")
+attn_habit_3$primary_stim<-recode(attn_habit_3$primary_stim, ra_t_ra = "ra")
 
 ```
 
+Scale numeric predictors:
+```{r}
+
+#######Ok, trying to fix hessian convergence issues. 
+#try to scale numeric predictors (don't think this will work for me but whatever)
+#so I am centering the call numbers around 0 and making the variance normal. 
+attn_habit_3$scaled_call_num<- scale(attn_habit_3$call_num, center=TRUE, scale=TRUE)  #scaling call number
+plot(attn_habit_3$scaled_call_num, attn_habit_3$call_num)
+
+#also going to center call_num_2, which won't have the weird gaps that are weird
+attn_habit_3$scaled_call_num_2<- scale(attn_habit_3$call_num_2, center=TRUE, scale=TRUE)  #scaling call number
+plot(attn_habit_3$scaled_call_num_2, attn_habit_3$call_num_2) #this one won't have weird arbitrary gaps
+```
 ## Predictions
 
 1. comparing models with and without intercepts, with call as grouping and with set as grouping. 
+All of the following in this chunk are not scaled:
 ```{r}
-library(lme4)
+
 mm1<- glmer(all_tw_call ~ call_num + call_num:trial_name_2 + (trial_number| Bat_ID), data= attn_habit_3, family="poisson") #run model
 smm1<- summary(mm1)  #make summary
 smm1
@@ -63,18 +88,12 @@ smm1_5  #
 mm1epsilon <- glmer(all_tw_call ~ call_num  + primary_stim + call_num:primary_stim + (1| Bat_ID), data= attn_habit_3, family="poisson")
 smm1epsilon<- summary(mm1epsilon)  #make summary
 smm1epsilon
-#######Ok, trying to fix hessian convergence issues. 
-#try to scale numeric predictors (don't think this will work for me but whatever)
-#so I am centering the call numbers around 0 and making the variance normal. 
-attn_habit_3$scaled_call_num<- scale(attn_habit_3$call_num, center=TRUE, scale=TRUE)  #scaling call number
-plot(attn_habit_3$scaled_call_num, attn_habit_3$call_num)
+#######Ok, trying to fix hessian convergence issues. in next chunk
 ```
 
-```{r}
-#also going to center call_num_2, which won't have the weird gaps that are weird
-attn_habit_3$scaled_call_num_2<- scale(attn_habit_3$call_num_2, center=TRUE, scale=TRUE)  #scaling call number
-plot(attn_habit_3$scaled_call_num_2, attn_habit_3$call_num_2) #this one won't have weird arbitrary gaps
-```
+
+Scaled models:
+
 
 ```{r}
 #run model with scaled numeric variable, using 1.1...1.5 call_num scale
@@ -102,46 +121,131 @@ mm1i <- glmer(all_tw_call ~ scaled_call_num  + primary_stim + scaled_call_num:pr
 smm1i<- summary(mm1i)
 smm1i
 
+
+
+#1 centered and scaled
 #and with integer scale?    VVVVVVVVVVVVV
-
+#default optimizer, mix of bobyqa and nelder-mead
 mm1j <- glmer(all_tw_call ~ scaled_call_num_2*primary_stim -1 + (trial_number| Bat_ID), data= attn_habit_3, family="poisson") #run model with scaled numeric variable, using scaled call nums from integer scale
-mm1i <-glmer(all_tw_call ~ scaled_call_num_2  + primary_stim + scaled_call_num_2:primary_stim + (trial_number| Bat_ID), data= attn_habit_3, family="poisson")
 smm1j<- summary(mm1j)
-smm1j  ## somehow no longer converging. But if I give it more cycles (the most) it does:
+smm1j  
+## not converging
+
+##Troubleshooting, following: 
+## critera outlined by the amazing Ben Bolker:
+## "Assessing Convergence for Fitted models, convergence {lme4}
+
+##https://stackoverflow.com/questions/33670628/solution-to-the-warning-message-using-glmer
+  "Since the likelihood differs by <0.1 between the model fits, and the largest relative differences in the parameters are of the order of about 10^(-4), I would say that you have successfully demonstrated that the warning is a false positive and you can proceed with your initial model."
+
+## https://bbolker.github.io/mixedmodels-misc/glmmFAQ.html ##I use "gold standard" of comparing diff optimizers
+  
+ #1 center and scale (check) 
+#2, check for singularity:
+diag.vals <- getME(mm1j,"theta")[getME(mm1j,"lower") == 0]
+any(diag.vals < 1e-6) # FALSE , no singularity
+
+##3. recompute gradient and Hessian with Richardson extrapolation
+devfun <- update(mm1j, devFunOnly=TRUE)
+if (isLMM(mm1j)) {
+    pars <- getME(mm1j,"theta")
+} else {
+    ## GLMM: requires both random and fixed parameters
+    pars <- getME(mm1j, c("theta","fixef"))
+}
+if (require("numDeriv")) {
+    cat("hess:\n"); print(hess <- hessian(devfun, unlist(pars)))
+    cat("grad:\n"); print(grad <- grad(devfun, unlist(pars)))
+    cat("scaled gradient:\n")
+    print(scgrad <- solve(chol(hess), grad))
+}
+## compare with internal calculations:
+mm1j@optinfo$derivs 
+
+#So it looks to me that all the scaled gradients in the shorthand calculations are much larger than the lme4 default internal calculations, which would be one reason why model doesn't converge.
+
+## 4. restart the fit from the original value (or
+## a slightly perturbed value):
+mm1j.restart <- update(mm1j, start=pars) #this also seems to fix the problem. Gets stuck on an optimum?
+
+## 5. try all available optimizers (from Bolker)/ "gold standard"
+
+  source(system.file("utils", "allFit.R", package="lme4"))
+  fm1.all <- allFit(mm1j)
+  ss <- summary(fm1.all)
+  ss$ fixef               ## extract fixed effects #differ at most on the order od 10^-3
+  ss$ llik                ## log-likelihoods #check, differ by less than .1
+  ss$ sdcor               ## SDs and correlations
+  ss$ theta               ## Cholesky factors
+  ss$ which.OK            ## which fits worked
 
 
+  ## This suggests that the model is appropriate, and the convergence warnings are a false positive, bc the different optimizers produce very similar results-- fixed effects that differ on the scale of 10^-3 or less, and identical log-likelihoods (<.1)
+ 
+  ## Here on out I am going to use the bobyqa, though any can be used, bc they all show the name thing. (bootstrap will be vetter if I pick one that converges more, bc more will not fail. ) 
+  
+#bobyqa omptimizer
+mm1bob <- glmer(all_tw_call ~ scaled_call_num_2*primary_stim -1 + (trial_number| Bat_ID), data= attn_habit_3, family="poisson", control=glmerControl(optimizer = "bobyqa"))
+smm1bob<- summary(mm1bob)
+smm1bob
 
-mm1l <- glmer(all_tw_call ~ scaled_call_num_2*primary_stim -1 + (trial_number| Bat_ID), data= attn_habit_3, family="poisson", control=glmerControl(optimizer = "Nelder_Mead", optCtrl=list(maxfun=100000)))
-
-
-ss <- getME(mm1j,c("theta","fixef"))
-mm1jx <- update(mm1j,start=ss,control=glmerControl(optCtrl=list(maxfun=1e4)))
-smm1jx<-summary(mm1jx)
-smm1jx #fine with 10,000 iterations, doesn't need the max, 20,000 iterations
-
-library(car)
-#we need type 2 or type 3 anova bc type w doesn't make as much sense here (don't want to move through variables and varience sequentially)
-Anova(mm1jx, type=3) # This just demonstrates that is appropriate to further look for an interaction between  call number and primary stimulus. 
+#other possible optimizers: "Nelder_Mead", the default, etc, also could up the interations:
+#upping the iterations (commented out)
+# ss <- getME(mm1j,c("theta","fixef"))
+# mm1jx <- update(mm1j,start=ss,control=glmerControl(optCtrl=list(maxfun=1e4)))
+# smm1jx<-summary(mm1jx)
+# smm1jx #fine with 10,000 iterations, doesn't need the max, 20,000 iterations
 
 ```
+  
+  
+ANOVA:
+Really interested in: does the habituation to calls vary by treatment? e.g. is the call_num/treatment interaction significant
 
+We need type 2 or type 3 anova bc type w doesn't make as much sense here (don't want to move through variables and varience sequentially)
+
+```{r}
+#anova using car package for type 3 anova
+Anova(mm1bob, type=3) # This just demonstrates that is appropriate to further look for an interaction between  call number and primary stimulus. 
+
+```
+This justifies that different treatments change at different rates, can look for posthocs. 
 So now on to post hoc demonstrating that the different fixed effects are different from one another 
 ```{r}
 
 ###I DONT KNOW WHY I WONT CONVERGE WHEN BOOTSTAPPED, here it is anyway
 bootMer()
 
-boot_habit<-bootMer(x=mm1jx,FUN=fixef,nsim=200)
+boot_habit<-bootMer(x=update(mm1j,start=ss,control=glmerControl(optCtrl=list(maxfun=1e4))),FUN=fixef,nsim=1)
 mm1j.ci<- boot.ci(boot.out = boot_habit, type = "perc")
 
 ## just making a lot of confidence intervals
 
 
 c0 <- confint(mm1jx,method="Wald")
-
+```
+ran with no errors
+```{r}
 c1 <- confint(mm1jx)
-c2 <- confint(mm1jx,method="boot")
+```
+ran with around 78 errors:
+1: failure to converge in 10000 evaluations
+2:unexpected decrease in profile: using minstep
+3:bad spline fit for primary_stimrra: falling back to linear interpolation (or whatever treatment)
+  
+```{r}
+#c2 <- confint(mm1jx,method="boot")  #can't run without way too many failed convergences
+c2<- confint(mm1jx, type="bca")
+```
+Warnings:
+failure to converge in 10000 evaluations : 43 
+expected decrease in profile: using minstep:27
+non-monotonic profile for primary_stimde: 6
+bad spline fit for primary_stimt1c: falling back to linear interpolation: 6
 
+total: 82
+```{r}
+library(effects)
 c3 <- with(effect("scaled_call_num_2*primary_stim",mm1jx),cbind(lower,upper))
 c4 <- with(summary(lsmeans(mm1jx,spec="scaled_call_num_2*primary_stim")),cbind(lower.CL,upper.CL))
 tmpf <- function(method,val) {
@@ -153,7 +257,7 @@ tmpf <- function(method,val) {
 library(ggplot2); theme_set(theme_bw())
 allCI <- rbind(tmpf("lme4_wald",c0),
       tmpf("lme4_prof",c1),
-      tmpf("lme4_boot",c2),
+      tmpf("lme4_bca",c2),
       tmpf("effects",c3))
                
 confint_comp<- ggplot(allCI,aes(v,ymin=lwr,ymax=upr,colour=method))+
@@ -162,7 +266,7 @@ confint_comp<- ggplot(allCI,aes(v,ymin=lwr,ymax=upr,colour=method))+
 
 confint_comp
 
-ggsave("pastes_confint.png",width=10)
+ggsave("pastes_confint_mac.png",width=10)
 
 boot_habit2<-bootMer(x=mm1jx,FUN=fixef,nsim=1000)
 
@@ -171,11 +275,21 @@ c1df<- as.data.frame(c1)
 c2df<- as.data.frame(c2)
 c3df<- as.data.frame(c3)
 
-write.csv(c0df, file="c0_boot_ouput.csv")
-write.csv(c1df, file="c1_boot_output.csv")
-write.csv(c2df, file="c2_boot_output.csv")
-write.csv(c3df, file="c3_boot_output.csv")
+write.csv(c0df, file="c0_boot_ouput_mac.csv")
+write.csv(c1df, file="c1_boot_output_mac.csv")
+write.csv(c2df, file="c2_boot_output_mac.csv")
+write.csv(c3df, file="c3_boot_output_mac.csv")
 
+```
+trying to do post-hoc comparisons to compare if the interactions are different from one another 
+
+```{r}
+#trying to do post-hoc comparisons to compare if the interactions are different
+library(multcomp)
+multiple_comp<- lsmeans(mm1jx,  ~ primary_stim :  scaled_call_num_2) #don't think this morks
+multiple_comp<- glht(mm1jx, mcp(scaled_call_num_2:treatment*primary_stim ="Tukey", interaction_average = TRUE  ))
+
+# following advice from https://stats.stackexchange.com/questions/5250/multiple-comparisons-on-a-mixed-effects-model
 ```
 messing around with making bootstap make sense
 

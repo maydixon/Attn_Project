@@ -87,6 +87,12 @@ smm1i<- summary(mm1i)
 smm1j<- summary(mm1j)
 smm1j
 
+mm1k <- glmer(all_tw_call ~ primary_stim + scaled_call_num_2:primary_stim  -1 + (trial_number| Bat_ID), data= attn_habit_3, family="poisson") #run model with scaled numeric variable, using scaled call nums from integer scale
+smm1k<- summary(mm1k)
+smm1k
+
+mm1i <-glmer(all_tw_call ~ scaled_call_num_2  + primary_stim + scaled_call_num_2:primary_stim + (trial_number| Bat_ID))
+
 library(car)
 Anovamm1j<-Anova(mm1j, type = 3) # This just demonstrates that is appropriate to further look for an interaction between  call number and primary stimulus. 
 Anovamm1j
@@ -254,7 +260,7 @@ group
 library(lsmeans)
 library(multcomp)
 multiple_comp<- lsmeans(mm1j,  ~ primary_stim :  scaled_call_num_2)
-multiple_comp<- glht(mm1j, mcp(condition="Tukey"))
+multiple_comp<- glht(mm1jx, mcp(condition="Tukey"))
 
 ```
 
