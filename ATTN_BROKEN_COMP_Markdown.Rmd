@@ -356,16 +356,46 @@ library(multcompView)
 
 #     list estimates, se, df, 95CIS
 lst=lsmeans::lstrends(mm1bob, ~primary_stim, var="scaled_call_num_2")
+
+
 #     Show which are different from one another in letter form:
-lst2=lsmeans::lstrends(mm1bob, ~primary_stim, var="scaled_call_num_2", transform = "response")
-sv2<-cld(lst)
-pairs_lst2<- pairs(lst2)
 sig_vals_mm1bob<-cld(lst)
+
 #     Show pairwise comparisons:
 pairs_mm1bob<- pairs(lst)
 
+#With back transformed values ( I guess these are the 'truest' ones)
 
+lst2=lsmeans::lstrends(mm1bob, ~primary_stim, var="scaled_call_num_2", transform = "response")
+sum_lst2<-summary(lst2)
+sum_lst2     #makes a nice dataframe
 
+sv2<-cld(lst2)
+pairs_lst2<- pairs(lst2)
+s_pairs_lst2<-summary(pairs_lst2)
+
+##    write.csv(sv2, file="habituation_glmm_significant_diffs.csv")
+##    write.csv(sum_lst2, file="habituation_glmm_model_estimates.csv")
+##    write.csv(pairs_lst2, file="habituation_glmm_pairwise_comps.csv")
+sv2$method<-"lsmeans_conf"
+
+##plotz##
+
+library(ggpubr); theme_set(theme_classic())
+
+confint_comp_ls2<- ggplot(sv2, aes(primary_stim,ymin=asymp.LCL,ymax=asymp.UCL,colour=primary_stim))+
+    geom_linerange() +
+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) + #gets rid of background
+ xlab("Call Type") +
+ylab("Slope of change in response to calls)")
+
+                     
+
+confint_comp_ls2
+```
+
+```{r}
 
 #Alternatively, TO CORRECT P-vals using straight output: instead of using 0.05 / number of treatments #adjusting significance
 #0.05 but as you go, change the significance level Bonefferoni Holm 
