@@ -380,6 +380,11 @@ s_pairs_lst2<-summary(pairs_lst2)
 sv2$method<-"lsmeans_conf"
 
 ##plotz##
+plotlst2<-plot(lst2, ~primary_stim, var="scaled_call_num_2", comparisons = TRUE, alpha = .05)
+plotlst<-plot(lst, ~primary_stim, var="scaled_call_num_2", comparisons = TRUE, alpha = .05)
+par(2)
+plotlst
+plotlst2
 
 library(ggpubr); theme_set(theme_classic())
 
@@ -391,8 +396,9 @@ panel.background = element_blank(), axis.line = element_line(colour = "black")) 
 ylab("Slope of change in response to calls)")
 
                      
-
+ggsave
 confint_comp_ls2
+ggsave("habituation_slope_plots.png",width=10)
 ```
 
 ```{r}

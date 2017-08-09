@@ -42,21 +42,35 @@ library(ggplot2)
         
         # model: the number of initial twitches is explained by the playback type, with bat id and/ or trial # as a random effect:
         
-        initial_int_1 <- glmer(all_tw_set ~ first_stim + (trial_number|Bat_ID), family= "poisson", data = attn_int_2) #model with nested interaction effect/ full model
+        initial_int_1 <- glmer(all_tw_set ~ first_stim + (1|trial_number)+(1|Bat_ID), family= "poisson", data = attn_int_2) #model with nested interaction effect/ full model
+##     changed it to a non nested random effect structure
+
       
        initial_int_2 <- glmer(all_tw_set ~ first_stim + (1|Bat_ID), family= "poisson", data = attn_int_2) #model with only subject as random effect #
         s_ii1 <- summary(initial_int_1)
         s_ii2 <- summary(initial_int_2)
         s_ii1
         s_ii2
+        
         # So, using AIC, using trial number as a nested random effect with batID is a slightly better model than Bat_ID alone
         #I'll use just the first model initial_int_1 from here on out. 
 ```
 So this model is best:  initial_int_1 <- glmer(all_tw_set ~ trial_name_2 + (trial_number|Bat_ID), family= "poisson", data = attn_int_2) 
-   
+  
 ## Initial interest results
+###Bootstrap
 ```{r}
-        
+
+boot_int<-bootMer(initial_int_1, FUN=fixef, nsim=4, seed = 102)
+confint_int<-confint(initial_int_1)
+confint_wald<-confint(initial_int_1, method="Wald")
+confint_int<-confint(initial_int_1, method="boot")
+
+
+
+```
+
+```{r}
 #continuing to run initial interest with glmer 
         levels(attn_int_2$trial_name_2)
         initial_int_1 <- glmer(all_tw_set ~ first_stim + (trial_number|Bat_ID), family= "poisson", data = attn_int_2) #model with nested interaction effect
