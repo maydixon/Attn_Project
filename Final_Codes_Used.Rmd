@@ -1,0 +1,131 @@
+---
+title: "Final Codes used"
+author: May
+
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+[libraries and data import]
+```{r,  include=FALSE}
+library(dplyr)
+library(lme4)
+library(multcomp)
+library(multcompView)
+library(lsmeans)
+library(ggplot2)
+
+
+```
+
+### HABITUATION:
+
+Data wrangling:
+```{r, echo=FALSE,include=FALSE}
+#import dataset from github
+
+bat_data<-read.table("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attn_habit_1.txt", sep="\t", header=TRUE) #web
+
+#recode and scale some variables
+bat_data$primary_stim<- bat_data$trial_name_2
+bat_data$primary_stim<-recode(bat_data$primary_stim, t_ra_t = "ts")
+bat_data$primary_stim<-recode(bat_data$primary_stim, de_t_de = "de", tc_ts_tc = "t2c")
+bat_data$primary_stim<-recode(bat_data$primary_stim, tc_ts_tc = "t2c")
+bat_data$primary_stim<-recode(bat_data$primary_stim, t_de_t = "ts")
+
+bat_data$primary_stim<-recode(bat_data$primary_stim, tia_tib_tia = "t1c")
+bat_data$primary_stim<-recode(bat_data$primary_stim, rt_rra_rt = "rts")
+bat_data$primary_stim<-recode(bat_data$primary_stim, ts_tc_ts = "ts")
+bat_data$primary_stim<-recode(bat_data$primary_stim, rra_rt_rra = "rra")
+bat_data$primary_stim<-recode(bat_data$primary_stim, ra_t_ra = "ra")
+
+#center and scale time variable
+bat_data$scaled_call_num_2<- scale(bat_data$call_num_2, center=TRUE, scale=TRUE)  #scaling call number
+
+```
+
+####model:
+```{r}
+bat.mod <- glmer(all_tw_call ~ scaled_call_num_2*primary_stim -1 + (trial_number| Bat_ID), data= bat_data, family="poisson", control=glmerControl(optimizer = "bobyqa"))
+
+sbat.mod<- summary(bat.mod)
+
+sbat.mod
+## It's a good model, Brent
+
+######### REFS#######################
+## Removing intercept
+## https://stats.stackexchange.com/questions/117641/how-trustworthy-are-the-confidence-intervals-for-lmer-objects-through-effects-pa 
+
+##ok to remove intercept
+## https://stats.stackexchange.com/questions/7948/when-is-it-ok-to-remove-the-intercept-in-a-linear-regression-model 
+
+## Assessing fit
+##https://stackoverflow.com/questions/33670628/solution-to-the-warning-message-using-glmer
+
+ ##using bobyqa optimizer
+## https://bbolker.github.io/mixedmodels-misc/glmmFAQ.html ##I use "gold standard" of comparing diff optimizers  #using optimizer
+
+## onlstrends and  transformation
+## https://cran.r-project.org/web/packages/lsmeans/vignettes/using-lsmeans.pdf) 
+
+###################################
+```
+
+
+####post hoc comparisons with lsmeans:
+log scale:
+```{r}
+#     list estimates, se, df, 95CIS
+lst=lsmeans::lstrends(bat.mod, ~primary_stim, var="scaled_call_num_2")
+
+#      pairwise comparisons:
+pairslst<- pairs(lst)
+
+#     Show which are different from one another in letter form:
+svlst<-cld(lst)
+svlst
+```
+
+response scale:
+```{r}
+#With back transformed values
+
+lst2=lsmeans::lstrends(bat.mod, ~primary_stim, var="scaled_call_num_2", transform = "response")
+pairslst2<- pairs(lst2)
+
+svlst2<-cld(lst2)
+svlst2
+```
+
+
+Plot of log-scale confidence intervals:
+```{r, echo=FALSE}
+theme_set(theme_classic())
+
+confint_comp_ls<- ggplot(svlst, aes(primary_stim,ymin=asymp.LCL,ymax=asymp.UCL,colour=primary_stim))+
+    geom_linerange() +
+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) + #gets rid of background
+ xlab("Call Type") +
+ylab("log slope of change in response to calls")
+
+confint_comp_ls
+```
+
+plot of response scale confidence intervals:
+```{r, echo=FALSE}
+ theme_set(theme_classic())
+
+confint_comp_ls2<- ggplot(svlst2, aes(primary_stim,ymin=asymp.LCL,ymax=asymp.UCL,colour=primary_stim))+
+    geom_linerange() +
+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) + #gets rid of background
+ xlab("Call Type") +
+ylab("Slope of change in response to calls")
+
+confint_comp_ls2
+```
