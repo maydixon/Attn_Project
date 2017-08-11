@@ -11,36 +11,37 @@ knitr::opts_chunk$set(echo = FALSE)
 
 [libraries and data import]
 ```{r,  include=FALSE}
-library(dplyr)
+
 library(lme4)
 library(multcomp)
 library(multcompView)
 library(lsmeans)
 library(ggplot2)
-
+library(dplyr)
 
 ```
 
 ### HABITUATION:
 
-Data wrangling:
+[Data wrangling]
 ```{r, echo=FALSE,include=FALSE}
 #import dataset from github
 
 bat_data<-read.table("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attn_habit_1.txt", sep="\t", header=TRUE) #web
 
 #recode and scale some variables
+#need to specify dplyr bc masked by other packages
 bat_data$primary_stim<- bat_data$trial_name_2
-bat_data$primary_stim<-recode(bat_data$primary_stim, t_ra_t = "ts")
-bat_data$primary_stim<-recode(bat_data$primary_stim, de_t_de = "de", tc_ts_tc = "t2c")
-bat_data$primary_stim<-recode(bat_data$primary_stim, tc_ts_tc = "t2c")
-bat_data$primary_stim<-recode(bat_data$primary_stim, t_de_t = "ts")
+bat_data$primary_stim<-dplyr::recode(bat_data$primary_stim, t_ra_t = "ts")
+bat_data$primary_stim<-dplyr::recode(bat_data$primary_stim, de_t_de = "de", tc_ts_tc = "t2c")
+bat_data$primary_stim<-dplyr::recode(bat_data$primary_stim, tc_ts_tc = "t2c")
+bat_data$primary_stim<-dplyr::recode(bat_data$primary_stim, t_de_t = "ts")
 
-bat_data$primary_stim<-recode(bat_data$primary_stim, tia_tib_tia = "t1c")
-bat_data$primary_stim<-recode(bat_data$primary_stim, rt_rra_rt = "rts")
-bat_data$primary_stim<-recode(bat_data$primary_stim, ts_tc_ts = "ts")
-bat_data$primary_stim<-recode(bat_data$primary_stim, rra_rt_rra = "rra")
-bat_data$primary_stim<-recode(bat_data$primary_stim, ra_t_ra = "ra")
+bat_data$primary_stim<-dplyr::recode(bat_data$primary_stim, tia_tib_tia = "t1c")
+bat_data$primary_stim<-dplyr::recode(bat_data$primary_stim, rt_rra_rt = "rts")
+bat_data$primary_stim<-dplyr::recode(bat_data$primary_stim, ts_tc_ts = "ts")
+bat_data$primary_stim<-dplyr::recode(bat_data$primary_stim, rra_rt_rra = "rra")
+bat_data$primary_stim<-dplyr::recode(bat_data$primary_stim, ra_t_ra = "ra")
 
 #center and scale time variable
 bat_data$scaled_call_num_2<- scale(bat_data$call_num_2, center=TRUE, scale=TRUE)  #scaling call number
@@ -48,12 +49,66 @@ bat_data$scaled_call_num_2<- scale(bat_data$call_num_2, center=TRUE, scale=TRUE)
 ```
 
 ####model:
+```{r, eval= FALSE}
+bat.mod0 <- glmer(all_tw_call ~ scaled_call_num_2*primary_stim -1 + (trial_number| Bat_ID), data= bat_data, family="poisson")
+
+#Troubleshooting FIT:
+## https://bbolker.github.io/mixedmodels-misc/glmmFAQ.html ##I use "gold standard" of comparing diff optimizers
+  
+ #1 center and scale (check) 
+#2, check for singularity:
+diag.vals <- getME(bat.mod0,"theta")[getME(bat.mod0,"lower") == 0]
+any(diag.vals < 1e-6) # FALSE , no singularity
+
+##3. recompute gradient and Hessian with Richardson extrapolation
+devfun <- update(bat.mod0, devFunOnly=TRUE)
+if (isLMM(bat.mod0)) {
+    pars <- getME(bat.mod0,"theta")
+} else {
+    ## GLMM: requires both random and fixed parameters
+    pars <- getME(bat.mod0, c("theta","fixef"))
+}
+if (require("numDeriv")) {
+    cat("hess:\n"); print(hess <- hessian(devfun, unlist(pars)))
+    cat("grad:\n"); print(grad <- grad(devfun, unlist(pars)))
+    cat("scaled gradient:\n")
+    print(scgrad <- solve(chol(hess), grad))
+}
+## compare with internal calculations:
+bat.mod0@optinfo$derivs 
+
+#So it looks to me that all the scaled gradients in the shorthand calculations are much larger than the lme4 default internal calculations, which would be one reason why model doesn't converge.
+
+## 4. restart the fit from the original value (or
+## a slightly perturbed value):
+bat.mod0.restart <- update(bat.mod0, start=pars) #this also seems to fix the problem. Gets stuck on an optimum?
+
+## 5. try all available optimizers (from Bolker)/ "gold standard"
+
+  source(system.file("utils", "allFit.R", package="lme4"))
+  fm1.all <- allFit(bat.mod0)
+  ss <- summary(fm1.all)
+  ss$ fixef               ## extract fixed effects #differ at most on the order od 10^-3
+  ss$ llik                ## log-likelihoods #check, differ by less than .1
+  ss$ sdcor               ## SDs and correlations
+  ss$ theta               ## Cholesky factors
+  ss$ which.OK            ## which fits worked
+
+
+  ## This suggests that the model is appropriate, and the convergence warnings are a false positive, bc the different optimizers produce very similar results-- fixed effects that differ on the scale of 10^-3 or less, and identical log-likelihoods (<.1)
+ 
+  ## Here on out I am going to use the bobyqa, though any can be used, bc they all show the name thing. (bootstrap will be vetter if I pick one that converges more, bc more will not fail. ) 
+```
+
+Final model:
 ```{r}
+set.seed(50)
 bat.mod <- glmer(all_tw_call ~ scaled_call_num_2*primary_stim -1 + (trial_number| Bat_ID), data= bat_data, family="poisson", control=glmerControl(optimizer = "bobyqa"))
 
 sbat.mod<- summary(bat.mod)
-
 sbat.mod
+
+
 ## It's a good model, Brent
 
 ######### REFS#######################
@@ -89,43 +144,90 @@ pairslst<- pairs(lst)
 svlst<-cld(lst)
 svlst
 ```
-
-response scale:
+pairwise comparisons:
 ```{r}
-#With back transformed values
-
-lst2=lsmeans::lstrends(bat.mod, ~primary_stim, var="scaled_call_num_2", transform = "response")
-pairslst2<- pairs(lst2)
-
-svlst2<-cld(lst2)
-svlst2
+pairslst
 ```
 
+####Comparing confidence intervals by other means
+Run chunk to compare
+```{r, eval=FALSE}
+## just making a bunch  of confidence intervals with different methods
 
-Plot of log-scale confidence intervals:
-```{r, echo=FALSE}
-theme_set(theme_classic())
+c0 <- confint(bat.mod,method="Wald")
+#ran with no errors
+#c1 <- confint(bat.mod) #perc method, I belive, takes a long time to run
+ #in the meantime, so i don't have to rerun it:
+c1 <- read_csv("/Users/maydixon/GitHub/Attn_Project/Attn_project_github/c0_boot_ouput_mac.csv")
+namesc1<-(c1[,1])
+c1<-c1[,-1]
+rownames(c1)<-namesc1
+#c1
+#c2test<- confint(bat.mod, method="boot") #Takes a long time to run
+      ## 1 run failed, 6 warnings
 
-confint_comp_ls<- ggplot(svlst, aes(primary_stim,ymin=asymp.LCL,ymax=asymp.UCL,colour=primary_stim))+
+svlstx<-cld(lst,sort=FALSE)
+c3<-as.data.frame(cbind(svlstx$asymp.LCL, svlstx$asymp.UCL))
+row.names(c3)<- svlstx$primary_stim
+
+
+
+tmpf <- function(method,val) {
+    data.frame(method=method,
+               v=row.names(c3),
+               setNames(as.data.frame(tail(val,7)),
+                        c("lwr","upr")))
+}
+
+library(ggplot2); theme_set(theme_bw())
+allCI <- rbind(tmpf("lme4_wald",c0),
+      tmpf("lme4_prof",c1),
+      tmpf("lme4_boot",c2test),
+      tmpf("lstrends",c3)
+      )
+
+confint_comp<- ggplot(allCI,aes(v,ymin=lwr,ymax=upr,colour=method))+
+    geom_linerange(position=position_dodge(width=0.8)) +
+                     theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+
+confint_comp
+#ggsave("CI_comparison_final.png",width=10)
+```
+
+The different methods of generating CI's have slightly different numbers, but the gist is pretty much the same. de is higher than everything except t2c, rra and ra are lower than everything, and the others are the same and in the middle. Boot maybe has de and t2c being different, Wald has De not different than various forward tungaras.  
+
+I'm using lsmean's values bc they generate tukey adjusted  p-vals and sig codes as well
+
+
+### Plot of just lstrends output
+
+```{r}
+ #Assigning colors to the different treatments to use in the following graphs. This way I can easily change the colors. #in final markdown this can go at the top
+    #   "#0E0E0E" "#2B2B2B" "#474747" "#636363" "#808080" "#9C9C9C" "#B8B8B8" "#D5D5D5"
+Ts  = "#0E0E0E"
+T1c ="#2B2B2B"
+T2c = "#474747"
+Rt  ="#636363"
+De  = "#D5D5D5"
+Ra  ="#9C9C9C"
+Rra ="#808080"
+
+svlstp<-svlst #ordering factor to change position of plots
+svlstp$primary_stim<-factor(svlstp$primary_stim, levels = c("ts" ,"t1c", "t2c" , "de", "ra" , "rra","rts"), ordered=TRUE)
+
+confint_comp_ls<- ggplot(svlstp, aes(primary_stim,ymin=asymp.LCL,ymax=asymp.UCL,colour=primary_stim))+
     geom_linerange() +
- theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-panel.background = element_blank(), axis.line = element_line(colour = "black")) + #gets rid of background
+ theme(panel.grid.major = element_blank(), panel.grid.minor =  element_blank(),panel.background = element_blank(),  axis.line = element_line(colour = "black"),
+legend.position = "none", axis.text.x = element_text(angle = 45, hjust=1))  + #gets rid of background
+scale_x_discrete(labels=c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))  +
+              scale_colour_manual(breaks = c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"),
+                                values=c(Ts, T1c, T2c, De, Ra, Rra, Rt)) +
+#scale_fill_manual(breaks = c("ts","t1c","t2c","de", "ra", "rra", "rts"),
+                             #   values=c(ts, t1c, t2c, de, ra, rra, rts)) +
+
  xlab("Call Type") +
-ylab("log slope of change in response to calls")
+ylab("Slope of change in response to calls in log scale")
 
 confint_comp_ls
-```
-
-plot of response scale confidence intervals:
-```{r, echo=FALSE}
- theme_set(theme_classic())
-
-confint_comp_ls2<- ggplot(svlst2, aes(primary_stim,ymin=asymp.LCL,ymax=asymp.UCL,colour=primary_stim))+
-    geom_linerange() +
- theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-panel.background = element_blank(), axis.line = element_line(colour = "black")) + #gets rid of background
- xlab("Call Type") +
-ylab("Slope of change in response to calls")
-
-confint_comp_ls2
+ggsave("habituation_slope_plot_grayscale.png",width=10)
 ```
