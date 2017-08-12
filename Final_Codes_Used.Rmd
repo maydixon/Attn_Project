@@ -20,7 +20,47 @@ library(ggplot2)
 library(dplyr)
 
 ```
+### INITIAL INTEREST
+[Data wrangling]
+```{r, echo=FALSE,include=FALSE}
+#import dataset from github
 
+attn_int_2<- read.table("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attn_for_initial_interest_2.7.17.txt", sep="\t", header=TRUE) #on github
+
+```
+
+
+plot of initial interest:
+```{r}
+#reordering for plotting: 
+      attn_int_2$first_stim <- factor(attn_int_2$first_stim,levels = c("Ts" ,"T1c", "T2c" , "De", "Ra" , "Rra","Rt" ),ordered = TRUE)
+      
+#perhaps best order is: Ts, T, Tc, Rt, Rra, Ra, De, can do using relevel() 
+
+#reference colors for plots
+#can change all from here
+Ts  = "#0E0E0E"
+T1c ="#2B2B2B"
+T2c = "#474747"
+Rt  ="#636363"
+De  = "#D5D5D5"
+Ra  ="#9C9C9C"
+Rra ="#808080"      
+
+      
+int.plot<- ggplot(data = attn_int_2, aes(x = first_stim, y = log(all_tw_set+1), fill=first_stim))
+int.plot<- int.plot+ geom_boxplot()
+int.plot<- int.plot+ geom_point(position = position_jitter(width = 0.1))
+int.plot<- int.plot+ theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position = "none") #format x-axis, and remove side legend #hjust 1 aligns labels
+int.plot<- int.plot+ scale_x_discrete(labels=c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))  +
+              scale_fill_manual(breaks = c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"),
+                                values=c(Ts, T1c, T2c, De, Ra, Rra, Rt))
+int.plot<- int.plot+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"))  #gets rid of background
+int.plot<- int.plot+ xlab("Acoustic stimuli")
+int.plot<- int.plot+ ylab("log( twitches in first set + 1)")
+int.plot
+```
 ### HABITUATION:
 
 [Data wrangling]
@@ -151,20 +191,27 @@ pairslst
 
 ####Comparing confidence intervals by other means
 Run chunk to compare
-```{r, eval=FALSE}
+```{r}
 ## just making a bunch  of confidence intervals with different methods
 
 c0 <- confint(bat.mod,method="Wald")
 #ran with no errors
 #c1 <- confint(bat.mod) #perc method, I belive, takes a long time to run
  #in the meantime, so i don't have to rerun it:
-c1 <- read_csv("/Users/maydixon/GitHub/Attn_Project/Attn_project_github/c0_boot_ouput_mac.csv")
+c1 <- read.csv("https://raw.githubusercontent.com/maydixon/Attn_Project/master/c0_boot_ouput_mac.csv", sep=",", header=TRUE)
 namesc1<-(c1[,1])
 c1<-c1[,-1]
 rownames(c1)<-namesc1
 #c1
+
 #c2test<- confint(bat.mod, method="boot") #Takes a long time to run
       ## 1 run failed, 6 warnings
+## same pre-run:
+c2 <- read.csv("https://raw.githubusercontent.com/maydixon/Attn_Project/master/c2test_boot_output_mac.csv", sep=",", header=TRUE)
+namesc2<-(c2[,1])
+c2<-c2[,-1]
+rownames(c2)<-namesc2
+
 
 svlstx<-cld(lst,sort=FALSE)
 c3<-as.data.frame(cbind(svlstx$asymp.LCL, svlstx$asymp.UCL))
@@ -182,7 +229,7 @@ tmpf <- function(method,val) {
 library(ggplot2); theme_set(theme_bw())
 allCI <- rbind(tmpf("lme4_wald",c0),
       tmpf("lme4_prof",c1),
-      tmpf("lme4_boot",c2test),
+      tmpf("lme4_boot",c2),
       tmpf("lstrends",c3)
       )
 
@@ -202,15 +249,6 @@ I'm using lsmean's values bc they generate tukey adjusted  p-vals and sig codes 
 ### Plot of just lstrends output
 
 ```{r}
- #Assigning colors to the different treatments to use in the following graphs. This way I can easily change the colors. #in final markdown this can go at the top
-    #   "#0E0E0E" "#2B2B2B" "#474747" "#636363" "#808080" "#9C9C9C" "#B8B8B8" "#D5D5D5"
-Ts  = "#0E0E0E"
-T1c ="#2B2B2B"
-T2c = "#474747"
-Rt  ="#636363"
-De  = "#D5D5D5"
-Ra  ="#9C9C9C"
-Rra ="#808080"
 
 svlstp<-svlst #ordering factor to change position of plots
 svlstp$primary_stim<-factor(svlstp$primary_stim, levels = c("ts" ,"t1c", "t2c" , "de", "ra" , "rra","rts"), ordered=TRUE)

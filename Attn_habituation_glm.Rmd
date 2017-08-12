@@ -54,18 +54,102 @@ library(ggplot2)
         
         # So, using AIC, using trial number as a nested random effect with batID is a slightly better model than Bat_ID alone
         #I'll use just the first model initial_int_1 from here on out. 
+        
+        initial_int_3 <- glmer(all_tw_set ~ first_stim -1 + (1|trial_number)+(1|Bat_ID), family= "poisson", data = attn_int_2)  #no intercept
+sii3<-summary(initial_int_3)
+bootMer(initial_int_3, FUN=fixef, nsim = 3)
+#checking convergence issues
+#singularity check
+diag.vals <- getME(initial_int_3,"theta")[getME(initial_int_3,"lower") == 0]
+any(diag.vals < 1e-6) # FALSE, no singularity
+
+#hessian check
+## 3. recompute gradient and Hessian with Richardson extrapolation
+      devfun <- update(initial_int_3, devFunOnly=TRUE)
+      if (isLMM(initial_int_3)) {
+          pars <- getME(initial_int_3,"theta")
+      } else {
+          ## GLMM: requires both random and fixed parameters
+          pars <- getME(initial_int_3, c("theta","fixef"))
+      }
+      if (require("numDeriv")) {
+          cat("hess:\n"); print(hess <- hessian(devfun, unlist(pars)))
+          cat("grad:\n"); print(grad <- grad(devfun, unlist(pars)))
+          cat("scaled gradient:\n")
+          print(scgrad <- solve(chol(hess), grad))
+      }
+## compare with internal calculations:
+initial_int_3@optinfo$derivs
+## pretty much the same
+
+# 4. restart the fit from the original value (or
+## a slightly perturbed value):
+initial_int_restart <- update(initial_int_3, start=pars)
+bootMer(initial_int_restart, FUN=fixef, nsim=3) ## doesn't help
+
+## 5. try all available optimizers
+
+  source(system.file("utils", "allFit.R", package="lme4"))
+  allfit.ii3 <- allFit(initial_int_3)
+  ss <- summary(allfit.ii3)
+  ss$ fixef               ## extract fixed effects
+  ss$ llik                ## log-likelihoods
+  ss$ sdcor               ## SDs and correlations
+  ss$ theta               ## Cholesky factors
+  ss$ which.OK            ## which fits worked
+
+  ## So it seems like I can rule out model fit and say that this is false convergence positive. 
+  
+  ##bobyqa
+  initial_int_3 <- glmer(all_tw_set ~ first_stim -1 + (trial_number|Bat_ID), family= "poisson", data = attn_int_2, control=glmerControl(optimizer = "bobyqa"))  #no intercept
+  
+ iimbob<- bootMer(initial_int_3, FUN=fixef, nsim=3)
+ # This is the thing that converges      
+sum_int1<-summary(initial_int_1)
+sum_int2<- summary(initial_int_2)
+sum_int3<- summary(initial_int_3)
+sum_int4<- summary(initial_int_4)
+int_coef<-cbind(sum_int1$coefficients, sum_int4$coefficients)
+boxplot(log(attn_int_2$all_tw_set)~ attn_int_2$first_stim)
+
+int_lsmeans<- lsmeans(initial_int_3, "first_stim")
+sv_int3<- cld(int_lsmeans)
+plot(int_lsmeans, ~first_stim, comparisons=TRUE)
+
+## negative binomial model. Is this approp? It fits much better. 
+initial_int_nb <- glmer.nb(all_tw_set ~ first_stim -1 + (trial_number|Bat_ID),  data = attn_int_2, control=glmerControl(optimizer = "bobyqa"))  #no intercept
+int_sum<- summary(initial_int_nb)
+anova(initial_int_nb, initial_int_3) #negative binomial fits betta
+
+int_lsmeans.nb<- lsmeans(initial_int_nb, "first_stim")
+
+sv_int_nb<- cld(int_lsmeans)
+sv_int_nb
+
+plot(int_lsmeans, ~first_stim, comparisons=TRUE)
+
+
+
 ```
 So this model is best:  initial_int_1 <- glmer(all_tw_set ~ trial_name_2 + (trial_number|Bat_ID), family= "poisson", data = attn_int_2) 
   
-## Initial interest results
+### Initial interest results
 ###Bootstrap
 ```{r}
 
+Anova(initial_int_3) #yeah they're different 
+
+
+
+
 boot_int<-bootMer(initial_int_1, FUN=fixef, nsim=4, seed = 102)
-confint_int<-confint(initial_int_1)
+confint_int_perc<-confint(initial_int_1)
 confint_wald<-confint(initial_int_1, method="Wald")
 confint_int<-confint(initial_int_1, method="boot")
 
+write.csv(confint_int, file="confints_initial_perc.csv")
+write.csv(confint_wald, file="confints_initial_wald.csv")
+write.csv(confint_int, file="confints_initial_boot.csv")
 
 
 ```
@@ -192,7 +276,9 @@ panel.background = element_blank(), axis.line = element_line(colour = "black")) 
 p <- p + xlab("Acoustic stimuli")
 p <- p + ylab("log( twitches in first set + 1)")
 p
+```
 
+```{r}
 p_t_de <-ggplot(data=t_de_data, aes(x = set_num, y = all_tw_set))      
         p_t_de <- p_t_de + geom_boxplot(aes(fill=factor(set_num)))
         p_t_de <- p_t_de + guides(fill=FALSE)

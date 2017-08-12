@@ -89,7 +89,9 @@ smm1_5  #
 mm1epsilon <- glmer(all_tw_call ~ call_num  + primary_stim + call_num:primary_stim + (1| Bat_ID), data= attn_habit_3, family="poisson")
 smm1epsilon<- summary(mm1epsilon)  #make summary
 smm1epsilon
-#######Ok, trying to fix hessian convergence issues. in next chunk
+####
+####Ok, trying to fix hessian convergence issues. in next chunk
+
 ```
 
 
@@ -190,6 +192,8 @@ mm1bob <- glmer(all_tw_call ~ scaled_call_num_2*primary_stim -1 + (trial_number|
 smm1bob<- summary(mm1bob)
 smm1bob
 
+
+
 #other possible optimizers: "Nelder_Mead", the default, etc, also could up the interations:
 #upping the iterations (commented out)
 # ss <- getME(mm1j,c("theta","fixef"))
@@ -199,11 +203,27 @@ smm1bob
 
 ```
   
+  Seems pretty good. Just going to check whether a negative binomial would fit the data better:
   
+```{r}
+  ####
+## test to see if nb.glmer fits betta
+mm1bob.nb <- glmer.nb(all_tw_call ~ scaled_call_num_2*primary_stim -1 + (trial_number| Bat_ID), data= attn_habit_3)
+smm1bob.nb<- summary(mm1bob.nb)
+smm1bob.nb
+##
+anova(mm1bob.nb, mm1bob)
+# It does not. 
+######
 ANOVA:
 Really interested in: does the habituation to calls vary by treatment? e.g. is the call_num/treatment interaction significant
 
 We need type 2 or type 3 anova bc type w doesn't make as much sense here (don't want to move through variables and varience sequentially)
+```
+
+
+
+
 
 ```{r}
 #anova using car package for type 3 anova
