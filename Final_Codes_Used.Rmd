@@ -28,7 +28,102 @@ library(dplyr)
 attn_int_2<- read.table("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attn_for_initial_interest_2.7.17.txt", sep="\t", header=TRUE) #on github
 
 ```
+[model deciding]
+```{r, eval=FALSE}
+#Trying to get random effects structure, and model type, mainly. 
+initial_int_a <- glmer(all_tw_set ~ first_stim -1 + (1|trial_number)+(1|Bat_ID), family= "poisson", data = attn_int_2)  #no intercept
 
+initial_int_b <- glmer(all_tw_set ~ first_stim -1 + (trial_number|Bat_ID), family= "poisson", data = attn_int_2)  #no intercept
+sii5<-summary(initial_int_5)
+
+initial_int_c <- glmer(all_tw_set ~ first_stim -1 + (0+trial_number|Bat_ID), family= "poisson", data = attn_int_2)  #not better
+sii5<-summary(initial_int_5)
+
+initial_int_nba <- glmer.nb(all_tw_set ~ first_stim -1 + (1|trial_number)+(1|Bat_ID),  data = attn_int_2, control=glmerControl(optimizer = "bobyqa"))  # glmmnb fits much better
+
+initial_int_nbb <- glmer.nb(all_tw_set ~ first_stim -1 + (trial_number|Bat_ID),  data = attn_int_2, control=glmerControl(optimizer = "bobyqa"))  #maximal random effects structure that makes sense: results in singularity
+
+
+initial_int_nbc <- glmer.nb(all_tw_set ~ first_stim -1 + (0+trial_number|Bat_ID),  data = attn_int_2, control=glmerControl(optimizer = "bobyqa"))  #lowest AIC, and most compex random effects structure that makes sense and converges.
+
+
+initial_int_nbd <- glmer.nb(all_tw_set ~ first_stim -1 + (1|Bat_ID) + (0+trial_number|Bat_ID),  data = attn_int_2, control=glmerControl(optimizer = "bobyqa"))  #has singularity
+
+
+ initial_int_nbd <- glmer.nb(all_tw_set ~ first_stim -1 + (1|Bat_ID) + (1|Bat_ID:trial_number),  data = attn_int_2, control=glmerControl(optimizer = "bobyqa"))  #has singularity
+
+#Random effects structure **lowest AIC and BIC, small variance in random effects
+initial_int_nbc <- glmer.nb(all_tw_set ~ first_stim -1 + (-1+trial_number|Bat_ID),  data = attn_int_2, control=glmerControl(optimizer = "bobyqa"))  #no intercept
+####
+cld(lsmeans(initial_int_nbc, ~"first_stim"))
+
+#which best fitting
+anova(initial_int_a, initial_int_nbb ) #nested random effects fits better
+anova(initial_int_nbb, initial_int_nbc ) #negative binomial fits better
+#nbb not significantly better than nbc
+#But checking convergence issue below, it is overfit- has singularities
+
+
+#checking convergence issues:
+
+#singularity check
+diag.vals <- getME(initial_int_nbd,"theta")[getME(initial_int_3,"lower") == 0]
+any(diag.vals < 1e-6) # FALSE, no singularity
+
+#hessian check
+## 3. recompute gradient and Hessian with Richardson extrapolation
+      devfun <- update(initial_int_nbd, devFunOnly=TRUE)
+      if (isLMM(initial_int_3)) {
+          pars <- getME(initial_int_3,"theta")
+      } else {
+          ## GLMM: requires both random and fixed parameters
+          pars <- getME(initial_int_3, c("theta","fixef"))
+      }
+      if (require("numDeriv")) {
+          cat("hess:\n"); print(hess <- hessian(devfun, unlist(pars)))
+          cat("grad:\n"); print(grad <- grad(devfun, unlist(pars)))
+          cat("scaled gradient:\n")
+          print(scgrad <- solve(chol(hess), grad))
+      }
+## compare with internal calculations:
+initial_int_3@optinfo$derivs
+## pretty much the same
+
+# 4. restart the fit from the original value (or
+## a slightly perturbed value):
+initial_int_restart <- update(initial_int_3, start=pars)
+BM<-bootMer(initial_int_nbc, FUN=fixef, nsim=10) ## doesn't help
+
+## 5. try all available optimizers
+
+  source(system.file("utils", "allFit.R", package="lme4"))
+  allfit.ii3 <- allFit(initial_int_nbd)
+  ss <- summary(allfit.ii3)
+  ss$ fixef               ## extract fixed effects
+  ss$ llik                ## log-likelihoods
+  ss$ sdcor               ## SDs and correlations
+  ss$ theta               ## Cholesky factors
+  ss$ which.OK            ## which fits worked
+
+  ## So it seems like I can rule out model fit and say that this is false convergence positive. 
+  
+```
+
+Final model:
+```{r, echo=TRUE}
+initial_int_nbc <- glmer.nb(all_tw_set ~ first_stim -1 + (0+trial_number|Bat_ID),  data = attn_int_2, control=glmerControl(optimizer = "bobyqa"))  #lowest AIC, and most compex random effects structure that makes sense and converges.
+#random slope of trial number within bat ID: no variation in intercept
+```
+
+Getting estimates and p-values for differences
+```{r}
+int_lsmeans<- lsmeans::lsmeans(initial_int_nbc, "first_stim")
+sv_int_nbc<- cld(int_lsmeans)
+sv_int_nbc
+pairs(int_lsmeans)
+
+plot(int_lsmeans, comparisons=TRUE, alpha = 0.05)
+```
 
 plot of initial interest:
 ```{r}
@@ -60,6 +155,19 @@ panel.background = element_blank(), axis.line = element_line(colour = "black")) 
 int.plot<- int.plot+ xlab("Acoustic stimuli")
 int.plot<- int.plot+ ylab("log( twitches in first set + 1)")
 int.plot
+
+int.plot2<- ggplot(data = attn_int_2, aes(x = first_stim, y = all_tw_set, fill=first_stim))
+int.plot2<- int.plot2+ geom_boxplot()
+int.plot2<- int.plot2+ geom_point(position = position_jitter(width = 0.1))
+int.plot2<- int.plot2+ theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position = "none") #format x-axis, and remove side legend #hjust 1 aligns labels
+int.plot2<- int.plot2+ scale_x_discrete(labels=c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))  +
+              scale_fill_manual(breaks = c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"),
+                                values=c(Ts, T1c, T2c, De, Ra, Rra, Rt))
+int.plot2<- int.plot2+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"))  #gets rid of background
+int.plot2<- int.plot2+ xlab("Acoustic stimuli")
+int.plot2<- int.plot2+ ylab(" twitches in first set")
+int.plot2
 ```
 ### HABITUATION:
 
