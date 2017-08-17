@@ -738,36 +738,15 @@ There is no apparent discrimination between individual tungaras. Removing the po
  attn_set_5 <- read.table("/Users/maydixon/Dropbox/Attention Project/R/attn_set5_only.txt", header=TRUE) #local      
 
 ```
-##Plotting set 5
-int.plot<- ggplot(data = attn_int_2, aes(x = first_stim, y = log(all_tw_set+1), fill=first_stim))
-int.plot<- int.plot+ geom_boxplot()
-int.plot<- int.plot+ geom_point(position = position_jitter(width = 0.1))
-int.plot<- int.plot+ theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position = "none") #format x-axis, and remove side legend #hjust 1 aligns labels
-int.plot<- int.plot+ scale_x_discrete(labels=c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))  +
-              scale_fill_manual(breaks = c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"),
-                                values=c(Ts, T1c, T2c, De, Ra, Rra, Rt))
-int.plot<- int.plot+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-panel.background = element_blank(), axis.line = element_line(colour = "black"))  #gets rid of background
-int.plot<- int.plot+ xlab("Acoustic stimuli")
-int.plot<- int.plot+ ylab("log( twitches in first set + 1)")
-int.plot
 
-int.plot2<- ggplot(data = attn_int_2, aes(x = first_stim, y = all_tw_set, fill=first_stim))
-int.plot2<- int.plot2+ geom_boxplot()
-int.plot2<- int.plot2+ geom_point(position = position_jitter(width = 0.1))
-int.plot2<- int.plot2+ theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position = "none") #format x-axis, and remove side legend #hjust 1 aligns labels
-int.plot2<- int.plot2+ scale_x_discrete(labels=c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))  +
-              scale_fill_manual(breaks = c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"),
-                                values=c(Ts, T1c, T2c, De, Ra, Rra, Rt))
-int.plot2<- int.plot2+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-panel.background = element_blank(), axis.line = element_line(colour = "black"))  #gets rid of background
-int.plot2<- int.plot2+ xlab("Acoustic stimuli")
-int.plot2<- int.plot2+ ylab(" twitches in first set")
-int.plot2
+
+
+##Plotting set 5
+
 ```{r}
  attn_set_5$primary_stim <- factor(attn_set_5$primary_stim,levels = c("Ts" ,"T1c", "T2c" , "De", "Ra" , "Rra","Rt" ),ordered = TRUE)
 
-p5<- ggplot(data = attn_set_5, aes(x = primary_stim, y = log(all_tw_set), fill=primary_stim))
+p5<- ggplot(data = attn_set_5, aes(x = primary_stim, y = all_tw_set, fill=primary_stim))
 p5<- p5+ geom_boxplot()
 p5<- p5+ geom_point(position = position_jitter(width = 0.1))
 p5<- p5+ theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "none") #format x-axis, and remove side legend
@@ -780,8 +759,10 @@ panel.background = element_blank(), axis.line = element_line(colour = "black")) 
 
 
 p5<- p5+ xlab("Acoustic stimuli")
-p5<- p5+ ylab("log( twitches in set 5 + 1)")
-p
+p5<- p5+ ylab("Ear-twitches in trial 5")
+p5
+ggsave("Ear twitches in set 5.jpg", width = 3, height = 4)
+#ggsave("CI_comparison_final.png",width=5)
 ```
 
 
