@@ -122,12 +122,27 @@ int_sum<- summary(initial_int_nb)
 anova(initial_int_nb, initial_int_3) #negative binomial fits betta
 
 int_lsmeans.nb<- lsmeans(initial_int_nb, "first_stim")
-
-sv_int_nb<- cld(int_lsmeans)
+sv_int_nb<- cld(int_lsmeans.nb)
 sv_int_nb
+pairs_int_nb<- pairs(int_lsmeans.nb)
 
-plot(int_lsmeans, ~first_stim, comparisons=TRUE)
+######
 
+plot(int_lsmeans.nb, ~first_stim, comparisons=TRUE)
+
+org.sum <- summary(int_lsmeans.nb, infer = c(TRUE,TRUE),
+                       level = .95)
+org.sum
+tat<- transform(org.sum)
+tat
+
+#back-transformed # I think this is much less informative, and am going to ignore it. 
+int_lsmeans.nb1<- lsmeans(initial_int_nb, "first_stim", transform = "response")
+sv_int_nb1<- cld(int_lsmeans.nb1)
+sv_int_nb1
+sv_int_nb$exp<-with(sv_int_nb, tapply( sv_int_nb$asymp.LCL,sv_int_nb$asymp.LCL, exp))
+                    
+plot(int_lsmeans.nb1, ~first_stim, comparisons=TRUE)
 
 
 ```
@@ -1194,7 +1209,7 @@ subset_tia1 <- subset(subset_tia, subset_tia$set_num=="5" | subset_tia$set_num==
 subset_ts1 <- subset(subset_ts, subset_ts$set_num=="5" | subset_ts$set_num=="6" | subset_ts$set_num=="7" )
 
 #load library
-library(nlme)
+
 library(lme4)
 #set working directory if running on wherever
 #setwd("~/Dropbox/Attention Project/R/Sessions/09.26.16")        
@@ -1221,7 +1236,10 @@ de_desc_glm <- glmer(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subse
 #summary(de_desc)
 summary(de_desc_glm)
 de_t_de_desc <- boxplot(all_tw_set ~ (as.factor(set_num)), main = "de_t_de", data=subset_de1)
-
+de_lst<-lsmeans(de_desc_glm, ~set_num)
+cld_de<-cld(de_lst)
+cld_de
+pairs(de_lst)
 ```
 
 
@@ -1231,16 +1249,25 @@ So, there is no evidence of discrimination between ebracattus and tungara. This 
 ### *Rhinella alata* v Tungara
 normality of data: 
 ```{r}
-qqnorm(subset_ra1$all_tw_set)
+qnorm_ra<- qqnorm(subset_ra1$all_tw_set)
 ```
 ```{r, include=FALSE}
 #ra_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_ra1) # use as.factor so moral sees these as factors
-ra_desc_glm <- glmer(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subset_ra1, family= "poisson")
+ra_desc_glm <- glmer(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subset_ra1, family= "poisson", control=glmerControl(optimizer = "bobyqa"))
+ra_glm.nb<-glmer.nb(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subset_ra1, control=glmerControl(optimizer = "bobyqa"))
+anova(ra_glm.nb, ra_desc_glm)
+
 ```
+
 ```{r}
-summary(ra_desc_glm)
+sumra<- summary(ra_desc_glm)
 #boxplot
 ra_descrim_plot<- boxplot(all_tw_set ~ (as.factor(set_num)), main = "ra_t_ra", data=subset_ra1)
+
+ra_lst<-lsmeans(ra_desc_glm, ~set_num)
+cld_ra<-cld(ra_lst)
+cld_ra
+pairs(ra_lst)
 ```
 
 There is evidence for descrimination between rhinella alata and tungara frogs
@@ -1250,17 +1277,25 @@ There is evidence for descrimination between rhinella alata and tungara frogs
 Normality of data:
 ```{r}
 qqnorm(subset_rra1$all_tw_set)
+#lots of zeros, floor effects
+
 ```
 ```{r, include=FALSE}
 rra_desc_glm <- glmer(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subset_rra1, family= "poisson")
+rra_desc_glm.nb <- glmer.nb(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subset_rra1)
+anova(rra_desc_glm, rra_desc_glm.nb)
 
-#rra_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_rra1) # use as.factor so morral sees these as factors
 ```
 ```{r}
 #summary(rra_desc)
 summary(rra_desc_glm)
 #boxplot
 boxplot(all_tw_set ~ (as.factor(set_num)), main = "rra_rt_rra", data=subset_rra1)
+
+rra_lst<-lsmeans(rra_desc_glm, ~set_num)
+cld_rra<-cld(rra_lst)
+cld_rra
+pairs(rra_lst)
 ```
 
 There is evidence for descrimination between 5 and 6, but not for dishabituation (5 and 7). There was very steep habituation to reversed rhinella alata, which might explain a part of this trend. 
@@ -1275,12 +1310,21 @@ Normality of data:
 qqnorm((subset_rt1$all_tw_set))
 ```
 
-This linear mixed model may not be appropriate for this test given its right-skewed distribution
+This linear mixed model may not be appropriate for this test given its terribly right-skewed distribution
 
 ```{r, echo=FALSE}
-#rt_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_rt1) # use as.factor so mortl sees these as factors
-rt_desc_glm <- glmer(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subset_rt1, family= "poisson")
 
+rt_desc_glm <- glmer(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subset_rt1, family= "poisson")
+#its ugly, but it converges
+rt_desc_glm.nb<-glmer.nb(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subset_rt1, family= "poisson")
+
+
+anova(rt_desc_glm, rt_desc_glm.nb)
+#in this case, the negative binomial test fits a lot betta.(dealing with the extra zeros) 
+#but this is too much for the data.
+
+diag.vals <- getME(rt_desc_glm.nb,"theta")[getME(rt_desc_glm.nb,"lower") == 0]
+any(diag.vals < 1e-6) # TRUE, so singularities
 
 ```
 ``````{r}
@@ -1290,8 +1334,15 @@ boxplot(all_tw_set ~ (as.factor(set_num)), main = "rt_rra_rt", data=subset_rt1)
 #logged boxplot:
 
 rt_desc_transformed<-boxplot((log(all_tw_set+1)) ~ (as.factor(set_num)), main = "rt_rra_rt log transformed", data=subset_rt1)
+
 ```
 
+```{r}
+rt_lst<-lsmeans(rt_desc_glm, ~set_num) 
+cld_rt<-cld(rt_lst)
+cld_rt
+pairs(rt_lst)
+```
 
 So again, there is discrimination, if not dishabituation between reversed tungara and reversed alata. 
 
@@ -1299,15 +1350,19 @@ So again, there is discrimination, if not dishabituation between reversed tungar
 ### Tungara v *D. ebracattus*
 
 ```{r, echo=FALSE}
-qqnorm(subset_t_de1$all_tw_set)
-#  Should be twitches/set ~set num*treatment t_dendom= batid #trial number does not add explanatoryness
-#t_de_t_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_t_de1) # use as.factor so mot_del sees these as factors
-#boxplot
-t_de_desc_glm <- glmer(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subset_t_de1, family= "poisson")
+qq.t.de<- qqnorm(subset_t_de1$all_tw_set)
 
-summary(t_de_desc_glm)
+
+t_de_desc_glm <- glmer(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subset_t_de1, family= "poisson")
+sum_t_de<- summary(t_de_desc_glm)
 #boxplot
 t_de_t_desc_plot<- boxplot(all_tw_set ~ (as.factor(set_num)), main = "t_de_t", data=subset_t_de1)
+```
+```{r}
+t_de_lst<-lsmeans(t_de_desc_glm, ~set_num)
+cld_t_de<-cld(t_de_lst)
+cld_t_de
+pairs(t_de_lst)
 ```
 
 There is no evidence for descrimination between tungara and dendrobates Perhaps/ likley due to high overall responses
@@ -1316,35 +1371,29 @@ There is no evidence for descrimination between tungara and dendrobates Perhaps/
 ```{r, echo=FALSE}
 
 #remember to reset relevel if running this again
-qqnorm(subset_t_ra1$all_tw_set) 
-hist(subset_t_ra1$all_tw_set)
-#maybe can't justify normal dist
-#t_ra_t_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_t_ra1) # use as.factor so  sees these as factors
+qqnorm(subset_t_ra1$all_tw_set) #almost half of values are zeros
 
-t_ra_t_desc_glm <- glmer(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subset_t_ra1, family= "poisson")
-#not converging?
-summary(t_ra_t_desc_glm)
-#boxplot
-t_ra_t_desc_plot<-boxplot(all_tw_set ~ (as.factor(set_num)), main = "t_ra_t", data=subset_t_ra1)
+t_ra_t_desc_plot<- boxplot(all_tw_set ~ (as.factor(set_num)), main = "t_ra_t", data=subset_t_ra1)
 
+
+
+t_ra_desc_glm <- glmer(all_tw_set ~ set_num + (1|Bat_ID) , data = subset_t_ra1, family= "poisson", control=glmerControl(optimizer = "bobyqa"))
+#not converging?-> converges with bobyqa
+
+summary(t_ra_desc_glm)
 
 ```
-####*** Probably not converging bc the ra is so close to 0 (hessian boundry?)
-## return to this to troubleshoot. 
+```{r}
 
-No discimination between treatments detected. 
-
-#### Use relevel to see whether there is a difference between set 6 and 7
-```{r, echo=FALSE}
-
-
-
-subset_t_ra1$set_num <- relevel(as.factor(subset_t_ra1$set_num), ref="6")
-t_ra_t_desc_2<- lme((sqrt(all_tw_set)) ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_t_ra1) # releveled lme
-summary(t_ra_t_desc_2)
+t_ra_lst<-lsmeans(t_ra_desc_glm, ~set_num)
+cld_t_ra<-cld(t_ra_lst)
+cld_t_ra
+pairs(t_ra_lst)
 ```
 
-. 
+No discimination between treatments detected. (generalization or dishabituation)
+
+
 
 ## Intraspecific Trials
 
@@ -1352,7 +1401,8 @@ summary(t_ra_t_desc_2)
 ```{r}
 
 qqnorm(subset_tc1$all_tw_set)
-#one total outlier (what should I do about that?)
+#one total outlier 
+#more than half zeros!
 tc_desc_glm <- glmer(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subset_tc1, family= "poisson")
 summary(tc_desc_glm)
 # boxplot
@@ -1367,8 +1417,24 @@ tc_desc_glm.no <- glmer(all_tw_set.no ~ as.factor(set_num) + (1|Bat_ID) , data =
 summary(tc_desc_glm.no)
 #makes nothing significant at all. Diff between last 2? 
 ```
+with outlier
+```{r}
 
+tc_lst<-lsmeans(tc_desc_glm, ~set_num)
+cld_tc<-cld(tc_lst)
+cld_tc
+pairs(tc_lst)
+```
 
+without outlier
+```{r}
+
+tc_lst.no<-lsmeans(tc_desc_glm.no, ~set_num)
+cld_tc.no<-cld(tc_lst.no)
+cld_tc.no
+pairs(tc_lst.no)
+```
+So, with outlier 6 is significantly lower than 7, without outlier, they are all the same, regardless, no evidence of dishabituation or anything 
 There is no apparent discrimination between complex and simple calls in this test. However, there is an outlier that could easily be messing with this. Outlier doesn't change the relationship. It just makes them all the more the same
 
 If this is accurate, it is probable that discrimination is obscured by simple calls being less salient stimuli, so the interuption in habituation is masked by lower overall interest in the simple call. See the inverse treatment:
@@ -1378,31 +1444,48 @@ If this is accurate, it is probable that discrimination is obscured by simple ca
 
 qqnorm(subset_ts1$all_tw_set)
 hist(subset_ts1$all_tw_set)
-#looks oookay (pretty 0 weighted)
+#pretty 0 weighted)
 ts_desc_glm <- glmer(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subset_ts1, family= "poisson")
-#ts_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_ts1) # use as.factor so  sees these as factors
+
 summary(ts_desc_glm)
 # boxplot
 ts_tc_ts_plot<- boxplot(all_tw_set ~ (as.factor(set_num)), main = "ts_tc_ts", data=subset_ts1)    
 
 ```
 
-This shows that bats discriminate between complex and simple tungara calls (0c v 2c). There is clear evidence of discrimination, but not of dishabituation  Note how discrimination is more apparent when the less salient stimulus is the one that is being habituated. ((Also, more habituation=more evidence of discrimination))
+```{r}
+
+ts_lst<-lsmeans(ts_desc_glm, ~set_num)
+cld_ts<-cld(ts_lst)
+cld_ts
+pairs(ts_lst)
+```
+
+
+This shows that bats discriminate between complex and simple tungara calls (0c v 2c). There is clear evidence of discrimination (lack of stimulus genrealization), but not of dishabituation  Note how discrimination is more apparent when the less salient stimulus is the one that is being habituated. ((Also, more habituation=more evidence of discrimination))
 
 ## Tungara "A" v Tungara "B" (or the id of individuals trials)
 
 ```{r}
 
 qqnorm(subset_tia1$all_tw_set)
+#almost half zeros
 # not justifiably normal (left/0 skewed)
-#tia_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_tia1) # use as.factor so  sees these as factors
+
 tia_desc_glm <- glmer(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subset_tia1, family= "poisson")
 summary(tia_desc_glm)
 # boxplot
 tia_tib_tia_plot<- boxplot(all_tw_set ~ (as.factor(set_num)), main = "tia_tib_tia", data=subset_tia1)
 ```
+significant differences and pairwise contrasts:
+```{r}
+tia_lst<-lsmeans(tia_desc_glm, ~set_num)
+cld_tia<-cld(tia_lst)
+cld_tia
+pairs(tia_lst)
 
-There is no apparent discrimination between individual tungaras. 
+```
+There is no apparent discrimination between individual tungaras. Removing the possible outliers would only make it less likely to show dishabituation 
 
 ## Summary chart
 

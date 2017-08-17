@@ -27,6 +27,7 @@ library(dplyr)
 
 attn_int_2<- read.table("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attn_for_initial_interest_2.7.17.txt", sep="\t", header=TRUE) #on github
 attn_int_2<- subset(attn_int_2, attn_int_2$bat_name != "Blackbeard" ) #removes unresponsive bat
+#fix levels of trial number
 
 ```
 [model deciding]
@@ -149,6 +150,8 @@ De  = "#D5D5D5"
 Ra  ="#9C9C9C"
 Rra ="#808080"      
 
+
+
 int.plot<- ggplot(data = attn_int_2, aes(x = first_stim, y = log(all_tw_set+1), fill=first_stim))
 int.plot<- int.plot+ geom_boxplot()
 int.plot<- int.plot+ geom_point(position = position_jitter(width = 0.1))
@@ -181,8 +184,14 @@ int.plot2
 [Data wrangling]
 ```{r, echo=FALSE,include=FALSE}
 #import dataset from github
+bat_data<-read.table("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attn_habit_4.txt", sep="\t", header=TRUE) #web
+#* local:
+bat_data<-read.table("/Users/maydixon/GitHub/Attn_Project/Attn_project_github/attn_habit_4.txt", sep="\t", header=TRUE) #local
 
-bat_data<-read.table("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attn_habit_1.txt", sep="\t", header=TRUE) #web
+bat_data<- subset(bat_data, bat_data$bat_name != "Blackbeard" ) #removes unresponsive bat
+
+
+#* bat_data<-read.table("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attn_habit_1.txt", sep="\t", header=TRUE) #web
 
 #recode and scale some variables
 #need to specify dplyr bc masked by other packages
@@ -201,14 +210,13 @@ bat_data$primary_stim<-dplyr::recode(bat_data$primary_stim, ra_t_ra = "ra")
 #center and scale time variable
 bat_data$scaled_call_num_2<- scale(bat_data$call_num_2, center=TRUE, scale=TRUE)  #scaling call number
 
-
-
+#*outs <- boxplot(all_tw_set ~ Bat_ID,  data=bat_data)
+#*boxplot(bat_data$bat_ID, bat_data$all_tw_trial )
 ```
 
 ####model:
 ```{r, eval= FALSE}
 bat.mod0 <- glmer(all_tw_call ~ scaled_call_num_2*primary_stim -1 + (trial_number| Bat_ID), data= bat_data, family="poisson")
-
 #Troubleshooting FIT:
 ## https://bbolker.github.io/mixedmodels-misc/glmmFAQ.html ##I use "gold standard" of comparing diff optimizers
   
@@ -721,6 +729,60 @@ pairs(tia_lst)
 
 ```
 There is no apparent discrimination between individual tungaras. Removing the possible outliers would only make it less likely to show dishabituation 
+
+
+
+### Attention set 5- "space to move?"
+[data wrangling]
+```{r}
+ attn_set_5 <- read.table("/Users/maydixon/Dropbox/Attention Project/R/attn_set5_only.txt", header=TRUE) #local      
+
+```
+##Plotting set 5
+int.plot<- ggplot(data = attn_int_2, aes(x = first_stim, y = log(all_tw_set+1), fill=first_stim))
+int.plot<- int.plot+ geom_boxplot()
+int.plot<- int.plot+ geom_point(position = position_jitter(width = 0.1))
+int.plot<- int.plot+ theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position = "none") #format x-axis, and remove side legend #hjust 1 aligns labels
+int.plot<- int.plot+ scale_x_discrete(labels=c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))  +
+              scale_fill_manual(breaks = c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"),
+                                values=c(Ts, T1c, T2c, De, Ra, Rra, Rt))
+int.plot<- int.plot+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"))  #gets rid of background
+int.plot<- int.plot+ xlab("Acoustic stimuli")
+int.plot<- int.plot+ ylab("log( twitches in first set + 1)")
+int.plot
+
+int.plot2<- ggplot(data = attn_int_2, aes(x = first_stim, y = all_tw_set, fill=first_stim))
+int.plot2<- int.plot2+ geom_boxplot()
+int.plot2<- int.plot2+ geom_point(position = position_jitter(width = 0.1))
+int.plot2<- int.plot2+ theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position = "none") #format x-axis, and remove side legend #hjust 1 aligns labels
+int.plot2<- int.plot2+ scale_x_discrete(labels=c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))  +
+              scale_fill_manual(breaks = c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"),
+                                values=c(Ts, T1c, T2c, De, Ra, Rra, Rt))
+int.plot2<- int.plot2+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"))  #gets rid of background
+int.plot2<- int.plot2+ xlab("Acoustic stimuli")
+int.plot2<- int.plot2+ ylab(" twitches in first set")
+int.plot2
+```{r}
+ attn_set_5$primary_stim <- factor(attn_set_5$primary_stim,levels = c("Ts" ,"T1c", "T2c" , "De", "Ra" , "Rra","Rt" ),ordered = TRUE)
+
+p5<- ggplot(data = attn_set_5, aes(x = primary_stim, y = log(all_tw_set), fill=primary_stim))
+p5<- p5+ geom_boxplot()
+p5<- p5+ geom_point(position = position_jitter(width = 0.1))
+p5<- p5+ theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "none") #format x-axis, and remove side legend
+
+p5<- p5+ scale_x_discrete(labels=c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))  +
+              scale_fill_manual(breaks = c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"),
+                                values=c(Ts, T1c, T2c, De, Ra, Rra, Rt))
+p5<- p5+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"))  #gets rid of background
+
+
+p5<- p5+ xlab("Acoustic stimuli")
+p5<- p5+ ylab("log( twitches in set 5 + 1)")
+p
+```
 
 
 
