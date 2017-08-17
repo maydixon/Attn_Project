@@ -685,20 +685,26 @@ Rra ="#808080"
         de_data<- attn_whole_set[attn_whole_set$trial_name_2=="de_t_de", ]       
         p_de <-ggplot(data=de_data, aes(x = set_num, y = all_tw_set))      
         p_de <- p_de + geom_boxplot(aes(fill=factor(set_num)))
+        #p_de<- p_de + geom_point(position = position_jitter(width = 0.1))
         p_de <- p_de + guides(fill=FALSE)
         p_de <- p_de + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
               scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
                                 values=c(De, De, De, De, De, Ts, De))
-        p_de <- p_de + ylab("Twitches in presentation")
-        p_de <- p_de + xlab("Trial number")
+       # p_de <- p_de + ylab(element_blank())
+       #p_de <- p_de + xlab(element_blank())
         p_de<- p_de + labs(title = "D. ebraccatus / 0-chuck P. pustulosus") +
-                  theme(plot.title = element_text(face="italic")) #this makes the plot title italic
+                  theme(plot.title = element_text(face="italic", size=22)) #this makes the plot title italic, affects the size
          p_de <- p_de + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-panel.background = element_blank(), axis.line = element_line(colour = "black")) #this gets rid of grey background and lines, adds 2 axes
+panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.title.x=element_blank(),
+          axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
         p_de <- p_de + coord_cartesian(ylim = c(0, 25))
-        p_de <- p_de + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(de_data, de_data$set_num!="6" & de_data$set_num!="7")) 
+        #p_de <- p_de + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(de_data, de_data$set_num!="6" & de_data$set_num!="7")) 
        
         p_de
+ ggsave("de_trial.jpg", height =5, width = 7)             
+```
+
+```{r}  
         #try<-subset(de_data, de_data$set_num!="6" & de_data$set_num!="7")
         #View(try)
         #made using coloring advice from "http://stackoverflow.com/questions/10805643/ggplot2-add-color-to-boxplot-continuous-value-supplied-to-discrete-scale-er"
@@ -726,7 +732,7 @@ panel.background = element_blank(), axis.line = element_line(colour = "black")) 
         p_t_de + xlab("presentation number")
         p_t_de <- p_t_de + xlab("presentation number")
         p_t_de<- p_t_de + labs(title = "0-chuck P. pustulosus / D. ebraccatus")+
-       theme(plot.title = element_text(face="italic")) #this makes the plot title italic
+       theme(plot.title = element_text(face="italic", size=22)) #this makes the plot title italic, affects the size
          p_t_de <- p_t_de + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 panel.background = element_blank(), axis.line = element_line(colour = "black")) #this gets rid of grey background and lines, adds 2 axes
         p_t_de<- p_t_de + coord_cartesian(ylim = c(0, 25))
@@ -1565,7 +1571,7 @@ attn_set_5$primary_stim <- relevel(attn_set_5$primary_stim,"De") #MAKE DE REFERE
       library(plotly)
       #attn_set_5$md_lg_tw_set<- attn_set_5$md_tw_set + attn_set_5$lg_tw_set
 #with logged +1 (for zero) data
-p <- ggplot(data = attn_set_5, aes(x = primary_stim, y = log(all_tw_set+1), fill=primary_stim))
+p <- ggplot(data = attn_set_5, aes(x = primary_stim, y = log(all_tw_set), fill=primary_stim))
 p <- p + geom_boxplot()
 p <- p + geom_point(position = position_jitter(width = 0.1))
 p <- p + theme(axis.text.x = element_text(angle = 90), legend.position = "none") #format x-axis, and remove side legend
