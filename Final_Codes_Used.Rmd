@@ -20,6 +20,29 @@ library(ggplot2)
 library(dplyr)
 
 ```
+
+###palette for plotting all, assigning variables
+```{r}
+#Checking out a palette of colors:
+        plotCol(gray(1.1:7.8 /9))
+#finding the name of those colors:
+      gray(1.1:7.8 /9)
+      
+#reference colors for plots
+#can change all from here
+Ts  = "#1F1F1F"
+T1c ="#3C3C3C"
+T2c = "#585858"
+De  = "#747474"
+Ra  ="#919191"
+Rra ="#ADADAD"  
+Rt  ="#C9C9C9"
+
+    
+
+
+```
+
 ### INITIAL INTEREST
 [Data wrangling]
 ```{r, echo=FALSE,include=FALSE}
@@ -139,17 +162,6 @@ plot of initial interest:
       attn_int_2$first_stim <- factor(attn_int_2$first_stim,levels = c("Ts" ,"T1c", "T2c" , "De", "Ra" , "Rra","Rt" ),ordered = TRUE)
       
 #perhaps best order is: Ts, T, Tc, Rt, Rra, Ra, De, can do using relevel() 
-
-#reference colors for plots
-#can change all from here
-Ts  = "#0E0E0E"
-T1c ="#2B2B2B"
-T2c = "#474747"
-Rt  ="#636363"
-De  = "#D5D5D5"
-Ra  ="#9C9C9C"
-Rra ="#808080"      
-
 
 
 int.plot<- ggplot(data = attn_int_2, aes(x = first_stim, y = all_tw_set, fill=first_stim))
@@ -755,3 +767,73 @@ ggsave("Ear twitches in set 5.jpg", width = 3, height = 4)
 
 
 
+###Plots of whole trials
+
+[Data wrangling]
+```{r}
+        attn_whole<-read.table("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attention_Rcopy_individuals_condensed.txt", sep="\t", header=TRUE)
+      
+        attn_whole <- subset(attn_whole, attn_whole$bat_name != "Blackbeard") 
+        # want just one line for each "set"
+        #pull partial string match  x.1 for call number using grep
+        attn_whole_set <- attn_whole[grep(".1", attn_whole$call_num), ]
+```        
+        
+        
+
+[de_t_de]
+```{r}
+      
+        #making a plot for the entire of one treatment, with each set getting a boxplot
+        
+        #DE
+        de_data<- attn_whole_set[attn_whole_set$trial_name_2=="de_t_de", ]       
+        p_de <-ggplot(data=de_data, aes(x = set_num, y = all_tw_set))      
+        p_de <- p_de + geom_boxplot(aes(fill=factor(set_num)))
+        #p_de<- p_de + geom_point(position = position_jitter(width = 0.1))
+        p_de <- p_de + guides(fill=FALSE)
+        p_de <- p_de + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c(De, De, De, De, De, Ts, De))
+       # p_de <- p_de + ylab(element_blank())
+       #p_de <- p_de + xlab(element_blank())
+        p_de<- p_de + labs(title = "D. ebraccatus / 0-chuck P. pustulosus") +
+                  theme(plot.title = element_text(face="italic", size=22)) #this makes the plot title italic, affects the size
+         p_de <- p_de + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.title.x=element_blank(),
+          axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
+        p_de <- p_de + coord_cartesian(ylim = c(0, 25))
+        #p_de <- p_de + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(de_data, de_data$set_num!="6" & de_data$set_num!="7")) 
+       
+        p_de
+ ggsave("de_trial.jpg", height =5, width = 7)             
+```
+
+
+t_de
+```{r}
+      
+        #making a plot for the entire of one treatment, with each set getting a boxplot
+        
+        #DE
+        de_data<- attn_whole_set[attn_whole_set$trial_name_2=="de_t_de", ]       
+        p_de <-ggplot(data=de_data, aes(x = set_num, y = all_tw_set))      
+        p_de <- p_de + geom_boxplot(aes(fill=factor(set_num)))
+        #p_de<- p_de + geom_point(position = position_jitter(width = 0.1))
+        p_de <- p_de + guides(fill=FALSE)
+        p_de <- p_de + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c(De, De, De, De, De, Ts, De))
+       # p_de <- p_de + ylab(element_blank())
+       #p_de <- p_de + xlab(element_blank())
+        p_de<- p_de + labs(title = "D. ebraccatus / 0-chuck P. pustulosus") +
+                  theme(plot.title = element_text(face="italic", size=22)) #this makes the plot title italic, affects the size
+         p_de <- p_de + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.title.x=element_blank(),
+          axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
+        p_de <- p_de + coord_cartesian(ylim = c(0, 25))
+        #p_de <- p_de + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(de_data, de_data$set_num!="6" & de_data$set_num!="7")) 
+       
+        p_de
+ ggsave("de_trial.jpg", height =5, width = 7)             
+```
