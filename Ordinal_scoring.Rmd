@@ -1,0 +1,202 @@
+---
+title: "Ordinal_scoring"
+author: "may"
+date: "December 8, 2017"
+output: html_document
+---
+
+`
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+library(ordinal)
+library(lme4)
+library(lsmeans)
+library(plyr)
+
+```
+import data
+```{r}
+attn_R <- read_excel("~/Dropbox/Attention Solomon Coding/attn_Rcopy_12.7.17_justset.xlsx")
+```
+remove unrsponsive bat
+```{r}
+attn_R <- subset(attn_R , attn_R $bat_name != "Blackbeard" ) #removes unresponsive bat
+```
+remove unused treatment
+```{r}
+attn_R <- subset(attn_R , attn_R $trial_name_2 != "t_rt_t" ) #removes treatment
+attn_R <- subset(attn_R , attn_R $trial_name_2 != "rt_t_rt" ) #removes treatment
+```
+
+reorder columns
+```{r}
+attn_R = attn_R %>% select(Bat_ID:set_num, Landing_set, Approach_set, Orienting_set, all_tw_set, mdlg_tw_set, lg_tw_set, md_tw__set, sm_tw_set, Flying_set, Grooming_set, Yawning_set)
+head(attn_R)
+```
+recode data to make ordinal:
+```{r }
+#put data into t.d.
+t.d.<- attn_R
+#make column to put ordinal scores
+t.d.$Ordinal<-rep(0,nrow(t.d.))
+#apply function to data
+for (i in 1:nrow(t.d.)){
+      
+  if (t.d.$Landing_set[i]>0) {
+   t.d.$Ordinal[i]<-"5"
+} else if (t.d.$Approach_set[i]>0) {
+      t.d.$Ordinal[i]<-"4"
+} else if (t.d.$Orienting_set[i]>0) {
+      t.d.$Ordinal[i]<-"3"
+} else if (t.d.$mdlg_tw_set[i]>0) {
+      t.d.$Ordinal[i]<-"2"
+} else if (t.d.$sm_tw_set[i]>0) {
+      t.d.$Ordinal[i]<-"1"
+} else 
+      t.d.$Ordinal[i]<-"0"
+
+}
+#case_when
+
+   # GUIDE #   
+# reorder rows in reverse order of ordinal scale
+# if land !=0 write "5" in new column, else go to next column
+# if approach !=0 write "4" in new column, else go to next column
+# if orient !=0 write "3" in new column else go to next column
+# if lgmdtwitch !=0 write "2" in new column else go to next column
+# if smtwitch!=0 write "1" in new column, else write "0"
+```
+make ordinal data read as ordered factor
+```{r}
+t.d.$Ordinal<-factor(t.d.$Ordinal, ordered = TRUE)
+```
+make first treatment factors
+```{r}
+#make primary stim a factor
+t.d.$primary_stim<- factor(t.d.$primary_stim, ordered = FALSE)
+levels(t.d.$primary_stim)
+```
+##Now investigate initial interest and all the rest with cumulative linear mixed model. 
+subset just the first set, to make dataset "t.d.int"
+```{r}
+t.d.int<-subset(t.d., t.d.$set_num=="1")
+head(t.d.int)
+```
+now check initial interest, compare to old results
+```{r}
+
+# previous results, continuous scale:
+initial_int_nbc <- glmer.nb(all_tw_set ~ first_stim -1 + (0+trial_number|Bat_ID),  data = attn_int_2, control=glmerControl(optimizer = "bobyqa"))  #lowest AIC, and most compex random effects structure that makes sense and converges.
+summary(initial_int_nbc) #random slope of trial number within bat ID: no variation in intercept
+int_lsmeans<- lsmeans::lsmeans(initial_int_nbc, "first_stim")
+sv_int_nbc<- cld(int_lsmeans, letters=LETTERS)
+sv_int_nbc
+
+
+
+initial_intO<-clmm(Ordinal ~ primary_stim + (1|Bat_ID),  data = t.d.int, Hess=TRUE, nAGQ=10)
+summary(initial_intO)
+#no differences#
+cum_lsmeans<-lsmeans::lsmeans(initial_intO, "primary_stim")
+cum_lsmeans
+```
+
+plotting initial interest:
+```{r}
+levels(t.d.int$primary_stim)
+```
+```{r}
+#reordering for plotting:
+      t.d.int$primary_stim <- factor(t.d.int$primary_stim,levels = c("ts" ,"t1c", "t2c" , "de", "ra" , "rra","rt" ),ordered = TRUE)
+      
+#perhaps best order is: Ts, T, Tc, Rt, Rra, Ra, De, can do using relevel() 
+```
+
+WITH TWITCHES
+```{r}
+
+int.plot<- ggplot(data = t.d.int, aes(x = primary_stim, y = all_tw_set, fill=primary_stim))
+int.plot<- int.plot+ geom_boxplot()
+int.plot<- int.plot+ geom_point(position = position_jitter(width = 0.1))
+int.plot<- int.plot+ theme(axis.text.x = element_text(angle = 45, hjust=1, size = 14), legend.position = "none") #format x-axis, and remove side legend #hjust 1 aligns labels
+int.plot<- int.plot+ scale_x_discrete(labels=c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))  +
+              scale_fill_manual(breaks = c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"),
+                                values=c(Ts, T1c, T2c, De, Ra, Rra, Rt))
+int.plot<- int.plot+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.title= element_text(size=14))  #gets rid of background
+int.plot<- int.plot+ xlab("Acoustic stimuli")
+int.plot<- int.plot+ ylab("Ear-twitches in trial 1")
+int.plot
+
+ggsave("initial_interest_plot.jpg", width = 6.5, height = 5.55)
+```
+WITH ORDINAL
+```{r}
+t.d.int$Ordinal<-as.numeric(t.d.int$Ordinal)
+
+```
+
+```{r}
+ 
+
+int.plot_Ordinal<- ggplot(data = t.d.int, aes(x = primary_stim, y = Ordinal, fill=primary_stim))
+int.plot_Ordinal<- int.plot_Ordinal+ geom_boxplot()
+int.plot_Ordinal<- int.plot_Ordinal+ geom_point(position = position_jitter(width = 0.1))
+int.plot_Ordinal<- int.plot_Ordinal+ theme(axis.text.x = element_text(angle = 45, hjust=1, size = 14), legend.position = "none") #format x-axis, and remove side legend #hjust 1 aligns labels
+int.plot_Ordinal<- int.plot_Ordinal+ scale_x_discrete(labels=c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))  +
+              scale_fill_manual(breaks = c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"),
+                                values=c(Ts, T1c, T2c, De, Ra, Rra, Rt))
+int.plot_Ordinal<- int.plot_Ordinal + coord_cartesian(ylim = c(0, 5))
+int.plot_Ordinal<- int.plot_Ordinal+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.title= element_text(size=14))  #gets rid of background
+int.plot_Ordinal<- int.plot_Ordinal+ xlab("Acoustic stimuli")
+int.plot_Ordinal<- int.plot_Ordinal+ ylab("Ordinal Response")
+int.plot_Ordinal
+
+ggsave("initial_interest_Ordinal.jpg", width = 6.5, height = 5.55)
+```
+
+Ordinal plot 2
+(Another way of representing this)
+```{r}
+t.d.int.summary.data <- ddply(t.d.int, "primary_stim", summarise, mean=mean(Ordinal), sd=sd(Ordinal))
+t.d.int.summary.data 
+```
+```{r}
+int.plot_Ordinal2<- ggplot(data = t.d.int.summary.data, aes(x = primary_stim, y = mean, fill=primary_stim))
+int.plot_Ordinal2<- int.plot_Ordinal2+ geom_point()
+int.plot_Ordinal2<- int.plot_Ordinal2+ geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.2, position=position_dodge(.9)) 
+int.plot_Ordinal2<- int.plot_Ordinal2+ theme(axis.text.x = element_text(angle = 45, hjust=1, size = 14), legend.position = "none") #format x-axis, and remove side legend #hjust 1 aligns labels
+int.plot_Ordinal2<- int.plot_Ordinal2+ scale_x_discrete(labels=c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))  +
+              scale_fill_manual(breaks = c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"),
+                                values=c(Ts, T1c, T2c, De, Ra, Rra, Rt))
+int.plot_Ordinal2<- int.plot_Ordinal2 + coord_cartesian(ylim = c(0, 5))
+int.plot_Ordinal2<- int.plot_Ordinal2+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.title= element_text(size=14))  #gets rid of background
+int.plot_Ordinal2<- int.plot_Ordinal2+ xlab("Acoustic stimuli")
+int.plot_Ordinal2<- int.plot_Ordinal2+ ylab("Ordinal Response")
+int.plot_Ordinal2
+
+
+```
+
+some interesting side associations
+```{r}
+#relation between twitching and flying 
+fltplot<- ggplot(data = t.d., aes(x = Ordinal, y = Flying_trial))
+fltplot<- fltplot+ geom_point()
+fltplot
+
+#relation between twitching and grooming 
+grmplot<- ggplot(data = t.d., aes(x = Ordinal, y = Grooming_trial))
+grmplot<- grmplot+ geom_point()
+grmplot
+
+#relation between twitching and yawning
+ywnplot<- ggplot(data = t.d., aes(x = Ordinal, y = Yawning_trial))
+ywnplot<- ywnplot+ geom_point()
+ywnplot
+
+```

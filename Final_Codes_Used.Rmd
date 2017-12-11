@@ -12,6 +12,7 @@ knitr::opts_chunk$set(echo = FALSE)
 [libraries and data import]
 ```{r,  include=FALSE}
 
+library(car)
 library(lme4)
 library(multcomp)
 library(multcompView)
@@ -24,9 +25,11 @@ library(dplyr)
 ###palette for plotting all, assigning variables
 ```{r}
 #Checking out a palette of colors:
-        plotCol(gray(1.1:7.8 /9))
+        #plotCol(gray(1.1:11 /11))
+     
+      
 #finding the name of those colors:
-      gray(1.1:7.8 /9)
+      #gray(1.1:8 /9)
       
 #reference colors for plots
 #can change all from here
@@ -140,6 +143,12 @@ initial_int_nbc <- glmer.nb(all_tw_set ~ first_stim -1 + (0+trial_number|Bat_ID)
 #random slope of trial number within bat ID: no variation in intercept
 ```
 
+Anova
+```{r}
+Anova(initial_int_nbc)
+```
+
+
 Getting estimates and p-values for differences
 ```{r}
 int_lsmeans<- lsmeans::lsmeans(initial_int_nbc, "first_stim")
@@ -167,16 +176,17 @@ plot of initial interest:
 int.plot<- ggplot(data = attn_int_2, aes(x = first_stim, y = all_tw_set, fill=first_stim))
 int.plot<- int.plot+ geom_boxplot()
 int.plot<- int.plot+ geom_point(position = position_jitter(width = 0.1))
-int.plot<- int.plot+ theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position = "none") #format x-axis, and remove side legend #hjust 1 aligns labels
+int.plot<- int.plot+ theme(axis.text.x = element_text(angle = 45, hjust=1, size = 14), legend.position = "none") #format x-axis, and remove side legend #hjust 1 aligns labels
 int.plot<- int.plot+ scale_x_discrete(labels=c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))  +
               scale_fill_manual(breaks = c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"),
                                 values=c(Ts, T1c, T2c, De, Ra, Rra, Rt))
 int.plot<- int.plot+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-panel.background = element_blank(), axis.line = element_line(colour = "black"))  #gets rid of background
+panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.title= element_text(size=14))  #gets rid of background
 int.plot<- int.plot+ xlab("Acoustic stimuli")
 int.plot<- int.plot+ ylab("Ear-twitches in trial 1")
 int.plot
 
+ggsave("initial_interest_plot.jpg", width = 6.5, height = 5.55)
 ```
 
 ### HABITUATION:
@@ -295,6 +305,12 @@ sbat.mod
 ###################################
 ```
 
+ANOVA:
+```{r}
+Aov.habit<-Anova(bat.mod, type = 2)
+Aov.habit
+```
+
 
 ####post hoc comparisons with lsmeans:
 log scale:
@@ -396,7 +412,7 @@ ylab("log slope of change in ear-twitch response") +
       
 
 confint_comp_ls
-#ggsave("habituation_slope_plot_grayscale.png",width=3, height =4)
+ggsave("habituation_slope_plot_grayscale.png",width=3, height =4)
 ```
 
 
@@ -413,7 +429,7 @@ confint_comp_ls
 attention_Rcopy1<- subset(attention_Rcopy_individuals_condensed, attention_Rcopy_individuals_condensed$bat_name != "Blackbeard" ) #removes unresponsive bat
 attention_Rcopy1<-subset(attention_Rcopy1, attention_Rcopy1$trial_name != "t_rt_t" & attention_Rcopy1$trial_name != "rt_t_rt") #removes variables only tested on one bat
  attn_r2 <- attention_Rcopy1 #short same version
-#pull partial string match  x.1 for call number using grep
+#pull partial string match  x.1 for call number using grep, this means only 1 set will be called, avoids redundant data
         
 attn_set <- attn_r2[grep(".1", attn_r2$call_num), ]
 ## This is coded terribly, but it works, ok
@@ -731,6 +747,277 @@ pairs(tia_lst)
 There is no apparent discrimination between individual tungaras. Removing the possible outliers would only make it less likely to show dishabituation 
 
 
+###Plots of whole trials
+
+[Data wrangling]
+```{r}
+        attn_whole<-read.table("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attention_Rcopy_individuals_condensed.txt", sep="\t", header=TRUE)
+      
+        attn_whole <- subset(attn_whole, attn_whole$bat_name != "Blackbeard") 
+        # want just one line for each "set"
+        #pull partial string match  x.1 for call number using grep
+        attn_whole_set <- attn_whole[grep(".1", attn_whole$call_num), ]
+```        
+        
+        
+
+[de_t_de]
+```{r}
+      
+        #making a plot for the entire of one treatment, with each set getting a boxplot
+        
+        #DE
+        de_data <- attn_whole_set[attn_whole_set$trial_name_2=="de_t_de", ]       
+        p_de <-ggplot(data=de_data, aes(x = set_num, y = all_tw_set))      
+        p_de <- p_de + geom_boxplot(aes(fill=factor(set_num)))
+        #p_de<- p_de + geom_point(position = position_jitter(width = 0.1))
+        p_de <- p_de + guides(fill=FALSE)
+        p_de <- p_de + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c(De, De, De, De, De, Ts, De))
+       # p_de <- p_de + ylab(element_blank())
+       #p_de <- p_de + xlab(element_blank())
+        p_de<- p_de + labs(title = "D. ebraccatus / 0-chuck P. pustulosus") +
+                  theme(plot.title = element_text(face="italic", size=31.5)) #this makes the plot title italic, affects the size
+         p_de <- p_de + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(),  axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
+          axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
+        p_de <- p_de + coord_cartesian(ylim = c(0, 25))
+        #p_de <- p_de + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(de_data, de_data$set_num!="6" & de_data$set_num!="7")) 
+       
+        p_de
+ ggsave("de_trial.jpg", height =5, width = 7.5)             
+```
+
+
+t_de
+```{r}
+      
+        #making a plot for the entire of one treatment, with each set getting a boxplot
+        
+        #T_DE
+        t_de_data<- attn_whole_set[attn_whole_set$trial_name_2=="t_de_t", ]       
+        p_t_de<-ggplot(data=t_de_data, aes(x = set_num, y = all_tw_set))      
+        p_t_de<- p_t_de+ geom_boxplot(aes(fill=factor(set_num)))
+        #p_de<- p_t_de+ geom_point(position = position_jitter(width = 0.1))
+        p_t_de<- p_t_de+ guides(fill=FALSE)
+        p_t_de<- p_t_de+ scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c(Ts, Ts, Ts, Ts, Ts, De, Ts))
+       # p_t_de<- p_t_de+ ylab(element_blank())
+       #p_t_de<- p_t_de+ xlab(element_blank())
+        p_t_de <- p_t_de+ labs(title =  "0-chuck P. pustulosus / D. ebraccatus") +
+                  theme(plot.title = element_text(face="italic", size=29.5)) #this makes the plot title italic, affects the size
+         p_t_de <- p_t_de+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
+          axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
+        p_t_de<- p_t_de+ coord_cartesian(ylim = c(0, 25))
+        #p_t_de<- p_t_de+ stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(de_data, de_data$set_num!="6" & de_data$set_num!="7")) 
+       
+        p_t_de
+ ggsave("t_de_trial.jpg", height =5, width = 7)             
+```
+
+
+[ra_t_ra]
+```{r}
+      
+        #making a plot for the entire of one treatment, with each set getting a boxplot
+        
+        #Ra_T
+        ra_t_data <- attn_whole_set[attn_whole_set$trial_name_2=="ra_t_ra", ]       
+        p_ra <- ggplot(data=ra_t_data, aes(x = set_num, y = all_tw_set))      
+        p_ra <- p_ra + geom_boxplot(aes(fill=factor(set_num)))
+        #p_ra <- p_ra + geom_point(position = position_jitter(width = 0.1))
+        p_ra<- p_ra + guides(fill=FALSE)
+        p_ra<- p_ra + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c(Ra, Ra, Ra, Ra, Ra, Ts, Ra))
+       # p_ra<- p_ra + ylab(element_blank())
+       #p_ra <- p_ra + xlab(element_blank())
+        p_ra <- p_ra + labs(title =  " R. alata / 0-chuck P. pustulosus") +
+             theme(plot.title = element_text(face="italic", size=33)) #this makes the plot title italic, affects the size
+         p_ra <- p_ra + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
+          axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
+        p_ra <- p_ra + coord_cartesian(ylim = c(0, 25))
+        
+        p_ra
+ ggsave("ra_t_trial.jpg", height =5, width = 7)             
+```
+
+
+
+[t_ra_t]
+```{r}
+      
+        #making a plot for the entire of one treatment, with each set getting a boxplot
+        
+        #t_ra
+        t_ra_data <- attn_whole_set[attn_whole_set$trial_name_2=="t_ra_t", ]       
+        p_t_ra <- ggplot(data = t_ra_data, aes(x = set_num, y = all_tw_set))      
+        p_t_ra <- p_t_ra + geom_boxplot(aes(fill=factor(set_num)))
+        #p_t_ra <- p_t_ra + geom_point(position = position_jitter(width = 0.1))
+        p_t_ra<- p_t_ra + guides(fill=FALSE)
+        p_t_ra<- p_t_ra + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c(Ts, Ts, Ts, Ts, Ts, Ra, Ts))
+       # p_t_ra<- p_t_ra + ylab(element_blank())
+       #p_t_ra <- p_t_ra + xlab(element_blank())
+        p_t_ra <- p_t_ra + labs(title =  " 0-chuck P. pustulosus / R. alata") +
+             theme(plot.title = element_text(face="italic", size=33)) #this makes the plot title italic, affects the size
+         p_t_ra <- p_t_ra + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
+          axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
+        p_t_ra <- p_t_ra + coord_cartesian(ylim = c(0, 25))
+        
+        p_t_ra
+ ggsave("t_ra_trial.jpg", height =5, width = 7)             
+```
+
+
+[tia_tib_tia]
+```{r}
+      
+        #making a plot for the entire of one treatment, with each set getting a boxplot
+        
+        #tia
+        tia_data <- attn_whole_set[attn_whole_set$trial_name_2=="tia_tib_tia", ]       
+        p_tia <- ggplot(data = tia_data, aes(x = set_num, y = all_tw_set))      
+        p_tia <- p_tia + geom_boxplot(aes(fill=factor(set_num)))
+        #p_tia <- p_tia + geom_point(position = position_jitter(width = 0.1))
+        p_tia<- p_tia + guides(fill=FALSE)
+        p_tia<- p_tia + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c(T1c, T1c, T1c, T1c, T1c, T1c, T1c))
+       # p_tia<- p_tia + ylab(element_blank())
+       #p_tia <- p_tia + xlab(element_blank())
+        p_tia <- p_tia + labs(title =  " Different individual P. pustulosus") +
+             theme(plot.title = element_text(face="italic", size=33)) #this makes the plot title italic, affects the size
+         p_tia <- p_tia + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
+          axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
+        p_tia <- p_tia + coord_cartesian(ylim = c(0, 25))
+        
+        p_tia
+ ggsave("tia_trial.jpg", height =5, width = 7)             
+```
+
+
+[ts_tc_ts]
+```{r}
+      
+        #making a plot for the entire of one treatment, with each set getting a boxplot
+        
+        #ts_tc
+        ts_data <- attn_whole_set[attn_whole_set$trial_name_2=="ts_tc_ts", ]       
+        p_ts <- ggplot(data = ts_data, aes(x = set_num, y = all_tw_set))      
+        p_ts <- p_ts + geom_boxplot(aes(fill=factor(set_num)))
+        #p_ts <- p_ts + geom_point(position = position_jitter(width = 0.1))
+        p_ts<- p_ts + guides(fill=FALSE)
+        p_ts<- p_ts + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c(Ts, Ts, Ts, Ts, Ts, T2c, Ts))
+       # p_ts<- p_ts + ylab(element_blank())
+       #p_ts <- p_ts + xlab(element_blank())
+        p_ts <- p_ts + labs(title =  "0-chuck  / 2-chuck P. pustulosus") +
+             theme(plot.title = element_text(face="italic", size=33)) #this makes the plot title italic, affects the size
+         p_ts <- p_ts + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
+          axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
+        p_ts <- p_ts + coord_cartesian(ylim = c(0, 25))
+        
+        p_ts
+ ggsave("ts_trial.jpg", height =5, width = 7)             
+```
+
+
+[tc_ts_tc]
+```{r}
+      
+        #making a plot for the entire of one treatment, with each set getting a boxplot
+        
+        #tc
+        tc_data <- attn_whole_set[attn_whole_set$trial_name_2=="tc_ts_tc", ]       
+        p_tc <- ggplot(data = tc_data, aes(x = set_num, y = all_tw_set))      
+        p_tc <- p_tc + geom_boxplot(aes(fill=factor(set_num)))
+        #p_tc <- p_tc + geom_point(position = position_jitter(width = 0.1))
+        p_tc<- p_tc + guides(fill=FALSE)
+        p_tc<- p_tc + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c(T2c, T2c, T2c, T2c, T2c, Ts, T2c))
+       # p_tc<- p_tc + ylab(element_blank())
+       #p_tc <- p_tc + xlab(element_blank())
+        p_tc <- p_tc + labs(title =  "2-chuck / 0-chuck P. pustulosus") +
+             theme(plot.title = element_text(face="italic", size=33)) #this makes the plot title italic, affects the size
+         p_tc <- p_tc + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
+          axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
+        p_tc <- p_tc + coord_cartesian(ylim = c(0, 25))
+        
+        p_tc
+ ggsave("tc_trial.jpg", height =5, width = 7)             
+```
+
+
+[rt_rra_rt]
+```{r}
+      
+        #making a plot for the entire of one treatment, with each set getting a boxplot
+        
+        #rt
+        rt_data <- attn_whole_set[attn_whole_set$trial_name_2=="rt_rra_rt", ]       
+        p_rt <- ggplot(data = rt_data, aes(x = set_num, y = all_tw_set))      
+        p_rt <- p_rt + geom_boxplot(aes(fill=factor(set_num)))
+        #p_rt <- p_rt + geom_point(position = position_jitter(width = 0.1))
+        p_rt<- p_rt + guides(fill=FALSE)
+        p_rt<- p_rt + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c(Rt, Rt, Rt, Rt, Rt, Rra, Rt))
+       # p_rt<- p_rt + ylab(element_blank())
+       #p_rt <- p_rt + xlab(element_blank())
+        p_rt <- p_rt + labs(title =  "Rev. P. pustulosus / Rev. R. alata") +
+             theme(plot.title = element_text(face="italic", size=33)) #this makes the plot title italic, affects the size
+         p_rt <- p_rt + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
+          axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
+        p_rt <- p_rt + coord_cartesian(ylim = c(0, 25))
+        
+        p_rt
+ ggsave("rt_trial.jpg", height =5, width = 7)             
+```
+
+
+[rra_rt_rra]
+```{r}
+      
+        #making a plot for the entire of one treatment, with each set getting a boxplot
+        
+        #rra
+        rra_data <- attn_whole_set[attn_whole_set$trial_name_2=="rra_rt_rra", ]       
+        p_rra <- ggplot(data = rra_data, aes(x = set_num, y = all_tw_set))      
+        p_rra <- p_rra + geom_boxplot(aes(fill=factor(set_num)))
+        #p_rra <- p_rra + geom_point(position = position_jitter(width = 0.1))
+        p_rra<- p_rra + guides(fill=FALSE)
+        p_rra<- p_rra + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c(Rt, Rt, Rt, Rt, Rt, Rra, Rt))
+       # p_rra<- p_rra + ylab(element_blank())
+       #p_rra <- p_rra + xlab(element_blank())
+        p_rra <- p_rra + labs(title =  "Rev. R. alata / Rev. P. pustulosus") +
+             theme(plot.title = element_text(face="italic", size=33)) #this makes the plot title italic, affects the size
+         p_rra <- p_rra + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
+          axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
+        p_rra <- p_rra + coord_cartesian(ylim = c(0, 25))
+        
+        p_rra
+ ggsave("rra_trial.jpg", height =5, width = 7.5)             
+```
+
+
+
+
 
 ### Attention set 5- "space to move?"
 [data wrangling]
@@ -765,272 +1052,100 @@ ggsave("Ear twitches in set 5.jpg", width = 3, height = 4)
 #ggsave("CI_comparison_final.png",width=5)
 ```
 
-
-
-###Plots of whole trials
-
-[Data wrangling]
 ```{r}
-        attn_whole<-read.table("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attention_Rcopy_individuals_condensed.txt", sep="\t", header=TRUE)
-      
-        attn_whole <- subset(attn_whole, attn_whole$bat_name != "Blackbeard") 
-        # want just one line for each "set"
-        #pull partial string match  x.1 for call number using grep
-        attn_whole_set <- attn_whole[grep(".1", attn_whole$call_num), ]
-```        
-        
-        
 
-[de_t_de]
-```{r}
-      
-        #making a plot for the entire of one treatment, with each set getting a boxplot
-        
-        #DE
-        de_data <- attn_whole_set[attn_whole_set$trial_name_2=="de_t_de", ]       
-        p_de <-ggplot(data=de_data, aes(x = set_num, y = all_tw_set))      
-        p_de <- p_de + geom_boxplot(aes(fill=factor(set_num)))
-        #p_de<- p_de + geom_point(position = position_jitter(width = 0.1))
-        p_de <- p_de + guides(fill=FALSE)
-        p_de <- p_de + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
-              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
-                                values=c(De, De, De, De, De, Ts, De))
-       # p_de <- p_de + ylab(element_blank())
-       #p_de <- p_de + xlab(element_blank())
-        p_de<- p_de + labs(title = "D. ebraccatus / 0-chuck P. pustulosus") +
-                  theme(plot.title = element_text(face="italic", size=30)) #this makes the plot title italic, affects the size
-         p_de <- p_de + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.text.x = element_text( size = 30), axis.title.x=element_blank(),
-          axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
-        p_de <- p_de + coord_cartesian(ylim = c(0, 25))
-        #p_de <- p_de + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(de_data, de_data$set_num!="6" & de_data$set_num!="7")) 
-       
-        p_de
- ggsave("de_trial.jpg", height =5, width = 7.5)             
+trial5mod<- glmer(all_tw_set ~ primary_stim -1 + (trial_number|Bat_ID), family= "poisson", data = attn_set_5) 
+s.trial5mod<- summary(trial5mod)
+s.trial5mod
+lst_5mod<-cld(lsmeans(trial5mod, ~primary_stim))
+lst_5mod
+Anova(trial5mod)
+
 ```
 
-
-t_de
+Investigate correlation between initial interest and slope more formally?
 ```{r}
-      
-        #making a plot for the entire of one treatment, with each set getting a boxplot
-        
-        #T_DE
-        t_de_data<- attn_whole_set[attn_whole_set$trial_name_2=="t_de_t", ]       
-        p_t_de<-ggplot(data=t_de_data, aes(x = set_num, y = all_tw_set))      
-        p_t_de<- p_t_de+ geom_boxplot(aes(fill=factor(set_num)))
-        #p_de<- p_t_de+ geom_point(position = position_jitter(width = 0.1))
-        p_t_de<- p_t_de+ guides(fill=FALSE)
-        p_t_de<- p_t_de+ scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
-              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
-                                values=c(Ts, Ts, Ts, Ts, Ts, De, Ts))
-       # p_t_de<- p_t_de+ ylab(element_blank())
-       #p_t_de<- p_t_de+ xlab(element_blank())
-        p_t_de <- p_t_de+ labs(title =  "0-chuck P. pustulosus / D. ebraccatus") +
-                  theme(plot.title = element_text(face="italic", size=22)) #this makes the plot title italic, affects the size
-         p_t_de <- p_t_de+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.title.x=element_blank(),
-          axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
-        p_t_de<- p_t_de+ coord_cartesian(ylim = c(0, 25))
-        #p_t_de<- p_t_de+ stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(de_data, de_data$set_num!="6" & de_data$set_num!="7")) 
-       
-        p_t_de
- ggsave("t_de_trial.jpg", height =5, width = 7)             
+sv_int_nbc<- cld(int_lsmeans, sort=FALSE)
+sv_int_nbc
+
+svlstx<-cld(lst, sort=FALSE)
+svlstx$primary_stim <- factor(svlstx$primary_stim,levels = c("ts", "t1c", "t2c", "de", "ra", "rra", "rts" ),ordered = TRUE)
+svlstx
+
+trt<- c("de",
+"ts",
+"t1c",
+"t2c",
+"ra",
+"rt",
+"rra")
+
+int_est<- c(1.707,
+1.777,
+1.709,
+2.201,
+2.029,
+1.892,
+2.614)
+
+slope_esti<-c(-0.228,
+-0.258,
+-0.146,
+-0.026,
+-1.015,
+-0.362,
+-0.811)
+
+int_slope_cor<- as.data.frame(cbind(trt, int_est, slope_esti))
+int_slope_cor
+
+ggplot
+
+p_i_s<-ggplot(data=int_slope_cor, aes(x = slope_esti, y=int_est)) +
+      geom_point()+
+      stat_smooth(colour="black") 
+
+p_i_s
+
 ```
 
-
-[ra_t_ra]
+What would I have found if I had just looked at total twitches throughout the entire trial?
 ```{r}
+#import dataset from github
+bat_data<-read.table("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attn_habit_4.txt", sep="\t", header=TRUE) #web
+#* local:
+#bat_data<-read.table("/Users/maydixon/GitHub/Attn_Project/Attn_project_github/attn_habit_4.txt", sep="\t", header=TRUE) #local
+
+bat_data<- subset(bat_data, bat_data$bat_name != "Blackbeard" ) #removes unresponsive bat
+
       
-        #making a plot for the entire of one treatment, with each set getting a boxplot
         
-        #Ra_T
-        ra_t_data <- attn_whole_set[attn_whole_set$trial_name_2=="ra_t_ra", ]       
-        p_ra <- ggplot(data=ra_t_data, aes(x = set_num, y = all_tw_set))      
-        p_ra <- p_ra + geom_boxplot(aes(fill=factor(set_num)))
-        #p_ra <- p_ra + geom_point(position = position_jitter(width = 0.1))
-        p_ra<- p_ra + guides(fill=FALSE)
-        p_ra<- p_ra + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
-              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
-                                values=c(Ra, Ra, Ra, Ra, Ra, Ts, Ra))
-       # p_ra<- p_ra + ylab(element_blank())
-       #p_ra <- p_ra + xlab(element_blank())
-        p_ra <- p_ra + labs(title =  " R. alata / 0-chuck P. pustulosus") +
-             theme(plot.title = element_text(face="italic", size=22)) #this makes the plot title italic, affects the size
-         p_ra <- p_ra + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.title.x=element_blank(),
-          axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
-        p_ra <- p_ra + coord_cartesian(ylim = c(0, 25))
+        # want just one line for each "treatment"
+        #pull partial string match  1.1 for call number using grep
+        attn_trial <- bat_data[grep("1.1", bat_data$call_num), ]
         
-        p_ra
- ggsave("ra_t_trial.jpg", height =5, width = 7)             
+        #make column with all the twitches per each trial
+        attn_trial$all_tw_trial<- attn_trial$sm_tw_trial + attn_trial$md_tw_trial + attn_trial$lg_tw_trial
+    View(attn_trial)
+ #MOD:
+    
+tw_trial_mod<- glmer(all_tw_trial ~ primary_stim -1 + (trial_number|Bat_ID), data =attn_trial, family = "poisson")       
+sum_trial_mod<- summary(tw_trial_mod)
+sum_trial_mod   
+ls_trial<-lsmeans::lsmeans(tw_trial_mod, ~primary_stim)
+ls_trial
+sig_lstrial<-cld(ls_trial)
+sig_lstrial
+plot(sig_lstrial, comparisons=TRUE, alpha = 0.05)
+
+
+gg_trial<- ggplot(data=attn_trial, aes(x=primary_stim, y=all_tw_trial, fill=primary_stim)) +
+      geom_boxplot()
+
+gg_trial
+
+ggsave("twitches_per_trial.jpg", width = 7, height = 5)
 ```
 
+So, these results are a bit jumbled, DE and t2c have the most twitches overall, followed by reversed rhinella alata, the various other tungaras, and the other rhinella is last.  
 
-
-[t_ra_t]
-```{r}
-      
-        #making a plot for the entire of one treatment, with each set getting a boxplot
-        
-        #t_ra
-        t_ra_data <- attn_whole_set[attn_whole_set$trial_name_2=="t_ra_t", ]       
-        p_t_ra <- ggplot(data = t_ra_data, aes(x = set_num, y = all_tw_set))      
-        p_t_ra <- p_t_ra + geom_boxplot(aes(fill=factor(set_num)))
-        #p_t_ra <- p_t_ra + geom_point(position = position_jitter(width = 0.1))
-        p_t_ra<- p_t_ra + guides(fill=FALSE)
-        p_t_ra<- p_t_ra + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
-              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
-                                values=c(Ts, Ts, Ts, Ts, Ts, Ra, Ts))
-       # p_t_ra<- p_t_ra + ylab(element_blank())
-       #p_t_ra <- p_t_ra + xlab(element_blank())
-        p_t_ra <- p_t_ra + labs(title =  " 0-chuck P. pustulosus / R. alata") +
-             theme(plot.title = element_text(face="italic", size=22)) #this makes the plot title italic, affects the size
-         p_t_ra <- p_t_ra + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.title.x=element_blank(),
-          axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
-        p_t_ra <- p_t_ra + coord_cartesian(ylim = c(0, 25))
-        
-        p_t_ra
- ggsave("t_ra_trial.jpg", height =5, width = 7)             
-```
-
-
-[tia_tib_tia]
-```{r}
-      
-        #making a plot for the entire of one treatment, with each set getting a boxplot
-        
-        #tia
-        tia_data <- attn_whole_set[attn_whole_set$trial_name_2=="tia_tib_tia", ]       
-        p_tia <- ggplot(data = tia_data, aes(x = set_num, y = all_tw_set))      
-        p_tia <- p_tia + geom_boxplot(aes(fill=factor(set_num)))
-        #p_tia <- p_tia + geom_point(position = position_jitter(width = 0.1))
-        p_tia<- p_tia + guides(fill=FALSE)
-        p_tia<- p_tia + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
-              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
-                                values=c(T1c, T1c, T1c, T1c, T1c, T1c, T1c))
-       # p_tia<- p_tia + ylab(element_blank())
-       #p_tia <- p_tia + xlab(element_blank())
-        p_tia <- p_tia + labs(title =  " Different individual P. pustulosus") +
-             theme(plot.title = element_text(face="italic", size=22)) #this makes the plot title italic, affects the size
-         p_tia <- p_tia + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.title.x=element_blank(),
-          axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
-        p_tia <- p_tia + coord_cartesian(ylim = c(0, 25))
-        
-        p_tia
- ggsave("tia_trial.jpg", height =5, width = 7)             
-```
-
-
-[ts_tc_ts]
-```{r}
-      
-        #making a plot for the entire of one treatment, with each set getting a boxplot
-        
-        #ts_tc
-        ts_data <- attn_whole_set[attn_whole_set$trial_name_2=="ts_tc_ts", ]       
-        p_ts <- ggplot(data = ts_data, aes(x = set_num, y = all_tw_set))      
-        p_ts <- p_ts + geom_boxplot(aes(fill=factor(set_num)))
-        #p_ts <- p_ts + geom_point(position = position_jitter(width = 0.1))
-        p_ts<- p_ts + guides(fill=FALSE)
-        p_ts<- p_ts + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
-              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
-                                values=c(Ts, Ts, Ts, Ts, Ts, T2c, Ts))
-       # p_ts<- p_ts + ylab(element_blank())
-       #p_ts <- p_ts + xlab(element_blank())
-        p_ts <- p_ts + labs(title =  " 0-chuck P. pustulosus / 2-chuck P. pustulosus") +
-             theme(plot.title = element_text(face="italic", size=22)) #this makes the plot title italic, affects the size
-         p_ts <- p_ts + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.title.x=element_blank(),
-          axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
-        p_ts <- p_ts + coord_cartesian(ylim = c(0, 25))
-        
-        p_ts
- ggsave("ts_trial.jpg", height =5, width = 7)             
-```
-
-
-[tc_ts_tc]
-```{r}
-      
-        #making a plot for the entire of one treatment, with each set getting a boxplot
-        
-        #tc
-        tc_data <- attn_whole_set[attn_whole_set$trial_name_2=="tc_ts_tc", ]       
-        p_tc <- ggplot(data = tc_data, aes(x = set_num, y = all_tw_set))      
-        p_tc <- p_tc + geom_boxplot(aes(fill=factor(set_num)))
-        #p_tc <- p_tc + geom_point(position = position_jitter(width = 0.1))
-        p_tc<- p_tc + guides(fill=FALSE)
-        p_tc<- p_tc + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
-              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
-                                values=c(T2c, T2c, T2c, T2c, T2c, Ts, T2c))
-       # p_tc<- p_tc + ylab(element_blank())
-       #p_tc <- p_tc + xlab(element_blank())
-        p_tc <- p_tc + labs(title =  " 2-chuck P. pustulosus / 0-chuck P. pustulosus") +
-             theme(plot.title = element_text(face="italic", size=22)) #this makes the plot title italic, affects the size
-         p_tc <- p_tc + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.title.x=element_blank(),
-          axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
-        p_tc <- p_tc + coord_cartesian(ylim = c(0, 25))
-        
-        p_tc
- ggsave("tc_trial.jpg", height =5, width = 7)             
-```
-
-
-[rt_rra_rt]
-```{r}
-      
-        #making a plot for the entire of one treatment, with each set getting a boxplot
-        
-        #rt
-        rt_data <- attn_whole_set[attn_whole_set$trial_name_2=="rt_rra_rt", ]       
-        p_rt <- ggplot(data = rt_data, aes(x = set_num, y = all_tw_set))      
-        p_rt <- p_rt + geom_boxplot(aes(fill=factor(set_num)))
-        #p_rt <- p_rt + geom_point(position = position_jitter(width = 0.1))
-        p_rt<- p_rt + guides(fill=FALSE)
-        p_rt<- p_rt + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
-              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
-                                values=c(Rt, Rt, Rt, Rt, Rt, Rra, Rt))
-       # p_rt<- p_rt + ylab(element_blank())
-       #p_rt <- p_rt + xlab(element_blank())
-        p_rt <- p_rt + labs(title =  " Reversed P. pustulosus / Reversed R. alata") +
-             theme(plot.title = element_text(face="italic", size=22)) #this makes the plot title italic, affects the size
-         p_rt <- p_rt + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.title.x=element_blank(),
-          axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
-        p_rt <- p_rt + coord_cartesian(ylim = c(0, 25))
-        
-        p_rt
- ggsave("rt_trial.jpg", height =5, width = 7)             
-```
-
-
-[rra_rt_rra]
-```{r}
-      
-        #making a plot for the entire of one treatment, with each set getting a boxplot
-        
-        #rra
-        rra_data <- attn_whole_set[attn_whole_set$trial_name_2=="rra_rt_rra", ]       
-        p_rra <- ggplot(data = rra_data, aes(x = set_num, y = all_tw_set))      
-        p_rra <- p_rra + geom_boxplot(aes(fill=factor(set_num)))
-        #p_rra <- p_rra + geom_point(position = position_jitter(width = 0.1))
-        p_rra<- p_rra + guides(fill=FALSE)
-        p_rra<- p_rra + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
-              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
-                                values=c(Rt, Rt, Rt, Rt, Rt, Rra, Rt))
-       # p_rra<- p_rra + ylab(element_blank())
-       #p_rra <- p_rra + xlab(element_blank())
-        p_rra <- p_rra + labs(title =  " Reversed R. alata / Reversed P. pustulosus") +
-             theme(plot.title = element_text(face="italic", size=22)) #this makes the plot title italic, affects the size
-         p_rra <- p_rra + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.title.x=element_blank(),
-          axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
-        p_rra <- p_rra + coord_cartesian(ylim = c(0, 25))
-        
-        p_rra
- ggsave("rra_trial.jpg", height =5, width = 7.5)             
-```

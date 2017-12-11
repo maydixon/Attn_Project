@@ -1,0 +1,101 @@
+---
+title: "ordinal_data_function"
+author: "may"
+date: "December 8, 2017"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+```
+import data
+```{r}
+attn_R <- read_excel("~/Dropbox/Attention Solomon Coding/attn_Rcopy_12.7.17_justset.xlsx")
+```
+
+remove unrsponsive bat
+```{r}
+attn_R <- subset(attn_R , attn_R $bat_name != "Blackbeard" ) #removes unresponsive bat
+```
+reorder columns
+```{r}
+attn_R = attn_R %>% select(Bat_ID:set_num, Landing_set, Approach_set, Orienting_set, all_tw_set, mdlg_tw_set, lg_tw_set, md_tw__set, sm_tw_set, Flying_set, Grooming_set, Yawning_set)
+head(attn_R)
+```
+
+make data subset
+```{r}
+attn_sample<-subset(attn_R, attn_R$bat_name=="Captain_Isaac")
+head(attn_sample)
+```
+
+## ordinal data function
+
+
+```{r }
+#put data into t.d.
+
+t.d.<- attn_R
+
+```
+
+Ordinal function!!!!
+
+```{r}
+t.d.$Ordinal<-rep(0,nrow(t.d.))
+
+for (i in 1:nrow(t.d.)){
+      
+  if (t.d.$Landing_set[i]>0) {
+   t.d.$Ordinal[i]<-"5"
+} else if (t.d.$Approach_set[i]>0) {
+      t.d.$Ordinal[i]<-"4"
+} else if (t.d.$Orienting_set[i]>0) {
+      t.d.$Ordinal[i]<-"3"
+} else if (t.d.$mdlg_tw_set[i]>0) {
+      t.d.$Ordinal[i]<-"2"
+} else if (t.d.$sm_tw_set[i]>0) {
+      t.d.$Ordinal[i]<-"1"
+} else 
+      t.d.$Ordinal[i]<-"0"
+
+}
+
+   # GUIDE #   
+# reorder rows in reverse order of ordinal scale
+# if land !=0 write "5" in new column, else go to next column
+# if approach !=0 write "4" in new column, else go to next column
+# if orient !=0 write "3" in new column else go to next column
+# if lgmdtwitch !=0 write "2" in new column else go to next column
+# if smtwitch!=0 write "1" in new column, else write "0"
+
+
+```
+
+write to file
+```{r}
+
+write.csv(t.d., "/Users/maydixon/Dropbox/attn_rcopy_justset_ordinal.csv")
+
+```
+some interesting side associations
+```{r}
+#relation between twitching and flying 
+fltplot<- ggplot(data = attn_R, aes(x = Flying_trial, y = lg_tw_trial))
+fltplot<- fltplot+ geom_point()
+fltplot
+
+#relation between twitching and grooming 
+grmplot<- ggplot(data = attn_R, aes(x = Grooming_trial, y = lg_tw_trial))
+grmplot<- grmplot+ geom_point()
+grmplot
+
+#relation between twitching and yawning
+ywnplot<- ggplot(data = attn_R, aes(x = lg_tw_trial, y = Yawning_trial))
+ywnplot<- ywnplot+ geom_point()
+ywnplot
+
+```

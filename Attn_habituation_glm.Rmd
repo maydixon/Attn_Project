@@ -638,8 +638,7 @@ gray(0gr)
 
 ```{r}
 library(ggplot2)
-    # New habituation plots (boxplots)
-        
+
         ## can i make a plot of boxplots for each trial type, all the way across trial?
         attn_whole<-read.table("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attention_Rcopy_individuals_condensed.txt", sep="\t", header=TRUE)
         attn_whole <- subset(attn_whole, attn_whole$bat_name != "Blackbeard") 
