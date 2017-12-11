@@ -181,7 +181,16 @@ int.plot_Ordinal2
 
 
 ```
+#######################
 
+
+
+
+
+
+
+
+########################
 some interesting side associations
 ```{r}
 #relation between twitching and flying 
