@@ -43,6 +43,7 @@ t.d.<- attn_R
 ```
 
 Ordinal function!!!!
+# Code data as ordinal
 
 ```{r}
 t.d.$Ordinal<-rep(0,nrow(t.d.))
