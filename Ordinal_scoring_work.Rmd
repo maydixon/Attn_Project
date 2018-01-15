@@ -1,0 +1,1300 @@
+---
+title: "Ordinal_scoring"
+author: "may"
+date: "December 8, 2017"
+output: html_document
+---
+
+`
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+library(ordinal)
+library(lme4)
+library(lsmeans)
+library(plyr)
+library(readxl)
+```
+import data
+```{r}
+attn_R <- read_excel("~/Dropbox/Attention Solomon Coding/attn_Rcopy_12.7.17_justset.xlsx")
+```
+remove unresponsive bat
+```{r}
+attn_R <- subset(attn_R , attn_R $bat_name != "Blackbeard" ) #removes unresponsive bat
+```
+remove unused treatment
+```{r}
+attn_R <- subset(attn_R , attn_R $trial_name_2 != "t_rt_t" ) #removes treatment
+attn_R <- subset(attn_R , attn_R $trial_name_2 != "rt_t_rt" ) #removes treatment
+```
+
+reorder columns
+```{r}
+attn_R = attn_R %>% select(Bat_ID:set_num, Landing_set, Approach_set, Orienting_set, all_tw_set, mdlg_tw_set, lg_tw_set, md_tw__set, sm_tw_set, Flying_set, Grooming_set, Yawning_set)
+head(attn_R)
+```
+recode data to make ordinal:
+```{r }
+#put data into t.d.
+t.d.<- attn_R
+#make column to put ordinal scores
+t.d.$Ordinal<-rep(0,nrow(t.d.))
+#apply function to data
+for (i in 1:nrow(t.d.)){
+      
+  if (t.d.$Landing_set[i]>0) {
+   t.d.$Ordinal[i]<-"5"
+} else if (t.d.$Approach_set[i]>0) {
+      t.d.$Ordinal[i]<-"4"
+} else if (t.d.$Orienting_set[i]>0) {
+      t.d.$Ordinal[i]<-"3"
+} else if (t.d.$mdlg_tw_set[i]>0) {
+      t.d.$Ordinal[i]<-"2"
+} else if (t.d.$sm_tw_set[i]>0) {
+      t.d.$Ordinal[i]<-"1"
+} else 
+      t.d.$Ordinal[i]<-"0"
+
+}
+#case_when
+
+   # GUIDE #   
+# reorder rows in reverse order of ordinal scale
+# if land !=0 write "5" in new column, else go to next column
+# if approach !=0 write "4" in new column, else go to next column
+# if orient !=0 write "3" in new column else go to next column
+# if lgmdtwitch !=0 write "2" in new column else go to next column
+# if smtwitch!=0 write "1" in new column, else write "0"
+```
+
+Another possible ordinal scale
+```{r}
+View(t.d.)
+t.d.$Ordinal2<-rep(0,nrow(t.d.))
+
+for (i in 1:nrow(t.d.)){
+      
+  if (t.d.$Landing_set[i]>0) {
+   t.d.$Ordinal2[i]<-"5"
+} else if (t.d.$Approach_set[i]>0) {
+      t.d.$Ordinal2[i]<-"4"
+} else if (t.d.$lg_tw_set[i]>0) {
+      t.d.$Ordinal2[i]<-"3"
+} else if (t.d.$md_tw__set[i]>0) {
+      t.d.$Ordinal2[i]<-"2"
+} else if (t.d.$sm_tw_set[i]>0) {
+      t.d.$Ordinal2[i]<-"1"
+} else 
+      t.d.$Ordinal2[i]<-"0"
+
+}
+```
+third possible ordinal scale
+
+```{r}
+t.d.$Ordinal3<-rep(0,nrow(t.d.))
+
+for (i in 1:nrow(t.d.)){
+      
+  if (t.d.$Landing_set[i]>0) {
+   t.d.$Ordinal3[i]<-"4"
+} else if (t.d.$Approach_set[i]>0) {
+      t.d.$Ordinal3[i]<-"3"
+} else if (t.d.$mdlg_tw_set[i]>0) {
+      t.d.$Ordinal3[i]<-"2"
+} else if (t.d.$sm_tw_set[i]>0) {
+      t.d.$Ordinal3[i]<-"1"
+} else 
+      t.d.$Ordinal3[i]<-"0"
+
+}
+
+
+```
+
+fourth possible ordinal scale
+```{r}
+t.d.$Ordinal4<-rep(0,nrow(t.d.))
+
+for (i in 1:nrow(t.d.)){
+      
+  if (t.d.$Landing_set[i]>0) {
+   t.d.$Ordinal4[i]<-"3"
+} else if (t.d.$Approach_set[i]>0) {
+      t.d.$Ordinal4[i]<-"3"
+} else if (t.d.$lg_tw_set[i]>0) {
+      t.d.$Ordinal4[i]<-"2"
+} else if (t.d.$sm_tw_set[i]>0) {
+      t.d.$Ordinal4[i]<-"1"
+} else 
+      t.d.$Ordinal4[i]<-"0"
+
+}
+```
+make ordinal data read as ordered factor
+```{r}
+t.d.$Ordinal<-factor(t.d.$Ordinal, ordered = TRUE)
+t.d.$Ordinal2<-factor(t.d.$Ordinal2, ordered = TRUE)
+t.d.$Ordinal3<-factor(t.d.$Ordinal3, ordered = TRUE)
+t.d.$Ordinal4<-factor(t.d.$Ordinal3, ordered = TRUE)
+```
+make first treatment factors
+```{r}
+#make primary stim a factor
+t.d.$primary_stim<- factor(t.d.$primary_stim, ordered = FALSE)
+levels(t.d.$primary_stim)
+```
+##Now investigate initial interest and all the rest with cumulative linear mixed model. 
+subset just the first set, to make dataset "t.d.int"
+```{r}
+t.d.int<-subset(t.d., t.d.$set_num=="1")
+head(t.d.int)
+```
+now check initial interest, compare to old results
+```{r}
+
+# previous results, continuous scale:
+initial_int_nbc <- glmer.nb(all_tw_set ~ first_stim -1 + (0+trial_number|Bat_ID),  data = attn_int_2, control=glmerControl(optimizer = "bobyqa"))  #lowest AIC, and most compex random effects structure that makes sense and converges.
+summary(initial_int_nbc) #random slope of trial number within bat ID: no variation in intercept
+int_lsmeans<- lsmeans::lsmeans(initial_int_nbc, "first_stim")
+sv_int_nbc<- cld(int_lsmeans, letters=LETTERS)
+sv_int_nbc
+
+
+
+initial_intO<-clmm(Ordinal ~ primary_stim + (1|Bat_ID),  data = t.d.int, Hess=TRUE, nAGQ=10)
+summary(initial_intO)
+initial_intO2<-clmm(Ordinal2 ~ primary_stim + (1|Bat_ID),  data = t.d.int, Hess=TRUE, nAGQ=10)
+summary(initial_intO2)
+initial_intO3<-clmm(Ordinal3 ~ primary_stim + (1|Bat_ID),  data = t.d.int, Hess=TRUE, nAGQ=10)
+summary(initial_intO3)
+#no differences#
+cum_lsmeans<-lsmeans::lsmeans(initial_intO, "primary_stim")
+cum_lsmeans
+```
+
+plotting initial interest:
+```{r}
+levels(t.d.int$primary_stim)
+```
+```{r}
+#reordering for plotting:
+      t.d.int$primary_stim <- factor(t.d.int$primary_stim,levels = c("ts" ,"t1c", "t2c" , "de", "ra" , "rra","rt" ),ordered = TRUE)
+      
+#perhaps best order is: Ts, T, Tc, Rt, Rra, Ra, De, can do using relevel() 
+```
+
+WITH TWITCHES
+```{r}
+
+int.plot<- ggplot(data = t.d.int, aes(x = primary_stim, y = all_tw_set, fill=primary_stim))
+int.plot<- int.plot+ geom_boxplot()
+int.plot<- int.plot+ geom_point(position = position_jitter(width = 0.1))
+int.plot<- int.plot+ theme(axis.text.x = element_text(angle = 45, hjust=1, size = 14), legend.position = "none") #format x-axis, and remove side legend #hjust 1 aligns labels
+int.plot<- int.plot+ scale_x_discrete(labels=c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))  +
+              scale_fill_manual(breaks = c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"),
+                                values=c(Ts, T1c, T2c, De, Ra, Rra, Rt))
+int.plot<- int.plot+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.title= element_text(size=14))  #gets rid of background
+int.plot<- int.plot+ xlab("Acoustic stimuli")
+int.plot<- int.plot+ ylab("Ear-twitches in trial 1")
+int.plot
+
+ggsave("initial_interest_plot.jpg", width = 6.5, height = 5.55)
+```
+WITH ORDINAL
+```{r}
+t.d.int$Ordinal<-as.numeric(t.d.int$Ordinal)
+
+```
+
+```{r}
+ 
+
+int.plot_Ordinal<- ggplot(data = t.d.int, aes(x = primary_stim, y = Ordinal, fill=primary_stim))
+int.plot_Ordinal<- int.plot_Ordinal+ geom_boxplot()
+int.plot_Ordinal<- int.plot_Ordinal+ geom_point(position = position_jitter(width = 0.1))
+int.plot_Ordinal<- int.plot_Ordinal+ theme(axis.text.x = element_text(angle = 45, hjust=1, size = 14), legend.position = "none") #format x-axis, and remove side legend #hjust 1 aligns labels
+int.plot_Ordinal<- int.plot_Ordinal+ scale_x_discrete(labels=c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))  +
+              scale_fill_manual(breaks = c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"),
+                                values=c(Ts, T1c, T2c, De, Ra, Rra, Rt))
+int.plot_Ordinal<- int.plot_Ordinal + coord_cartesian(ylim = c(0, 5))
+int.plot_Ordinal<- int.plot_Ordinal+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.title= element_text(size=14))  #gets rid of background
+int.plot_Ordinal<- int.plot_Ordinal+ xlab("Acoustic stimuli")
+int.plot_Ordinal<- int.plot_Ordinal+ ylab("Ordinal Response")
+int.plot_Ordinal
+
+ggsave("initial_interest_Ordinal.jpg", width = 6.5, height = 5.55)
+```
+
+
+
+
+Ordinal plot 2
+(Another way of representing this)
+```{r}
+t.d.int.summary.data  <- ddply(t.d.int, "primary_stim", summarise, mean=mean(as.numeric(Ordinal)), sd=sd(as.numeric(Ordinal)))
+                               
+#t.d.int.summary.data <- ddply(t.d.int, "primary_stim", summarise, mean=mean(Ordinal), sd=sd(Ordinal))
+t.d.int.summary.data 
+```
+```{r}
+int.plot_Ordinal2<- ggplot(data = t.d.int.summary.data, aes(x = primary_stim, y = mean, fill=primary_stim))
+int.plot_Ordinal2<- int.plot_Ordinal2+ geom_point()
+int.plot_Ordinal2<- int.plot_Ordinal2+ geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.2, position=position_dodge(.9)) 
+int.plot_Ordinal2<- int.plot_Ordinal2+ theme(axis.text.x = element_text(angle = 45, hjust=1, size = 14), legend.position = "none") #format x-axis, and remove side legend #hjust 1 aligns labels
+int.plot_Ordinal2<- int.plot_Ordinal2+ scale_x_discrete(labels=c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))  +
+              scale_fill_manual(breaks = c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"),
+                                values=c(Ts, T1c, T2c, De, Ra, Rra, Rt))
+int.plot_Ordinal2<- int.plot_Ordinal2 + coord_cartesian(ylim = c(0, 5))
+int.plot_Ordinal2<- int.plot_Ordinal2+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.title= element_text(size=14))  #gets rid of background
+int.plot_Ordinal2<- int.plot_Ordinal2+ xlab("Acoustic stimuli")
+int.plot_Ordinal2<- int.plot_Ordinal2+ ylab("Ordinal Response")
+int.plot_Ordinal2
+
+
+```
+#######################
+
+
+
+
+##Habituation
+
+####Data wrangling
+
+Just look at trials/sets 1-5 (remove 6 & 7)
+```{r}
+
+t.d.hab. <- subset(t.d., t.d.$set_num!="6" & t.d.$set_num!="7")
+View(t.d.hab.)
+
+```
+
+
+```{r}
+
+habit.ordinal.mod <- clmm(Ordinal ~ set_num*primary_stim + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE)
+summary(habit.ordinal.mod)
+habit.ordinal2.mod <- clmm(Ordinal2 ~ set_num*primary_stim + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE)
+summary(habit.ordinal.mod2)
+habit.ordinal3.mod <- clmm(Ordinal3 ~ set_num*primary_stim + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE)
+summary(habit.ordinal.mod3)
+
+#     list estimates, se, df, 95CIS
+lst.ord.hab=lsmeans::lstrends(habit.ordinal.mod, ~ primary_stim, var="set_num")
+lst.ord.hab
+lst.ord.hab2=lsmeans::lstrends(habit.ordinal.mod2, ~ primary_stim, var="set_num")
+lst.ord.hab2
+lst.ord.hab3=lsmeans::lstrends(habit.ordinal.mod3, ~ primary_stim, var="set_num")
+lst.ord.hab3
+#      pairwise comparisons:
+pairslst.ord.hab<- pairs(lst.ord.hab)
+pairslst.ord.hab
+pairslst.ord.hab2<- pairs(lst.ord.hab2)
+pairslst.ord.hab2
+pairslst.ord.hab3<- pairs(lst.ord.hab3)
+pairslst.ord.hab3
+
+#     Show which are different from one another in letter form:
+svlst.ord.hab<-cld(lst.ord.hab)
+svlst.ord.hab
+svlst.ord.hab2<-cld(lst.ord.hab2)
+svlst.ord.hab2
+svlst.ord.hab3<-cld(lst.ord.hab3)
+svlst.ord.hab3
+
+```
+```{r}
+##stats help with sally##
+## first, I can only run this with Laplace approximations, not quadrature methods, if I want more than one random effect. 
+## see whether I need 2 random effects. run withjust one, then add the other random effect, compare
+
+#no random effect: 
+habit.ordinal3.mod.nr<- clm(Ordinal3 ~ set_num*primary_stim, data= t.d.hab.)
+
+#one random effect
+habit.ordinal3.mod2 <- clmm(Ordinal3 ~ set_num*primary_stim + (1| Bat_ID), data= t.d.hab., Hess=TRUE)
+
+
+#two random effects
+habit.ordinal3.mod3 <- clmm(Ordinal3 ~ set_num*primary_stim + (1| Bat_ID) + (1 | trial_number), data= t.d.hab., Hess=TRUE)
+
+
+#two random effects, nested
+habit.ordinal3.mod4 <- clmm(Ordinal3 ~ set_num*primary_stim + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE)
+
+sumO3.mnr<- summary(habit.ordinal3.mod4)
+sumO3.m2<- summary(habit.ordinal3.mod4)
+sumO3.m3<- summary(habit.ordinal3.mod4)
+sumO3.m4<- summary(habit.ordinal3.mod4)
+#compare models
+
+anovarandom<- anova(habit.ordinal3.mod.nr, habit.ordinal3.mod2)
+anovarandom
+anovarandom1 <- anova(habit.ordinal3.mod2, habit.ordinal3.mod3)
+anovarandom1
+anovarandom2 <- anova(habit.ordinal3.mod3, habit.ordinal3.mod4) 
+anovarandom2
+## all together now
+anovarandom3<- anova(habit.ordinal.mod.nr, habit.ordinal.mod2, habit.ordinal.mod3, habit.ordinal.mod4)
+anovarandom3
+
+## so, it seems as though trial_number is an important random effect
+##and, it runs better with it as nested within bat_ID (different bats respond differently to trial number)
+## so the model with nested random effects and both random effects is the best model. 
+```
+
+```{r}
+
+### Do I have to make an intercept free model to compare my estimates, to make them the true predictions while taking into account covariace between the estimates? I think no, because I'm am calculating the predictions with lsmeans, which does this in their calculations. 
+### anyway, running with clmm without an intercept seems impossible, it just ignores that part and puts it back in. 
+
+
+#     list estimates, se, df, 95CIS
+lst.ord.hab2=lsmeans::lstrends(habit.ordinal.mod4, ~primary_stim, var="set_num")
+lst.ord.hab2
+#      pairwise comparisons:
+pairslst.ord.hab2<- pairs(lst.ord.hab2)
+pairslst.ord.hab2
+#     Show which are different from one another in letter form:
+svlst.ord.hab2<-cld(lst.ord.hab2)
+svlst.ord.hab2
+```
+
+```{r}
+
+### compare lsmeans output with just interaction and with main effects
+    # run model again, just for safety
+
+habit.ordinal3.null<- clmm(Ordinal3 ~ 1 + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE) ##null
+
+habit.ordinal3.intonly<- clmm(Ordinal3 ~ set_num:primary_stim + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE) ## this one is the best
+
+habit.ordinal3.me2<- clmm(Ordinal3 ~ primary_stim + set_num:primary_stim + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE)
+sum.habit.ord3.m2<- summary(habit.ordinal3.me2)
+sum.habit.ord3.m2
+
+habit.ordinal3.me3<- clmm(Ordinal3 ~ primary_stim + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE) 
+
+habit.ordinal3.me4<- clmm(Ordinal3 ~ set_num + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE) 
+
+habit.ordinal3.modfull <- clmm(Ordinal3 ~ set_num*primary_stim + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE)
+
+
+anova.me<- anova(habit.ordinal3.null, habit.ordinal3.intonly)
+anova.me
+anova.me1<-anova(habit.ordinal3.intonly, habit.ordinal3.modfull)
+anova.me1 #interaction only model is best
+anova.me2<-anova(habit.ordinal3.intonly, habit.ordinal3.me2)
+anova.me2
+anova.me3<-anova(habit.ordinal3.intonly, habit.ordinal3.me3)
+anova.me3
+anova.me4<- anova(habit.ordinal3.intonly, habit.ordinal3.me4)
+anova.me4
+
+    #seems to think that the interaction only model might be slightly better than any of the others. 
+```
+
+```{r}
+## Compare the different scales
+###
+
+habit.ordinal.intonly<- clmm(Ordinal ~ set_num:primary_stim + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE)
+sum_O_intonly<- summary(habit.ordinal.intonly)
+
+habit.ordinal2.intonly<- clmm(Ordinal2 ~ set_num:primary_stim + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE)
+sum_O2_intonly<-summary(habit.ordinal2.intonly)
+
+habit.ordinal3.intonly<- clmm(Ordinal3 ~ set_num:primary_stim + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE)
+sum_O3_intonly<-summary(habit.ordinal3.intonly)
+
+habit.ordinal4.intonly<- clmm(Ordinal4 ~ set_num:primary_stim + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE)
+sum_O4_intonly<-summary(habit.ordinal4.intonly)
+
+sum_O_intonly
+sum_O2_intonly
+sum_O3_intonly
+sum_O4_intonly # not different
+
+anova.mod.check<- anova(habit.ordinal2.intonly, habit.ordinal3.intonly)
+anova.mod.check
+
+
+###
+
+    #calculate lsmeans over the set number
+lst.ord.intonly=lsmeans::lstrends(habit.ordinal.intonly, ~primary_stim, var="set_num")
+lst.ord2.intonly=lsmeans::lstrends(habit.ordinal2.intonly, ~primary_stim, var="set_num")
+lst.ord3.intonly=lsmeans::lstrends(habit.ordinal3.intonly, ~primary_stim, var="set_num")
+lst.ord4.intonly=lsmeans::lstrends(habit.ordinal4.intonly, ~primary_stim, var="set_num")
+
+
+
+     # Show which are different from one another in letter form:
+svlst.ord.intonly<-cld(lst.ord.intonly)
+svlst.ord2.intonly<-cld(lst.ord2.intonly)
+svlst.ord3.intonly<-cld(lst.ord3.intonly)
+svlst.ord4.intonly<-cld(lst.ord4.intonly)
+
+
+
+svlst.ord.intonly
+svlst.ord2.intonly
+svlst.ord3.intonly
+svlst.ord4.intonly
+## So, Ordinal3 is the best scoring method. fits a model best. interaction only model is the best model. 
+
+svlst.ord.modfull <- cld(lst.ord.modfull)
+svlst.ord.modfull
+plot(lst.ord4.intonly)
+plot(lst.ord.modfull)
+```
+
+So, pretty confusing results. Only consistant thing is that De habituated less than the other treatments
+
+Exploratory visualization
+```{r}
+### compare estimates for the two analysis types
+comp_meth <- ggplot(data= t.d.hab., aes(x=Ordinal, y=all_tw_set, color=primary_stim))
+comp_meth <- comp_meth + geom_point(position = position_jitter(width = 0.1))
+comp_meth <- comp_meth + geom_smooth(method='lm')
+comp_meth
+## ... its a bell curve
+## Very few bats reaching highest levels of ordinal scale
+
+## ordinal scale per treatment?
+comp_treat <- ggplot(data= t.d.hab., aes(x = primary_stim, y = Ordinal, color=primary_stim))
+comp_treat <- comp_treat + geom_point(position = position_jitter(width=0.05))
+comp_treat
+
+## a few different treatments with approach and land scores
+
+## should plot whole trials, also check out discrimination, using clmm
+## think about compressing ordinal scale, or alternatively, removing the high value treatments and just look at twitches... smaller differences. Removing trials where bats landed. 
+## look at main effects and overall responses
+
+
+###work on adding to paper
+
+
+```
+
+
+### Plot of just lstrends output, ordinal scale
+
+```{r}
+
+##
+#can change all from here
+Ts  = "#1F1F1F"
+T1c ="#3C3C3C"
+T2c = "#585858"
+De  = "#747474"
+Ra  ="#919191"
+Rra ="#ADADAD"  
+Rt  ="#C9C9C9"
+##
+svlst.om<-svlst.ord.modfull #ordering factor to change position of plots
+svlst.om$primary_stim<-factor(svlst.o$primary_stim, levels = c("ts" ,"t1c", "t2c" , "de", "ra" , "rra","rt"), ordered=TRUE)
+
+  theme_set(theme_classic())    
+
+confint_comp_ls_om<- ggplot(svlst.om, aes(primary_stim,ymin=asymp.LCL,ymax=asymp.UCL,colour=primary_stim))+
+    geom_linerange() +
+ theme(panel.grid.major = element_blank(), panel.grid.minor =  element_blank(),panel.background = element_blank(),  axis.line = element_line(colour = "black"),
+legend.position = "none", axis.text.x = element_text(angle = 45, hjust=1))  + #gets rid of background
+scale_x_discrete(labels=c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))  +
+              scale_colour_manual(breaks = c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"),
+                                values=c(Ts, T1c, T2c, De, Ra, Rra, Rt)) +
+#scale_fill_manual(breaks = c("ts","t1c","t2c","de", "ra", "rra", "rts"),
+                             #   values=c(Ts, T1c, T2c, de, ra, rra, rt)) +
+
+ xlab("Call Type") +
+ylab("log slope of change in ear-twitch response") +
+      geom_hline(yintercept=0, linetype="dotted") 
+      
+
+confint_comp_ls_om
+ggsave("habituation_slope_plot_grayscale_ordinal.png",width=3, height =4)
+```
+# double check plots to make sure they are all basically linear and negative (so that time points are weird as linear)
+########################
+
+### Discrimination
+
+[data wrangling]
+
+```{r, include = FALSE}
+## start with t.d.
+## Seperate "trial type"and the last 3 trial/sets
+## This is coded terribly, but it works, ok
+subset_O_de <- subset(t.d., t.d.$trial_name_2=="de_t_de" & (t.d.$set_num=="5" |t.d.$set_num=="6" |t.d.$set_num=="7"))
+subset_O_ra <- subset(t.d., t.d.$trial_name_2=="ra_t_ra" & (t.d.$set_num=="5" |t.d.$set_num=="6" |t.d.$set_num=="7"))
+subset_O_rra <- subset(t.d., t.d.$trial_name_2=="rra_rt_rra" & (t.d.$set_num=="5" |t.d.$set_num=="6" |t.d.$set_num=="7"))
+subset_O_rt <- subset(t.d., t.d.$trial_name_2=="rt_rra_rt" & (t.d.$set_num=="5" |t.d.$set_num=="6" |t.d.$set_num=="7"))
+subset_O_t_de <- subset(t.d., t.d.$trial_name_2=="t_de_t" & (t.d.$set_num=="5" |t.d.$set_num=="6" |t.d.$set_num=="7"))
+subset_O_t_ra <- subset(t.d., t.d.$trial_name_2=="t_ra_t" & (t.d.$set_num=="5" |t.d.$set_num=="6" |t.d.$set_num=="7"))
+subset_O_tc <- subset(t.d., t.d.$trial_name_2=="tc_ts_tc" & (t.d.$set_num=="5" |t.d.$set_num=="6" |t.d.$set_num=="7"))
+subset_O_tia <- subset(t.d., t.d.$trial_name_2=="tia_tib_tia" & (t.d.$set_num=="5" |t.d.$set_num=="6" |t.d.$set_num=="7"))
+subset_O_ts <- subset(t.d., t.d.$trial_name_2=="ts_tc_ts" & (t.d.$set_num=="5" |t.d.$set_num=="6" |t.d.$set_num=="7"))
+View(subset_O_rt) # 33, no Wramplmeier
+View(subset_O_ra) # 33, no Wramplmeier, didn't receive (check with solomon files, videos?)
+View(subset_O_rra) # 33, no wramplemeier, didn't receive (check with solomon files, videos?)
+View(subset_O_t_ra) # 36
+View(subset_O_tc) # 36
+View(subset_O_tia) #(72, so 36 twice)
+View(subset_O_ts) # 36
+```
+
+## Summary chart
+
+
+| trial_name | descrim? |dishabit? | comments
+|:----------|------|------|-------------------------------------------|
+|de_t_de  | no | no | probably bc no habituation in first place x|
+|t_de_t | no |no | probably bc high overall responses, low habit x|
+|ra_t_ra |yes, strong | yes | model failed to converge tho x|
+|t_ra_t | no | no | model didn't converge, failed hessian?x |
+|rra_rt_rra | yes, strong | no | x |
+|rt_rra_rt | yes | no | x |
+|tc_ts_tc |no |no |  crazy outlier to deal with, possbily no habituation|
+|ts_tc_ts | yes | no | more clear bc better habituation x|
+| tia_tib_tia | no | no | not even at all. should have habituated too |
+
+
+### *D. ebracattus* v Tungara: 
+
+
+Results of linear mixed model: This models asks whether there is a significant difference between set 5 & 6, and 5 & 7. 
+same with clmm
+
+GLMM found there is *no evidence of discrimination* between ebracattus and tungara. This may be because there was no habituation to D. ebracattus (actually there was slight sensitization) 
+What does CLMM find? 
+NO EVIDENCE OF DISCRIMINATION
+```{r, echo=FALSE}
+
+de_desc_clm <- clmm(Ordinal ~ as.factor(set_num) + (1|Bat_ID) , data = subset_O_de, Hess=TRUE)
+summary(de_desc_clm)
+de_t_de_desc <- boxplot(all_tw_set ~ (as.factor(set_num)), main = "de_t_de", data=subset_O_de)
+de_lst<-lsmeans(de_desc_clm, ~set_num)
+cld_de<-cld(de_lst)
+cld_de
+pairs(de_lst)
+```
+
+
+
+### *Rhinella alata* v Tungara
+
+```{r, include=FALSE}
+
+ra_desc_clm <- clmm(Ordinal ~ as.factor(set_num) + (1|Bat_ID) , data = subset_O_ra, Hess=TRUE)
+
+sumra<- summary(ra_desc_clm)
+sumra
+#boxplot
+ra_descrim_plot<- boxplot(Ordinal ~ (as.factor(set_num)), main = "ra_t_ra", data=subset_O_ra)
+
+ra_lst<-lsmeans(ra_desc_clm, ~set_num)
+cld_ra<-cld(ra_lst)
+cld_ra
+pairs(ra_lst)
+```
+
+There is evidence for descrimination between rhinella alata and tungara frogs using twitches, NOT using Ordinal scale (not very sensitive)
+### Reversed *R. alata* v tungara
+
+```{r, include=FALSE}
+View(subset_O_rra)
+     rra_desc_clm <- clmm(Ordinal ~ set_num + (1|Bat_ID) , data = subset_O_rra)
+#summary(rra_desc)
+summary(rra_desc_clm)
+#boxplot
+boxplot(Ordinal ~ (as.factor(set_num)), main = "rra_rt_rra", data=subset_O_rra)
+
+rra_lst<-lsmeans(rra_desc_clm, ~set_num)
+cld_rra<-cld(rra_lst)
+cld_rra
+pairs(rra_lst)
+```
+
+There is evidence for descrimination between 5 and 6, but not for dishabituation (5 and 7). There was very steep habituation to reversed rhinella alata, which might explain a part of this trend. 
+
+So,  they discriminate / can discriminate to the sounds of the reversed rhinella and the reversed tungara. 
+
+Doesn't work with ordinal scores,  (not very sensitive), didn't work with this one for some reason. 
+
+### reversed tungara v reversed *R. alata*
+
+Normality of data: 
+```{r, echo=FALSE}
+qqnorm((subset_rt1$all_tw_set))
+```
+
+This linear mixed model may not be appropriate for this test given its terribly right-skewed distribution
+
+```{r, echo=FALSE}
+
+rt_desc_clm <- clmm(Ordinal ~ as.factor(set_num) + (1|Bat_ID) , data = subset_O_rt, Hess=TRUE)
+#its ugly, but it converges
+
+anova(rt_desc_clm, rt_desc_clm.nb)
+#in this case, the negative binomial test fits a lot betta.(dealing with the extra zeros) 
+#but this is too much for the data.
+
+diag.vals <- getME(rt_desc_clm.nb,"theta")[getME(rt_desc_clm.nb,"lower") == 0]
+any(diag.vals < 1e-6) # TRUE, so singularities
+
+```
+``````{r}
+summary(rt_desc_clm)
+#boxplot
+boxplot(all_tw_set ~ (as.factor(set_num)), main = "rt_rra_rt", data=subset_rt1)
+#logged boxplot:
+
+rt_desc_transformed<-boxplot((log(all_tw_set+1)) ~ (as.factor(set_num)), main = "rt_rra_rt log transformed", data=subset_rt1)
+
+```
+
+```{r}
+rt_lst<-lsmeans(rt_desc_clm, ~set_num) 
+cld_rt<-cld(rt_lst)
+cld_rt
+pairs(rt_lst)
+```
+
+So again, there is discrimination, if not dishabituation between reversed tungara and reversed alata using continuous scores NOT using ordinal scales.  
+
+
+### Tungara v *D. ebracattus*
+
+```{r, echo=FALSE}
+qq.t.de<- qqnorm(subset_t_de1$all_tw_set)
+
+
+t_de_desc_clm <- clmm(Ordinal ~ as.factor(set_num) + (1|Bat_ID) , data = subset_O_t_de, Hess=TRUE)
+sum_t_de<- summary(t_de_desc_clm)
+sum_t_de
+#boxplot
+t_de_t_desc_plot<- boxplot(Ordinal ~ (as.factor(set_num)), main = "t_de_t", data=subset_O_t_de)
+```
+```{r}
+t_de_lst<-lsmeans(t_de_desc_clm, ~set_num)
+cld_t_de<-cld(t_de_lst)
+cld_t_de
+pairs(t_de_lst)
+```
+
+There is no evidence for descrimination between tungara and dendrobates in twitches Perhaps/ likley due to high overall responses
+
+Also no differences using ordinal scale. 
+###Tungara v R. alata
+```{r, echo=FALSE}
+
+#remember to reset relevel if running this again
+qqnorm(subset_t_ra1$all_tw_set) #almost half of values are zeros
+
+t_ra_t_desc_plot<- boxplot(all_tw_set ~ (as.factor(set_num)), main = "t_ra_t", data=subset_t_ra1)
+
+
+
+t_ra_desc_clm <- clmm(Ordinal ~ as.factor(set_num) + (1|Bat_ID) , data = subset_O_t_ra, Hess=TRUE)
+
+#not converging?-> converges with bobyqa
+
+summary(t_ra_desc_clm)
+
+```
+
+
+This chunk isn't knittingn for some reason: eval=false for now
+```{r, eval=FALSE}
+
+t_ra_lst <- lsmeans(t_ra_desc_clm, ~set_num)
+cld_t_ra <- cld(t_ra_lst)
+cld_t_ra
+pairs(t_ra_lst)
+
+```
+
+No discimination between treatments detected. (generalization or dishabituation)
+With either strategy
+
+
+## Intraspecific Trials
+
+## Complex tungara v simple tungara
+```{r}
+
+qqnorm(subset_tc1$all_tw_set)
+#one total outlier 
+#more than half zeros!
+tc_desc_clm <- clmm(Ordinal ~ as.factor(set_num) + (1|Bat_ID) , data = subset_O_tc, Hess=TRUE)
+summary(tc_desc_clm)
+# boxplot
+tc_ts_tc_plot<- boxplot(Ordinal ~ (as.factor(set_num)), main = "tc_ts_tc", data=subset_O_tc)
+
+#dealing with outlier
+#View(subset_tc1)
+subset_tc1$all_tw_set.no<-subset_tc1$all_tw_set
+subset_tc1$all_tw_set.no <- ifelse(subset_tc1$all_tw_set.no > 15, NA, subset_tc1$all_tw_set.no) #removing points over 15
+tc_ts_tc_plot.no<- boxplot(all_tw_set.no ~ (as.factor(set_num)), main = "tc_ts_tc", data=subset_tc1)
+tc_desc_clm.no <- glmer(all_tw_set.no ~ as.factor(set_num) + (1|Bat_ID) , data = subset_tc1, Hess=TRUE)
+summary(tc_desc_clm.no)
+#makes nothing significant at all. Diff between last 2? 
+```
+with outlier
+```{r}
+tc_lst<-lsmeans(tc_desc_clm, ~set_num)
+cld_tc<-cld(tc_lst)
+cld_tc
+pairs(tc_lst)
+```
+
+without outlier
+```{r}
+
+tc_lst.no<-lsmeans(tc_desc_clm.no, ~set_num)
+cld_tc.no<-cld(tc_lst.no)
+cld_tc.no
+pairs(tc_lst.no)
+```
+So, with outlier 6 is significantly lower than 7, without outlier, they are all the same, regardless, no evidence of dishabituation or anything 
+
+Not with ordinal scale, either
+There is no apparent discrimination between complex and simple calls in this test. However, there is an outlier that could easily be messing with this. Outlier doesn't change the relationship. It just makes them all the more the same
+
+
+If this is accurate, it is probable that discrimination is obscured by simple calls being less salient stimuli, so the interuption in habituation is masked by lower overall interest in the simple call. See the inverse treatment:
+
+
+##Simple tungara against complex tungara call
+```{r}
+
+qqnorm(subset_ts1$all_tw_set)
+hist(subset_ts1$all_tw_set)
+#pretty 0 weighted)
+ts_desc_clm <- clmm(Ordinal ~ as.factor(set_num) + (1|Bat_ID) , data = subset_O_ts, Hess=TRUE)
+
+summary(ts_desc_clm)
+# boxplot
+ts_tc_ts_plot<- boxplot(Ordinal ~ (as.factor(set_num)), main = "ts_tc_ts", data=subset_O_ts)    
+
+```
+
+```{r}
+
+ts_lst<-lsmeans(ts_desc_clm, ~set_num)
+cld_ts<-cld(ts_lst)
+cld_ts
+pairs(ts_lst)
+```
+
+ NO EVIDENCE OF DISCIMINATION OR DISHABITUATION WITH ORDINAL SCALE
+This shows that bats discriminate between complex and simple tungara calls using twitches (0c v 2c). There is clear evidence of discrimination (lack of stimulus genrealization), but not of dishabituation  Note how discrimination is more apparent when the less salient stimulus is the one that is being habituated. ((Also, more habituation=more evidence of discrimination))
+
+## Tungara "A" v Tungara "B" (or the id of individuals trials)
+
+```{r}
+
+qqnorm(subset_tia1$all_tw_set)
+#almost half zeros
+# not justifiably normal (left/0 skewed)
+
+tia_desc_clm <- clmm(Ordinal ~ as.factor(set_num) + (1|Bat_ID) , data = subset_O_tia, Hess=TRUE)
+summary(tia_desc_clm)
+# boxplot
+tia_tib_tia_plot<- boxplot(Ordinal ~ (as.factor(set_num)), main = "tia_tib_tia", data=subset_O_tia)
+```
+significant differences and pairwise contrasts:
+```{r}
+tia_lst<-lsmeans(tia_desc_clm, ~set_num)
+cld_tia<-cld(tia_lst)
+cld_tia
+pairs(tia_lst)
+
+```
+There is no apparent discrimination between individual tungaras. Removing the possible outliers would only make it less likely to show dishabituation 
+
+With ordinal scale, all are exactly the same. 
+
+###Plots of whole trials with Ordinal Scaling by set
+
+t.d. dataset works  
+        
+
+[de_t_de]
+```{r}
+      
+        #making a plot for the entire of one treatment, with each set getting a boxplot
+        
+        #DE
+        de_data <- t.d.[t.d.$trial_name_2=="de_t_de", ]       
+        p_de <-ggplot(data=de_data, aes(x = set_num, y = as.numeric(Ordinal)) )     
+        p_de <- p_de + geom_boxplot(aes(fill=factor(set_num)))
+        #p_de<- p_de + geom_point(position = position_jitter(width = 0.1))
+        p_de <- p_de + guides(fill=FALSE)
+        p_de <- p_de + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c(De, De, De, De, De, Ts, De))
+       # p_de <- p_de + ylab(element_blank())
+       #p_de <- p_de + xlab(element_blank())
+        p_de<- p_de + labs(title = "D. ebraccatus / 0-chuck P. pustulosus") +
+                  theme(plot.title = element_text(face="italic", size=31.5)) #this makes the plot title italic, affects the size
+         p_de <- p_de + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(),  axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
+          axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
+        p_de <- p_de + coord_cartesian(ylim = c(0, 5))
+        #p_de <- p_de + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(de_data, de_data$set_num!="6" & de_data$set_num!="7")) 
+       
+        p_de
+ ggsave("de_trial.jpg", height =5, width = 7.5)             
+```
+
+
+t_de
+```{r}
+      
+        #making a plot for the entire of one treatment, with each set getting a boxplot
+        
+        #T_DE
+        t_de_data<- t.d.[t.d.$trial_name_2=="t_de_t", ]       
+        p_t_de<-ggplot(data=t_de_data, aes(x = set_num, y = as.numeric(Ordinal)))      
+        p_t_de<- p_t_de+ geom_boxplot(aes(fill=factor(set_num)))
+        #p_de<- p_t_de+ geom_point(position = position_jitter(width = 0.1))
+        p_t_de<- p_t_de+ guides(fill=FALSE)
+        p_t_de<- p_t_de+ scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c(Ts, Ts, Ts, Ts, Ts, De, Ts))
+       # p_t_de<- p_t_de+ ylab(element_blank())
+       #p_t_de<- p_t_de+ xlab(element_blank())
+        p_t_de <- p_t_de+ labs(title =  "0-chuck P. pustulosus / D. ebraccatus") +
+                  theme(plot.title = element_text(face="italic", size=29.5)) #this makes the plot title italic, affects the size
+         p_t_de <- p_t_de+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
+          axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
+        p_t_de<- p_t_de+ coord_cartesian(ylim = c(0,5))
+        #p_t_de<- p_t_de+ stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(de_data, de_data$set_num!="6" & de_data$set_num!="7")) 
+       
+        p_t_de
+ ggsave("t_de_trial.jpg", height =5, width = 7)             
+```
+
+
+[ra_t_ra]
+```{r}
+      
+        #making a plot for the entire of one treatment, with each set getting a boxplot
+        
+        #Ra_T
+        ra_t_data <- t.d.[t.d.$trial_name_2=="ra_t_ra", ]       
+        p_ra <- ggplot(data=ra_t_data, aes(x = set_num, y = as.numeric(Ordinal)))      
+        p_ra <- p_ra + geom_boxplot(aes(fill=factor(set_num)))
+        #p_ra <- p_ra + geom_point(position = position_jitter(width = 0.1))
+        p_ra<- p_ra + guides(fill=FALSE)
+        p_ra<- p_ra + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c(Ra, Ra, Ra, Ra, Ra, Ts, Ra))
+       # p_ra<- p_ra + ylab(element_blank())
+       #p_ra <- p_ra + xlab(element_blank())
+        p_ra <- p_ra + labs(title =  " R. alata / 0-chuck P. pustulosus") +
+             theme(plot.title = element_text(face="italic", size=33)) #this makes the plot title italic, affects the size
+         p_ra <- p_ra + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
+          axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
+        p_ra <- p_ra + coord_cartesian(ylim = c(0,5))
+        
+        p_ra
+ ggsave("ra_t_trial.jpg", height =5, width = 7)             
+```
+
+
+
+[t_ra_t]
+```{r}
+      
+        #making a plot for the entire of one treatment, with each set getting a boxplot
+        
+        #t_ra
+        t_ra_data <- t.d.[t.d.$trial_name_2=="t_ra_t", ]       
+        p_t_ra <- ggplot(data = t_ra_data, aes(x = set_num, y = as.numeric(Ordinal)))      
+        p_t_ra <- p_t_ra + geom_boxplot(aes(fill=factor(set_num)))
+        #p_t_ra <- p_t_ra + geom_point(position = position_jitter(width = 0.1))
+        p_t_ra<- p_t_ra + guides(fill=FALSE)
+        p_t_ra<- p_t_ra + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c(Ts, Ts, Ts, Ts, Ts, Ra, Ts))
+       # p_t_ra<- p_t_ra + ylab(element_blank())
+       #p_t_ra <- p_t_ra + xlab(element_blank())
+        p_t_ra <- p_t_ra + labs(title =  " 0-chuck P. pustulosus / R. alata") +
+             theme(plot.title = element_text(face="italic", size=33)) #this makes the plot title italic, affects the size
+         p_t_ra <- p_t_ra + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
+          axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
+        p_t_ra <- p_t_ra + coord_cartesian(ylim = c(0,5))
+        
+        p_t_ra
+ ggsave("t_ra_trial.jpg", height =5, width = 7)             
+```
+
+
+[tia_tib_tia]
+```{r}
+      
+        #making a plot for the entire of one treatment, with each set getting a boxplot
+        
+        #tia
+        tia_data <- t.d.[t.d.$trial_name_2=="tia_tib_tia", ]       
+        p_tia <- ggplot(data = tia_data, aes(x = set_num, y = as.numeric(Ordinal)))      
+        p_tia <- p_tia + geom_boxplot(aes(fill=factor(set_num)))
+        #p_tia <- p_tia + geom_point(position = position_jitter(width = 0.1))
+        p_tia<- p_tia + guides(fill=FALSE)
+        p_tia<- p_tia + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c(T1c, T1c, T1c, T1c, T1c, T1c, T1c))
+       # p_tia<- p_tia + ylab(element_blank())
+       #p_tia <- p_tia + xlab(element_blank())
+        p_tia <- p_tia + labs(title =  " Different individual P. pustulosus") +
+             theme(plot.title = element_text(face="italic", size=33)) #this makes the plot title italic, affects the size
+         p_tia <- p_tia + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
+          axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
+        p_tia <- p_tia + coord_cartesian(ylim = c(0,5))
+        
+        p_tia
+ ggsave("tia_trial.jpg", height =5, width = 7)             
+```
+
+
+[ts_tc_ts]
+```{r}
+      
+        #making a plot for the entire of one treatment, with each set getting a boxplot
+        
+        #ts_tc
+        ts_data <- t.d.[t.d.$trial_name_2=="ts_tc_ts", ]       
+        p_ts <- ggplot(data = ts_data, aes(x = set_num, y = as.numeric(Ordinal)))      
+        p_ts <- p_ts + geom_boxplot(aes(fill=factor(set_num)))
+        #p_ts <- p_ts + geom_point(position = position_jitter(width = 0.1))
+        p_ts<- p_ts + guides(fill=FALSE)
+        p_ts<- p_ts + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c(Ts, Ts, Ts, Ts, Ts, T2c, Ts))
+       # p_ts<- p_ts + ylab(element_blank())
+       #p_ts <- p_ts + xlab(element_blank())
+        p_ts <- p_ts + labs(title =  "0-chuck  / 2-chuck P. pustulosus") +
+             theme(plot.title = element_text(face="italic", size=33)) #this makes the plot title italic, affects the size
+         p_ts <- p_ts + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
+          axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
+        p_ts <- p_ts + coord_cartesian(ylim = c(0,5))
+        
+        p_ts
+ ggsave("ts_trial.jpg", height =5, width = 7)             
+```
+
+
+[tc_ts_tc]
+```{r}
+      
+        #making a plot for the entire of one treatment, with each set getting a boxplot
+        
+        #tc
+        tc_data <- t.d.[t.d.$trial_name_2=="tc_ts_tc", ]       
+        p_tc <- ggplot(data = tc_data, aes(x = set_num, y = as.numeric(Ordinal)))      
+        p_tc <- p_tc + geom_boxplot(aes(fill=factor(set_num)))
+        #p_tc <- p_tc + geom_point(position = position_jitter(width = 0.1))
+        p_tc<- p_tc + guides(fill=FALSE)
+        p_tc<- p_tc + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c(T2c, T2c, T2c, T2c, T2c, Ts, T2c))
+       # p_tc<- p_tc + ylab(element_blank())
+       #p_tc <- p_tc + xlab(element_blank())
+        p_tc <- p_tc + labs(title =  "2-chuck / 0-chuck P. pustulosus") +
+             theme(plot.title = element_text(face="italic", size=33)) #this makes the plot title italic, affects the size
+         p_tc <- p_tc + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
+          axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
+        p_tc <- p_tc + coord_cartesian(ylim = c(0,5))
+        
+        p_tc
+ ggsave("tc_trial.jpg", height =5, width = 7)             
+```
+
+
+[rt_rra_rt]
+```{r}
+      
+        #making a plot for the entire of one treatment, with each set getting a boxplot
+        
+        #rt
+        rt_data <- t.d.[t.d.$trial_name_2=="rt_rra_rt", ]       
+        p_rt <- ggplot(data = rt_data, aes(x = set_num, y = as.numeric(Ordinal)))      
+        p_rt <- p_rt + geom_boxplot(aes(fill=factor(set_num)))
+        #p_rt <- p_rt + geom_point(position = position_jitter(width = 0.1))
+        p_rt<- p_rt + guides(fill=FALSE)
+        p_rt<- p_rt + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c(Rt, Rt, Rt, Rt, Rt, Rra, Rt))
+       # p_rt<- p_rt + ylab(element_blank())
+       #p_rt <- p_rt + xlab(element_blank())
+        p_rt <- p_rt + labs(title =  "Rev. P. pustulosus / Rev. R. alata") +
+             theme(plot.title = element_text(face="italic", size=33)) #this makes the plot title italic, affects the size
+         p_rt <- p_rt + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
+          axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
+        p_rt <- p_rt + coord_cartesian(ylim = c(0,5))
+        
+        p_rt
+ ggsave("rt_trial.jpg", height =5, width = 7)             
+```
+
+
+[rra_rt_rra]
+```{r}
+      
+        #making a plot for the entire of one treatment, with each set getting a boxplot
+        
+        #rra
+        rra_data <- t.d.[t.d.$trial_name_2=="rra_rt_rra", ]       
+        p_rra <- ggplot(data = rra_data, aes(x = set_num, y = as.numeric(Ordinal)))      
+        p_rra <- p_rra + geom_boxplot(aes(fill=factor(set_num)))
+        #p_rra <- p_rra + geom_point(position = position_jitter(width = 0.1))
+        p_rra<- p_rra + guides(fill=FALSE)
+        p_rra<- p_rra + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+                                values=c(Rt, Rt, Rt, Rt, Rt, Rra, Rt))
+       # p_rra<- p_rra + ylab(element_blank())
+       #p_rra <- p_rra + xlab(element_blank())
+        p_rra <- p_rra + labs(title =  "Rev. R. alata / Rev. P. pustulosus") +
+             theme(plot.title = element_text(face="italic", size=33)) #this makes the plot title italic, affects the size
+         p_rra <- p_rra + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
+          axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
+        p_rra <- p_rra + coord_cartesian(ylim = c(0,5))
+        
+        p_rra
+ ggsave("rra_trial.jpg", height =5, width = 7.5)             
+```
+
+
+
+
+
+### Attention set 5- "space to move?"
+[data wrangling]
+```{r}
+ t.d.just5<- subset(t.d., t.d.$set_num=="5")
+head(t.d.just5)
+```
+
+
+
+##Plotting set 5
+
+```{r}
+ t.d.just5$primary_stim <- factor(t.d.just5$primary_stim,levels = c("ts" ,"t1c", "t2c" , "de", "ra" , "rra","rt" ),ordered = TRUE)
+
+p5<- ggplot(data = t.d.just5, aes(x = primary_stim, y = as.numeric(Ordinal), fill=primary_stim))
+p5<- p5+ geom_boxplot()
+p5<- p5+ geom_point(position = position_jitter(width = 0.1))
+p5<- p5+ theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "none") #format x-axis, and remove side legend
+
+p5<- p5+ scale_x_discrete(labels=c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))  +
+              scale_fill_manual(breaks = c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"),
+                                values=c(Ts, T1c, T2c, De, Ra, Rra, Rt))
+p5<- p5+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"))  #gets rid of background
+
+
+p5<- p5+ xlab("Acoustic stimuli")
+p5<- p5+ ylab("Responses in trial 5")
+p5
+ggsave("Ordinal Response in set 5.jpg", width = 3, height = 4)
+#ggsave("CI_comparison_final.png",width=5)
+```
+
+```{r}
+
+trial5mod<- clmm(Ordinal ~ primary_stim -1 + (trial_number|Bat_ID), Hess=TRUE, data = attn_set_5) 
+s.trial5mod<- summary(trial5mod)
+s.trial5mod
+lst_5mod<-cld(lsmeans(trial5mod, ~primary_stim))
+lst_5mod
+Anova(trial5mod)
+
+```
+
+Investigate correlation between initial interest and slope more formally?
+```{r}
+sv_int_nbc<- cld(int_lsmeans, sort=FALSE)
+sv_int_nbc
+
+svlstx<-cld(lst, sort=FALSE)
+svlstx$primary_stim <- factor(svlstx$primary_stim,levels = c("ts", "t1c", "t2c", "de", "ra", "rra", "rts" ),ordered = TRUE)
+svlstx
+
+trt<- c("de",
+"ts",
+"t1c",
+"t2c",
+"ra",
+"rt",
+"rra")
+
+int_est<- c(1.707,
+1.777,
+1.709,
+2.201,
+2.029,
+1.892,
+2.614)
+
+slope_esti<-c(-0.228,
+-0.258,
+-0.146,
+-0.026,
+-1.015,
+-0.362,
+-0.811)
+
+int_slope_cor<- as.data.frame(cbind(trt, int_est, slope_esti))
+int_slope_cor
+
+ggplot
+
+p_i_s<-ggplot(data=int_slope_cor, aes(x = slope_esti, y=int_est)) +
+      geom_point()+
+      stat_smooth(colour="black") 
+
+p_i_s
+
+```
+
+What would I have found if I had just looked at total twitches throughout the entire trial?
+```{r}
+#import dataset from github
+bat_data<-read.table("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attn_habit_4.txt", sep="\t", header=TRUE) #web
+#* local:
+#bat_data<-read.table("/Users/maydixon/GitHub/Attn_Project/Attn_project_github/attn_habit_4.txt", sep="\t", header=TRUE) #local
+
+bat_data<- subset(bat_data, bat_data$bat_name != "Blackbeard" ) #removes unresponsive bat
+
+      
+        
+        # want just one line for each "treatment"
+        #pull partial string match  1.1 for call number using grep
+        attn_trial <- bat_data[grep("1.1", bat_data$call_num), ]
+        
+        #make column with all the twitches per each trial
+        attn_trial$all_tw_trial<- attn_trial$sm_tw_trial + attn_trial$md_tw_trial + attn_trial$lg_tw_trial
+    View(attn_trial)
+ #MOD:
+    
+tw_trial_mod<- glmer(all_tw_trial ~ primary_stim -1 + (trial_number|Bat_ID), data =attn_trial, family = "poisson")       
+sum_trial_mod<- summary(tw_trial_mod)
+sum_trial_mod   
+ls_trial<-lsmeans::lsmeans(tw_trial_mod, ~primary_stim)
+ls_trial
+sig_lstrial<-cld(ls_trial)
+sig_lstrial
+plot(sig_lstrial, comparisons=TRUE, alpha = 0.05)
+
+
+gg_trial<- ggplot(data=attn_trial, aes(x=primary_stim, y=all_tw_trial, fill=primary_stim)) +
+      geom_boxplot()
+
+gg_trial
+
+ggsave("twitches_per_trial.jpg", width = 7, height = 5)
+
+```
+
+So, these results are a bit jumbled, DE and t2c have the most twitches overall, followed by reversed rhinella alata, the various other tungaras, and the other rhinella is last.  
+## Other patterns over the course of the trials
+#####small twitch trends with trials
+```{r}
+smalltwitchtrial <-ggplot(data=t.d., aes(x=set_num, y=sm_tw_set))
+smalltwitchtrial <- smalltwitchtrial + geom_point(position = position_jitter(width = 0.1))
+smalltwitchtrial
+```
+
+#####medium large twitch trends with trials
+```{r}
+mdlgtwitchtrial <-ggplot(data=t.d., aes(x=set_num, y=mdlg_tw_set))
+mdlgtwitchtrial <- mdlgtwitchtrial + geom_point(position = position_jitter(width = 0.1))
+mdlgtwitchtrial
+```
+####Med twitch trends with trials
+```{r}
+medtwitch.trialplot <-ggplot(data=t.d., aes(x = set_num, y = md_tw__set, color=primary_stim))
+medtwitch.trialplot <- medtwitch.trialplot + geom_point(position = position_jitter(width = 0.1))
+medtwitch.trialplot
+```
+
+##### large twitch trends with trials
+```{r}
+lgtwitchtrial <-ggplot(data=t.d., aes(x=set_num, y=lg_tw_set))
+lgtwitchtrial <- lgtwitchtrial + geom_point(position = position_jitter(width = 0.1))
+lgtwitchtrial
+```
+Orient trend with trials
+```{r}
+orient.trialplot <-ggplot(data=t.d., aes(x = set_num, y = Orienting_set, color=primary_stim))
+orient.trialplot <- orient.trialplot + geom_point(position = position_jitter(width = 0.1))
+orient.trialplot
+```
+Approach trend with trials
+```{r}
+approach.trialplot <-ggplot(data=t.d., aes(x = set_num, y = Approach_set, color=primary_stim))
+approach.trialplot <- approach.trialplot + geom_point(position = position_jitter(height=0.05, width = 0.05))
+approach.trialplot
+```
+
+Ordinal#1 trend with trials
+```{r}
+Ordinal.trialplot <-ggplot(data=t.d., aes(x = set_num, y = Ordinal, color=primary_stim))
+Ordinal.trialplot <- Ordinal.trialplot + geom_point(position = position_jitter(height=0.05, width = 0.05))
+Ordinal.trialplot
+```
+Ordinal#2 trial plots
+```{r}
+Ordinal2.trialplot <-ggplot(data=t.d., aes(x = set_num, y = Ordinal2, color=primary_stim))
+Ordinal2.trialplot <- Ordinal2.trialplot + geom_point(position = position_jitter(height=0.05, width = 0.05))
+Ordinal2.trialplot
+```
+Ordinal#3 trial plot
+
+```{r}
+Ordinal3.trialplot <-ggplot(data=t.d., aes(x = set_num, y = Ordinal3, color=primary_stim))
+Ordinal3.trialplot <- Ordinal3.trialplot + geom_point(position = position_jitter(height=0.05, width = 0.05))
+Ordinal3.trialplot
+```
+
+
+
+
+some interesting side associations
+```{r}
+
+#relation between twitching and flying 
+fltplot<- ggplot(data = t.d., aes(x = Ordinal, y = Flying_trial))
+fltplot<- fltplot+ geom_point()
+fltplot
+
+#relation between twitching and grooming 
+grmplot<- ggplot(data = t.d., aes(x = Ordinal, y = Grooming_trial))
+grmplot<- grmplot+ geom_point()
+grmplot
+
+#relation between twitching and yawning
+ywnplot<- ggplot(data = t.d., aes(x = Ordinal, y = Yawning_trial))
+ywnplot<- ywnplot+ geom_point()
+ywnplot
+
+```
