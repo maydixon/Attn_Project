@@ -11,6 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(plyr)
 library(dplyr)
 library(ggplot2)
+library(ggmosaic)
 library(ordinal)
 library(lme4)
 library(lsmeans)
@@ -98,11 +99,23 @@ sv_int_nbc
 #current results, ordinal scale
 initial_intO3<-clmm(Ordinal3 ~ primary_stim + (1|Bat_ID),  data = t.d.int, Hess=TRUE)
 summary(initial_intO3)
-#no differences#
-cum_lsmeans<-lsmeans::lsmeans(initial_intO3, "primary_stim")
-cum_lsmeans
-plot(cum_lsmeans)
+
+initial_intO3_2<-clmm(Ordinal3 ~ primary_stim + (1|trial_number) + (1|Bat_ID),  data = t.d.int, Hess=TRUE)
+
+summary(initial_intO3_2)
+anova_int<- anova(initial_intO3_2, initial_intO3)
+anova_int
+
+# The two random effects is marginally better. 
+#this is the most complex model this data can handle before it doesn't converge. 
+
+cum_lsmeans_2<-lsmeans::lsmeans(initial_intO3_2, "primary_stim")
+cum_lsmeans_2
+sv_cum_lsmeans_2<- cld(cum_lsmeans_2)
+sv_cum_lsmeans_2
+plot(cum_lsmeans_2)
 ```
+So it looks liek T2c has a marginally higher initial response than to ra or t1c, at least using this model. 
 
 plotting initial interest:
 ```{r}
@@ -153,10 +166,10 @@ int.plot_Ordinal<- int.plot_Ordinal + coord_cartesian(ylim = c(0, 5))
 int.plot_Ordinal<- int.plot_Ordinal+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.title= element_text(size=14))  #gets rid of background
 int.plot_Ordinal<- int.plot_Ordinal+ xlab("Acoustic stimuli")
-int.plot_Ordinal<- int.plot_Ordinal+ ylab("Ordinal Response")
+int.plot_Ordinal<- int.plot_Ordinal+ ylab("Ordinal responses in first trial")
 int.plot_Ordinal
 
-#ggsave("initial_interest_Ordinal.jpg", width = 6.5, height = 5.55)
+ggsave("initial_interest_Ordinal.jpg", width = 6.5, height = 5.55)
 ```
 
 
@@ -318,7 +331,8 @@ Rt  ="#C9C9C9"
 ########################
 
 svlst.om<-svlst.ord3.intonly #ordering factor to change position of plots
-svlst.om$primary_stim<-factor(svlst.o$primary_stim, levels = c("ts" ,"t1c", "t2c" , "de", "ra" , "rra","rt"), ordered=TRUE)
+
+svlst.om$primary_stim<-factor(svlst.om$primary_stim, levels = c("ts" ,"t1c", "t2c" , "de", "ra" , "rra","rt"), ordered=TRUE)
 
   theme_set(theme_classic())    
 
@@ -333,21 +347,23 @@ scale_x_discrete(labels=c("0c P. pustulosus","1c P. pustulosus","2c pustulosus",
                              #   values=c(Ts, T1c, T2c, de, ra, rra, rt)) +
 
  xlab("Call Type") +
-ylab("log slope of change in ear-twitch response") +
+ylab("log slope of change in responses") +
       geom_hline(yintercept=0, linetype="dotted") 
       
 
 confint_comp_ls_om
-#ggsave("habituation_slope_plot_grayscale_ordinal.png",width=3, height =4)
+ggsave("habituation_slope_plot_grayscale_ordinal.png",width=3, height =4)
 ```
  
 ##### Exploratory visualization between the two analysis types. 
 ```{r}
 ### compare estimates for the two analysis types
-comp_meth <- ggplot(data= t.d.hab., aes(x=Ordinal3, y=all_tw_set, color=primary_stim))
+comp_meth <- ggplot(data= t.d., aes(x=Ordinal3, y=all_tw_set, color=primary_stim))
 comp_meth <- comp_meth + geom_point(position = position_jitter( width = 0.3))
 comp_meth <- comp_meth + geom_smooth(method='lm')
 comp_meth
+
+ggsave("comparison_twitches_and_ordinal_scales.png")
 ## ... its a bell curve
 ## Very few bats reaching highest levels of ordinal scale
 ```
@@ -355,11 +371,15 @@ a bell curve, mostly b/c there aren't a lot of points for the highest categories
 
 What are the overall ordinal scores in each treatment
 ```{r}
+
 ## ordinal scale per treatment?
-comp_treat <- ggplot(data= t.d.hab., aes(x = primary_stim, y = Ordinal3, color=primary_stim))
+comp_treat <- ggplot(data= t.d., aes(x = primary_stim, y = Ordinal3, color=primary_stim))
+comp_treat <- comp_treat + theme( legend.position = "none", axis.text.x = element_text(angle = 45, hjust=1))   #gets rid of background
+comp_treat <- comp_treat + scale_x_discrete(labels=c("D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus","1c P. pustulosus","2c pustulosus", "0c P. pustulosus"))
 comp_treat <- comp_treat + geom_point(position = position_jitter(height=0.25, width=0.25))
 comp_treat
 
+ggsave("Total responses per treatment.png")
 ## a few different treatments with approach and land scores
 ```
 
@@ -603,7 +623,7 @@ t.d. dataset works
         
         #DE
         de_data <- t.d.[t.d.$trial_name_2=="de_t_de", ]       
-        p_de <-ggplot(data=de_data, aes(x = set_num, y = as.numeric(Ordinal)) )     
+        p_de <-ggplot(data=de_data, aes(x = set_num, y = as.numeric(Ordinal3)) )     
         p_de <- p_de + geom_boxplot(aes(fill=factor(set_num)))
         #p_de<- p_de + geom_point(position = position_jitter(width = 0.1))
         p_de <- p_de + guides(fill=FALSE)
@@ -621,8 +641,9 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         #p_de <- p_de + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(de_data, de_data$set_num!="6" & de_data$set_num!="7")) 
        
         p_de
- ggsave("de_trial.jpg", height =5, width = 7.5)             
+ ggsave("de_trial_ordinal.jpg", height =5, width = 7.5)             
 ```
+
 
 
 t_de
@@ -632,7 +653,7 @@ t_de
         
         #T_DE
         t_de_data<- t.d.[t.d.$trial_name_2=="t_de_t", ]       
-        p_t_de<-ggplot(data=t_de_data, aes(x = set_num, y = as.numeric(Ordinal)))      
+        p_t_de<-ggplot(data=t_de_data, aes(x = set_num, y = as.numeric(Ordinal3)))      
         p_t_de<- p_t_de+ geom_boxplot(aes(fill=factor(set_num)))
         #p_de<- p_t_de+ geom_point(position = position_jitter(width = 0.1))
         p_t_de<- p_t_de+ guides(fill=FALSE)
@@ -650,7 +671,7 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         #p_t_de<- p_t_de+ stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(de_data, de_data$set_num!="6" & de_data$set_num!="7")) 
        
         p_t_de
- ggsave("t_de_trial.jpg", height =5, width = 7)             
+ ggsave("t_de_trial_ordinal.jpg", height =5, width = 7)             
 ```
 
 
@@ -661,7 +682,7 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         
         #Ra_T
         ra_t_data <- t.d.[t.d.$trial_name_2=="ra_t_ra", ]       
-        p_ra <- ggplot(data=ra_t_data, aes(x = set_num, y = as.numeric(Ordinal)))      
+        p_ra <- ggplot(data=ra_t_data, aes(x = set_num, y = as.numeric(Ordinal3)))      
         p_ra <- p_ra + geom_boxplot(aes(fill=factor(set_num)))
         #p_ra <- p_ra + geom_point(position = position_jitter(width = 0.1))
         p_ra<- p_ra + guides(fill=FALSE)
@@ -678,11 +699,47 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         p_ra <- p_ra + coord_cartesian(ylim = c(0,5))
         
         p_ra
- ggsave("ra_t_trial.jpg", height =5, width = 7)             
+ ggsave("ra_t_trial_ordinal.jpg", height =5, width = 7)             
 ```
+```{r}
+
+##Palette
+#ffffcc
+#a1dab4
+#41b6c4
+#2c7fb8
+#253494
+interest_palette<- c("#ffffcc", "#a1dab4"," #41b6c4", "#2c7fb8", "#253494")
+
+# Attempt at a mosaic plot
+str(ra_t_data$Ordinal3)
+levels(ra_t_data$Ordinal3)
+
+ra_t_data$Ordinal3<- factor(ra_t_data$Ordinal3, levels = c(4, 3, 2, 1, 0))
+levels(ra_t_data$Ordinal3)
+
+ #Ra_T
+  mosaic_ra<- ggplot(data = ra_t_data) +
+   geom_mosaic(aes(weight = 1, x = product(Ordinal3, set_num), fill=Ordinal3), na.rm=TRUE) +  
+        scale_fill_brewer(type="seq", palette= "YlGn", direction=-1) +
+
+          labs(x="Trial number ", title='Interest scores by trial number') + 
+          labs(title =  " 0-chuck P. pustulosus / R. alata") +
+             theme(plot.title = element_text(face="italic", size=33)) +#this makes the plot title italic, affects the size
+          theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"),  axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
+          axis.title.y=element_blank()) + #this gets rid of grey background and lines, adds y+x axes lines
+       
+        guides(fill=guide_legend(title = "Interest Score", reverse = TRUE)) 
+  
 
 
+mosaic_ra 
+# alternate palette "YlGnBu"
+  
+axis.text.y=element_blank(),
 
+```
 [t_ra_t]
 ```{r}
       
@@ -690,7 +747,7 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         
         #t_ra
         t_ra_data <- t.d.[t.d.$trial_name_2=="t_ra_t", ]       
-        p_t_ra <- ggplot(data = t_ra_data, aes(x = set_num, y = as.numeric(Ordinal)))      
+        p_t_ra <- ggplot(data = t_ra_data, aes(x = set_num, y = as.numeric(Ordinal3)))      
         p_t_ra <- p_t_ra + geom_boxplot(aes(fill=factor(set_num)))
         #p_t_ra <- p_t_ra + geom_point(position = position_jitter(width = 0.1))
         p_t_ra<- p_t_ra + guides(fill=FALSE)
@@ -707,7 +764,7 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         p_t_ra <- p_t_ra + coord_cartesian(ylim = c(0,5))
         
         p_t_ra
- ggsave("t_ra_trial.jpg", height =5, width = 7)             
+ #ggsave("t_ra_trial_ordinal.jpg", height =5, width = 7)             
 ```
 
 
@@ -718,7 +775,7 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         
         #tia
         tia_data <- t.d.[t.d.$trial_name_2=="tia_tib_tia", ]       
-        p_tia <- ggplot(data = tia_data, aes(x = set_num, y = as.numeric(Ordinal)))      
+        p_tia <- ggplot(data = tia_data, aes(x = set_num, y = as.numeric(Ordinal3)))      
         p_tia <- p_tia + geom_boxplot(aes(fill=factor(set_num)))
         #p_tia <- p_tia + geom_point(position = position_jitter(width = 0.1))
         p_tia<- p_tia + guides(fill=FALSE)
@@ -735,7 +792,7 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         p_tia <- p_tia + coord_cartesian(ylim = c(0,5))
         
         p_tia
- ggsave("tia_trial.jpg", height =5, width = 7)             
+ ggsave("tia_trial_ordinal.jpg", height =5, width = 7)             
 ```
 
 
@@ -746,7 +803,7 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         
         #ts_tc
         ts_data <- t.d.[t.d.$trial_name_2=="ts_tc_ts", ]       
-        p_ts <- ggplot(data = ts_data, aes(x = set_num, y = as.numeric(Ordinal)))      
+        p_ts <- ggplot(data = ts_data, aes(x = set_num, y = as.numeric(Ordinal3)))      
         p_ts <- p_ts + geom_boxplot(aes(fill=factor(set_num)))
         #p_ts <- p_ts + geom_point(position = position_jitter(width = 0.1))
         p_ts<- p_ts + guides(fill=FALSE)
@@ -763,7 +820,7 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         p_ts <- p_ts + coord_cartesian(ylim = c(0,5))
         
         p_ts
- ggsave("ts_trial.jpg", height =5, width = 7)             
+ ggsave("ts_trial_ordinal.jpg", height =5, width = 7)             
 ```
 
 
@@ -774,7 +831,7 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         
         #tc
         tc_data <- t.d.[t.d.$trial_name_2=="tc_ts_tc", ]       
-        p_tc <- ggplot(data = tc_data, aes(x = set_num, y = as.numeric(Ordinal)))      
+        p_tc <- ggplot(data = tc_data, aes(x = set_num, y = as.numeric(Ordinal3)))      
         p_tc <- p_tc + geom_boxplot(aes(fill=factor(set_num)))
         #p_tc <- p_tc + geom_point(position = position_jitter(width = 0.1))
         p_tc<- p_tc + guides(fill=FALSE)
@@ -791,7 +848,7 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         p_tc <- p_tc + coord_cartesian(ylim = c(0,5))
         
         p_tc
- ggsave("tc_trial.jpg", height =5, width = 7)             
+ ggsave("tc_trial_ordinal.jpg", height =5, width = 7)             
 ```
 
 
@@ -802,7 +859,7 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         
         #rt
         rt_data <- t.d.[t.d.$trial_name_2=="rt_rra_rt", ]       
-        p_rt <- ggplot(data = rt_data, aes(x = set_num, y = as.numeric(Ordinal)))      
+        p_rt <- ggplot(data = rt_data, aes(x = set_num, y = as.numeric(Ordinal3)))      
         p_rt <- p_rt + geom_boxplot(aes(fill=factor(set_num)))
         #p_rt <- p_rt + geom_point(position = position_jitter(width = 0.1))
         p_rt<- p_rt + guides(fill=FALSE)
@@ -819,7 +876,7 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         p_rt <- p_rt + coord_cartesian(ylim = c(0,5))
         
         p_rt
- ggsave("rt_trial.jpg", height =5, width = 7)             
+ ggsave("rt_trial_ordinal.jpg", height =5, width = 7)             
 ```
 
 
@@ -830,7 +887,7 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         
         #rra
         rra_data <- t.d.[t.d.$trial_name_2=="rra_rt_rra", ]       
-        p_rra <- ggplot(data = rra_data, aes(x = set_num, y = as.numeric(Ordinal)))      
+        p_rra <- ggplot(data = rra_data, aes(x = set_num, y = as.numeric(Ordinal3)))      
         p_rra <- p_rra + geom_boxplot(aes(fill=factor(set_num)))
         #p_rra <- p_rra + geom_point(position = position_jitter(width = 0.1))
         p_rra<- p_rra + guides(fill=FALSE)
@@ -847,7 +904,7 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         p_rra <- p_rra + coord_cartesian(ylim = c(0,5))
         
         p_rra
- ggsave("rra_trial.jpg", height =5, width = 7.5)             
+ ggsave("rra_trial_ordinal.jpg", height =5, width = 7.5)             
 ```
 
 

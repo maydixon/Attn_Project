@@ -390,7 +390,6 @@ I'm using lsmean's values bc they generate tukey adjusted  p-vals and sig codes 
 ### Plot of just lstrends output
 
 ```{r}
-
 svlstp<-svlst #ordering factor to change position of plots
 svlstp$primary_stim<-factor(svlstp$primary_stim, levels = c("ts" ,"t1c", "t2c" , "de", "ra" , "rra","rts"), ordered=TRUE)
 

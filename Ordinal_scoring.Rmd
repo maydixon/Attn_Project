@@ -68,9 +68,77 @@ for (i in 1:nrow(t.d.)){
 # if lgmdtwitch !=0 write "2" in new column else go to next column
 # if smtwitch!=0 write "1" in new column, else write "0"
 ```
+
+Another possible ordinal scale
+```{r}
+View(t.d.)
+t.d.$Ordinal2<-rep(0,nrow(t.d.))
+
+for (i in 1:nrow(t.d.)){
+      
+  if (t.d.$Landing_set[i]>0) {
+   t.d.$Ordinal2[i]<-"5"
+} else if (t.d.$Approach_set[i]>0) {
+      t.d.$Ordinal2[i]<-"4"
+} else if (t.d.$lg_tw_set[i]>0) {
+      t.d.$Ordinal2[i]<-"3"
+} else if (t.d.$md_tw__set[i]>0) {
+      t.d.$Ordinal2[i]<-"2"
+} else if (t.d.$sm_tw_set[i]>0) {
+      t.d.$Ordinal2[i]<-"1"
+} else 
+      t.d.$Ordinal2[i]<-"0"
+
+}
+```
+third possible ordinal scale
+
+```{r}
+t.d.$Ordinal3<-rep(0,nrow(t.d.))
+
+for (i in 1:nrow(t.d.)){
+      
+  if (t.d.$Landing_set[i]>0) {
+   t.d.$Ordinal3[i]<-"4"
+} else if (t.d.$Approach_set[i]>0) {
+      t.d.$Ordinal3[i]<-"3"
+} else if (t.d.$lg_tw_set[i]>0) {
+      t.d.$Ordinal3[i]<-"2"
+} else if (t.d.$sm_tw_set[i]>0) {
+      t.d.$Ordinal3[i]<-"1"
+} else 
+      t.d.$Ordinal3[i]<-"0"
+
+}
+
+
+```
+
+fourth possible ordinal scale
+```{r}
+t.d.$Ordinal4<-rep(0,nrow(t.d.))
+
+for (i in 1:nrow(t.d.)){
+      
+  if (t.d.$Landing_set[i]>0) {
+   t.d.$Ordinal4[i]<-"3"
+} else if (t.d.$Approach_set[i]>0) {
+      t.d.$Ordinal4[i]<-"3"
+} else if (t.d.$lg_tw_set[i]>0) {
+      t.d.$Ordinal4[i]<-"2"
+} else if (t.d.$sm_tw_set[i]>0) {
+      t.d.$Ordinal4[i]<-"1"
+} else 
+      t.d.$Ordinal4[i]<-"0"
+
+}
+```
 make ordinal data read as ordered factor
 ```{r}
 t.d.$Ordinal<-factor(t.d.$Ordinal, ordered = TRUE)
+t.d.$Ordinal2<-factor(t.d.$Ordinal2, ordered = TRUE)
+t.d.$Ordinal3<-factor(t.d.$Ordinal3, ordered = TRUE)
+t.d.$Ordinal4<-factor(t.d.$Ordinal3, ordered = TRUE)
 ```
 make first treatment factors
 ```{r}
@@ -98,6 +166,10 @@ sv_int_nbc
 
 initial_intO<-clmm(Ordinal ~ primary_stim + (1|Bat_ID),  data = t.d.int, Hess=TRUE, nAGQ=10)
 summary(initial_intO)
+initial_intO2<-clmm(Ordinal2 ~ primary_stim + (1|Bat_ID),  data = t.d.int, Hess=TRUE, nAGQ=10)
+summary(initial_intO2)
+initial_intO3<-clmm(Ordinal3 ~ primary_stim + (1|Bat_ID),  data = t.d.int, Hess=TRUE, nAGQ=10)
+summary(initial_intO3)
 #no differences#
 cum_lsmeans<-lsmeans::lsmeans(initial_intO, "primary_stim")
 cum_lsmeans
@@ -158,6 +230,9 @@ int.plot_Ordinal
 ggsave("initial_interest_Ordinal.jpg", width = 6.5, height = 5.55)
 ```
 
+
+
+
 Ordinal plot 2
 (Another way of representing this)
 ```{r}
@@ -186,25 +261,53 @@ int.plot_Ordinal2
 #######################
 
 
+
+
 ##Habituation
 
+####Data wrangling
+
+Just look at trials/sets 1-5 (remove 6 & 7)
+```{r}
+
+t.d.hab. <- subset(t.d., t.d.$set_num!="6" & t.d.$set_num!="7")
+View(t.d.hab.)
+
+```
 
 
 ```{r}
 
-habit.ordinal.mod <- clmm(Ordinal ~ set_num:primary_stim + (1| Bat_ID), data= t.d., Hess=TRUE, nAGQ=10)
+habit.ordinal.mod <- clmm(Ordinal ~ set_num*primary_stim + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE)
 summary(habit.ordinal.mod)
-
+habit.ordinal2.mod <- clmm(Ordinal2 ~ set_num*primary_stim + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE)
+summary(habit.ordinal.mod2)
+habit.ordinal3.mod <- clmm(Ordinal3 ~ set_num*primary_stim + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE)
+summary(habit.ordinal.mod3)
 
 #     list estimates, se, df, 95CIS
-lst.ord.hab=lsmeans::lstrends(habit.ordinal.mod, ~primary_stim, var="set_num")
+lst.ord.hab=lsmeans::lstrends(habit.ordinal.mod, ~ primary_stim, var="set_num")
 lst.ord.hab
+lst.ord.hab2=lsmeans::lstrends(habit.ordinal.mod2, ~ primary_stim, var="set_num")
+lst.ord.hab2
+lst.ord.hab3=lsmeans::lstrends(habit.ordinal.mod3, ~ primary_stim, var="set_num")
+lst.ord.hab3
 #      pairwise comparisons:
 pairslst.ord.hab<- pairs(lst.ord.hab)
 pairslst.ord.hab
+pairslst.ord.hab2<- pairs(lst.ord.hab2)
+pairslst.ord.hab2
+pairslst.ord.hab3<- pairs(lst.ord.hab3)
+pairslst.ord.hab3
+
 #     Show which are different from one another in letter form:
 svlst.ord.hab<-cld(lst.ord.hab)
 svlst.ord.hab
+svlst.ord.hab2<-cld(lst.ord.hab2)
+svlst.ord.hab2
+svlst.ord.hab3<-cld(lst.ord.hab3)
+svlst.ord.hab3
+
 ```
 ```{r}
 ##stats help with sally##
@@ -212,26 +315,30 @@ svlst.ord.hab
 ## see whether I need 2 random effects. run withjust one, then add the other random effect, compare
 
 #no random effect: 
-habit.ordinal.mod.nr<- clm(Ordinal ~ set_num*primary_stim, data= t.d.)
+habit.ordinal3.mod.nr<- clm(Ordinal3 ~ set_num*primary_stim, data= t.d.hab.)
 
 #one random effect
-habit.ordinal.mod2 <- clmm(Ordinal ~ set_num*primary_stim + (1| Bat_ID), data= t.d., Hess=TRUE)
+habit.ordinal3.mod2 <- clmm(Ordinal3 ~ set_num*primary_stim + (1| Bat_ID), data= t.d.hab., Hess=TRUE)
 
 
 #two random effects
-habit.ordinal.mod3 <- clmm(Ordinal ~ set_num*primary_stim + (1| Bat_ID) + (1 | trial_number), data= t.d., Hess=TRUE)
+habit.ordinal3.mod3 <- clmm(Ordinal3 ~ set_num*primary_stim + (1| Bat_ID) + (1 | trial_number), data= t.d.hab., Hess=TRUE)
 
 
 #two random effects, nested
-habit.ordinal.mod4 <- clmm(Ordinal ~ set_num*primary_stim + (trial_number| Bat_ID), data= t.d., Hess=TRUE)
-summary(habit.ordinal.mod4)
+habit.ordinal3.mod4 <- clmm(Ordinal3 ~ set_num*primary_stim + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE)
+
+sumO3.mnr<- summary(habit.ordinal3.mod4)
+sumO3.m2<- summary(habit.ordinal3.mod4)
+sumO3.m3<- summary(habit.ordinal3.mod4)
+sumO3.m4<- summary(habit.ordinal3.mod4)
 #compare models
 
-anovarandom<- anova(habit.ordinal.mod.nr, habit.ordinal.mod2)
+anovarandom<- anova(habit.ordinal3.mod.nr, habit.ordinal3.mod2)
 anovarandom
-anovarandom1 <- anova(habit.ordinal.mod2, habit.ordinal.mod3)
+anovarandom1 <- anova(habit.ordinal3.mod2, habit.ordinal3.mod3)
 anovarandom1
-anovarandom2 <- anova(habit.ordinal.mod3, habit.ordinal.mod4) 
+anovarandom2 <- anova(habit.ordinal3.mod3, habit.ordinal3.mod4) 
 anovarandom2
 ## all together now
 anovarandom3<- anova(habit.ordinal.mod.nr, habit.ordinal.mod2, habit.ordinal.mod3, habit.ordinal.mod4)
@@ -240,6 +347,9 @@ anovarandom3
 ## so, it seems as though trial_number is an important random effect
 ##and, it runs better with it as nested within bat_ID (different bats respond differently to trial number)
 ## so the model with nested random effects and both random effects is the best model. 
+```
+
+```{r}
 
 ### Do I have to make an intercept free model to compare my estimates, to make them the true predictions while taking into account covariace between the estimates? I think no, because I'm am calculating the predictions with lsmeans, which does this in their calculations. 
 ### anyway, running with clmm without an intercept seems impossible, it just ignores that part and puts it back in. 
@@ -254,37 +364,107 @@ pairslst.ord.hab2
 #     Show which are different from one another in letter form:
 svlst.ord.hab2<-cld(lst.ord.hab2)
 svlst.ord.hab2
+```
 
+```{r}
 
 ### compare lsmeans output with just interaction and with main effects
     # run model again, just for safety
-habit.ordinal.intonly<- clmm(Ordinal ~ set_num:primary_stim + (trial_number| Bat_ID), data= t.d., Hess=TRUE)
 
-habit.ordinal.modfull <- clmm(Ordinal ~ set_num*primary_stim + (trial_number| Bat_ID), data= t.d., Hess=TRUE)
+habit.ordinal3.null<- clmm(Ordinal3 ~ 1 + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE) ##null
+
+habit.ordinal3.intonly<- clmm(Ordinal3 ~ set_num:primary_stim + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE) ## this one is the best
+
+habit.ordinal3.me2<- clmm(Ordinal3 ~ primary_stim + set_num:primary_stim + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE)
+sum.habit.ord3.m2<- summary(habit.ordinal3.me2)
+sum.habit.ord3.m2
+
+habit.ordinal3.me3<- clmm(Ordinal3 ~ primary_stim + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE) 
+
+habit.ordinal3.me4<- clmm(Ordinal3 ~ set_num + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE) 
+
+habit.ordinal3.modfull <- clmm(Ordinal3 ~ set_num*primary_stim + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE)
+
+
+anova.me<- anova(habit.ordinal3.null, habit.ordinal3.intonly)
+anova.me
+anova.me1<-anova(habit.ordinal3.intonly, habit.ordinal3.modfull)
+anova.me1 #interaction only model is best
+anova.me2<-anova(habit.ordinal3.intonly, habit.ordinal3.me2)
+anova.me2
+anova.me3<-anova(habit.ordinal3.intonly, habit.ordinal3.me3)
+anova.me3
+anova.me4<- anova(habit.ordinal3.intonly, habit.ordinal3.me4)
+anova.me4
+
+    #seems to think that the interaction only model might be slightly better than any of the others. 
+```
+
+```{r}
+## Compare the different scales
+###
+
+habit.ordinal.intonly<- clmm(Ordinal ~ set_num:primary_stim + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE)
+sum_O_intonly<- summary(habit.ordinal.intonly)
+
+habit.ordinal2.intonly<- clmm(Ordinal2 ~ set_num:primary_stim + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE)
+sum_O2_intonly<-summary(habit.ordinal2.intonly)
+
+habit.ordinal3.intonly<- clmm(Ordinal3 ~ set_num:primary_stim + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE)
+sum_O3_intonly<-summary(habit.ordinal3.intonly)
+
+habit.ordinal4.intonly<- clmm(Ordinal4 ~ set_num:primary_stim + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE)
+sum_O4_intonly<-summary(habit.ordinal4.intonly)
+
+sum_O_intonly
+sum_O2_intonly
+sum_O3_intonly
+sum_O4_intonly # not different
+
+###
+
     #calculate lsmeans over the set number
 lst.ord.intonly=lsmeans::lstrends(habit.ordinal.intonly, ~primary_stim, var="set_num")
+lst.ord2.intonly=lsmeans::lstrends(habit.ordinal2.intonly, ~primary_stim, var="set_num")
+lst.ord3.intonly=lsmeans::lstrends(habit.ordinal3.intonly, ~primary_stim, var="set_num")
+lst.ord4.intonly=lsmeans::lstrends(habit.ordinal4.intonly, ~primary_stim, var="set_num")
+
 
 
      # Show which are different from one another in letter form:
 svlst.ord.intonly<-cld(lst.ord.intonly)
-svlst.ord.modfull <- cld(lst.ord.modfull)
+svlst.ord2.intonly<-cld(lst.ord2.intonly)
+svlst.ord3.intonly<-cld(lst.ord3.intonly)
+svlst.ord4.intonly<-cld(lst.ord4.intonly)
+
+
+
 svlst.ord.intonly
+svlst.ord2.intonly
+svlst.ord3.intonly
+svlst.ord4.intonly
+## So, Ordinal3 is the best scoring method. fits a model best. interaction only model is the best model. 
+
+svlst.ord.modfull <- cld(lst.ord.modfull)
 svlst.ord.modfull
-plot(lst.ord.intonly)
+plot(lst.ord4.intonly)
 plot(lst.ord.modfull)
 ```
+
+So, pretty confusing results. Only consistant thing is that De habituated less than the other treatments
 
 Exploratory visualization
 ```{r}
 ### compare estimates for the two analysis types
-comp_meth <- ggplot(data= t.d., aes(x=Ordinal, y=all_tw_set, color=primary_stim))
+comp_meth <- ggplot(data= t.d.hab., aes(x=Ordinal, y=all_tw_set, color=primary_stim))
 comp_meth <- comp_meth + geom_point(position = position_jitter(width = 0.1))
 comp_meth <- comp_meth + geom_smooth(method='lm')
 comp_meth
 ## ... its a bell curve
+## Very few bats reaching highest levels of ordinal scale
 
 ## ordinal scale per treatment?
-comp_treat <- ggplot(data= t.d., aes(x = primary_stim, y = Ordinal, color=primary_stim))
+comp_treat <- ggplot(data= t.d.hab., aes(x = primary_stim, y = Ordinal, color=primary_stim))
 comp_treat <- comp_treat + geom_point(position = position_jitter(width=0.05))
 comp_treat
 
@@ -315,12 +495,12 @@ Ra  ="#919191"
 Rra ="#ADADAD"  
 Rt  ="#C9C9C9"
 ##
-svlst.o<-svlst.ord.hab #ordering factor to change position of plots
-svlst.o$primary_stim<-factor(svlst.o$primary_stim, levels = c("ts" ,"t1c", "t2c" , "de", "ra" , "rra","rt"), ordered=TRUE)
+svlst.om<-svlst.ord.modfull #ordering factor to change position of plots
+svlst.om$primary_stim<-factor(svlst.o$primary_stim, levels = c("ts" ,"t1c", "t2c" , "de", "ra" , "rra","rt"), ordered=TRUE)
 
   theme_set(theme_classic())    
 
-confint_comp_ls_o<- ggplot(svlst.o, aes(primary_stim,ymin=asymp.LCL,ymax=asymp.UCL,colour=primary_stim))+
+confint_comp_ls_om<- ggplot(svlst.om, aes(primary_stim,ymin=asymp.LCL,ymax=asymp.UCL,colour=primary_stim))+
     geom_linerange() +
  theme(panel.grid.major = element_blank(), panel.grid.minor =  element_blank(),panel.background = element_blank(),  axis.line = element_line(colour = "black"),
 legend.position = "none", axis.text.x = element_text(angle = 45, hjust=1))  + #gets rid of background
@@ -335,10 +515,10 @@ ylab("log slope of change in ear-twitch response") +
       geom_hline(yintercept=0, linetype="dotted") 
       
 
-confint_comp_ls_o
+confint_comp_ls_om
 ggsave("habituation_slope_plot_grayscale_ordinal.png",width=3, height =4)
 ```
-# double check plots to make sure they are all asically linear and negative (so that time points are weird as linear)
+# double check plots to make sure they are all basically linear and negative (so that time points are weird as linear)
 ########################
 
 ### Discrimination
@@ -346,39 +526,25 @@ ggsave("habituation_slope_plot_grayscale_ordinal.png",width=3, height =4)
 [data wrangling]
 
 ```{r, include = FALSE}
-# dis data wrangling 
-
-#import data, remove duds, remove bad treatments
- attention_Rcopy_individuals_condensed <- read.delim("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attention_Rcopy_individuals_condensed.txt", header=TRUE) #this file has all sets, and a row with condensed Tia_tib_Tia
-
-attention_Rcopy1<- subset(attention_Rcopy_individuals_condensed, attention_Rcopy_individuals_condensed$bat_name != "Blackbeard" ) #removes unresponsive bat
-attention_Rcopy1<-subset(attention_Rcopy1, attention_Rcopy1$trial_name != "t_rt_t" & attention_Rcopy1$trial_name != "rt_t_rt") #removes variables only tested on one bat
- attn_r2 <- attention_Rcopy1 #short same version
-#pull partial string match  x.1 for call number using grep, this means only 1 set will be called, avoids redundant data
-        
-attn_set <- attn_r2[grep(".1", attn_r2$call_num), ]
+## start with t.d.
+## Seperate "trial type"and the last 3 trial/sets
 ## This is coded terribly, but it works, ok
-subset_de <- subset(attn_set, attn_set$trial_name_2=="de_t_de")
-subset_ra <- subset(attn_set, attn_set$trial_name_2=="ra_t_ra")
-subset_rra <- subset(attn_set, attn_set$trial_name_2=="rra_rt_rra")
-subset_rt <- subset(attn_set, attn_set$trial_name_2=="rt_rra_rt")
-subset_t_de <- subset(attn_set, attn_set$trial_name_2=="t_de_t")
-subset_t_ra <- subset(attn_set, attn_set$trial_name_2=="t_ra_t")
-subset_tc <- subset(attn_set, attn_set$trial_name_2=="tc_ts_tc")
-subset_tia <- subset(attn_set, attn_set$trial_name_2=="tia_tib_tia")
-subset_ts <- subset(attn_set, attn_set$trial_name_2=="ts_tc_ts")
-
-#further subset to only include sets 5, 6, 7
-subset_de1 <- subset(subset_de, subset_de$set_num=="5" | subset_de$set_num=="6" | subset_de$set_num=="7" )
-subset_ra1 <- subset(subset_ra, subset_ra$set_num=="5" | subset_ra$set_num=="6" | subset_ra$set_num=="7" ) 
-subset_rra1 <- subset(subset_rra, subset_rra$set_num=="5" | subset_rra$set_num=="6" | subset_rra$set_num=="7" )
-subset_rt1 <- subset(subset_rt, subset_rt$set_num=="5" | subset_rt$set_num=="6" | subset_rt$set_num=="7" )
-subset_t_de1 <- subset(subset_t_de, subset_t_de$set_num=="5" | subset_t_de$set_num=="6" | subset_t_de$set_num=="7" )
-subset_t_ra1 <- subset(subset_t_ra, subset_t_ra$set_num=="5" | subset_t_ra$set_num=="6" | subset_t_ra$set_num=="7" )
-subset_tc1 <- subset(subset_tc, subset_tc$set_num=="5" | subset_tc$set_num=="6" | subset_tc$set_num=="7" )
-subset_tia1 <- subset(subset_tia, subset_tia$set_num=="5" | subset_tia$set_num=="6" | subset_tia$set_num=="7" )
-subset_ts1 <- subset(subset_ts, subset_ts$set_num=="5" | subset_ts$set_num=="6" | subset_ts$set_num=="7" )
-
+subset_O_de <- subset(t.d., t.d.$trial_name_2=="de_t_de" & (t.d.$set_num=="5" |t.d.$set_num=="6" |t.d.$set_num=="7"))
+subset_O_ra <- subset(t.d., t.d.$trial_name_2=="ra_t_ra" & (t.d.$set_num=="5" |t.d.$set_num=="6" |t.d.$set_num=="7"))
+subset_O_rra <- subset(t.d., t.d.$trial_name_2=="rra_rt_rra" & (t.d.$set_num=="5" |t.d.$set_num=="6" |t.d.$set_num=="7"))
+subset_O_rt <- subset(t.d., t.d.$trial_name_2=="rt_rra_rt" & (t.d.$set_num=="5" |t.d.$set_num=="6" |t.d.$set_num=="7"))
+subset_O_t_de <- subset(t.d., t.d.$trial_name_2=="t_de_t" & (t.d.$set_num=="5" |t.d.$set_num=="6" |t.d.$set_num=="7"))
+subset_O_t_ra <- subset(t.d., t.d.$trial_name_2=="t_ra_t" & (t.d.$set_num=="5" |t.d.$set_num=="6" |t.d.$set_num=="7"))
+subset_O_tc <- subset(t.d., t.d.$trial_name_2=="tc_ts_tc" & (t.d.$set_num=="5" |t.d.$set_num=="6" |t.d.$set_num=="7"))
+subset_O_tia <- subset(t.d., t.d.$trial_name_2=="tia_tib_tia" & (t.d.$set_num=="5" |t.d.$set_num=="6" |t.d.$set_num=="7"))
+subset_O_ts <- subset(t.d., t.d.$trial_name_2=="ts_tc_ts" & (t.d.$set_num=="5" |t.d.$set_num=="6" |t.d.$set_num=="7"))
+View(subset_O_rt) # 33, no Wramplmeier
+View(subset_O_ra) # 33, no Wramplmeier, didn't receive (check with solomon files, videos?)
+View(subset_O_rra) # 33, no wramplemeier, didn't receive (check with solomon files, videos?)
+View(subset_O_t_ra) # 36
+View(subset_O_tc) # 36
+View(subset_O_tia) #(72, so 36 twice)
+View(subset_O_ts) # 36
 ```
 
 ## Summary chart
@@ -398,81 +564,56 @@ subset_ts1 <- subset(subset_ts, subset_ts$set_num=="5" | subset_ts$set_num=="6" 
 
 
 ### *D. ebracattus* v Tungara: 
-normality of data:
-```{r, echo= FALSE}
-qqnorm(subset_de1$all_tw_set)
-
-```
 
 
 Results of linear mixed model: This models asks whether there is a significant difference between set 5 & 6, and 5 & 7. 
+same with clmm
 
+GLMM found there is *no evidence of discrimination* between ebracattus and tungara. This may be because there was no habituation to D. ebracattus (actually there was slight sensitization) 
+What does CLMM find? 
+NO EVIDENCE OF DISCRIMINATION
 ```{r, echo=FALSE}
-#de_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_de1) # use as.factor so model sees these as factors
-de_desc_glm <- glmer(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subset_de1, family= "poisson")
 
-```
-```{r}
-#summary(de_desc)
-summary(de_desc_glm)
-de_t_de_desc <- boxplot(all_tw_set ~ (as.factor(set_num)), main = "de_t_de", data=subset_de1)
-de_lst<-lsmeans(de_desc_glm, ~set_num)
+de_desc_clm <- clmm(Ordinal ~ as.factor(set_num) + (1|Bat_ID) , data = subset_O_de, Hess=TRUE)
+summary(de_desc_clm)
+de_t_de_desc <- boxplot(all_tw_set ~ (as.factor(set_num)), main = "de_t_de", data=subset_O_de)
+de_lst<-lsmeans(de_desc_clm, ~set_num)
 cld_de<-cld(de_lst)
 cld_de
 pairs(de_lst)
 ```
 
 
-So, there is no evidence of discrimination between ebracattus and tungara. This may be because there was no habituation to D. ebracattus (actually there was slight sensitization)       
-
 
 ### *Rhinella alata* v Tungara
-normality of data: 
-```{r}
-qnorm_ra<- qqnorm(subset_ra1$all_tw_set)
-```
+
 ```{r, include=FALSE}
-#ra_desc<- lme(all_tw_set ~ as.factor(set_num), random = ~1|Bat_ID, data = subset_ra1) # use as.factor so moral sees these as factors
-ra_desc_glm <- glmer(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subset_ra1, family= "poisson", control=glmerControl(optimizer = "bobyqa"))
-ra_glm.nb<-glmer.nb(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subset_ra1, control=glmerControl(optimizer = "bobyqa"))
-anova(ra_glm.nb, ra_desc_glm)
 
-```
+ra_desc_clm <- clmm(Ordinal ~ as.factor(set_num) + (1|Bat_ID) , data = subset_O_ra, Hess=TRUE)
 
-```{r}
-sumra<- summary(ra_desc_glm)
+sumra<- summary(ra_desc_clm)
+sumra
 #boxplot
-ra_descrim_plot<- boxplot(all_tw_set ~ (as.factor(set_num)), main = "ra_t_ra", data=subset_ra1)
+ra_descrim_plot<- boxplot(Ordinal ~ (as.factor(set_num)), main = "ra_t_ra", data=subset_O_ra)
 
-ra_lst<-lsmeans(ra_desc_glm, ~set_num)
+ra_lst<-lsmeans(ra_desc_clm, ~set_num)
 cld_ra<-cld(ra_lst)
 cld_ra
 pairs(ra_lst)
 ```
 
-There is evidence for descrimination between rhinella alata and tungara frogs
-
+There is evidence for descrimination between rhinella alata and tungara frogs using twitches, NOT using Ordinal scale (not very sensitive)
 ### Reversed *R. alata* v tungara
 
-Normality of data:
-```{r}
-qqnorm(subset_rra1$all_tw_set)
-#lots of zeros, floor effects
-
-```
 ```{r, include=FALSE}
-rra_desc_glm <- glmer(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subset_rra1, family= "poisson")
-rra_desc_glm.nb <- glmer.nb(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subset_rra1)
-anova(rra_desc_glm, rra_desc_glm.nb)
-
-```
-```{r}
+View(subset_O_rra)
+     rra_desc_clm <- clmm(Ordinal ~ set_num + (1|Bat_ID) , data = subset_O_rra)
 #summary(rra_desc)
-summary(rra_desc_glm)
+summary(rra_desc_clm)
 #boxplot
-boxplot(all_tw_set ~ (as.factor(set_num)), main = "rra_rt_rra", data=subset_rra1)
+boxplot(Ordinal ~ (as.factor(set_num)), main = "rra_rt_rra", data=subset_O_rra)
 
-rra_lst<-lsmeans(rra_desc_glm, ~set_num)
+rra_lst<-lsmeans(rra_desc_clm, ~set_num)
 cld_rra<-cld(rra_lst)
 cld_rra
 pairs(rra_lst)
@@ -480,8 +621,9 @@ pairs(rra_lst)
 
 There is evidence for descrimination between 5 and 6, but not for dishabituation (5 and 7). There was very steep habituation to reversed rhinella alata, which might explain a part of this trend. 
 
-So, clearly they discriminate / can discriminate to the sounds of the reversed rhinella and the reversed tungara. 
+So,  they discriminate / can discriminate to the sounds of the reversed rhinella and the reversed tungara. 
 
+Doesn't work with ordinal scores,  (not very sensitive), didn't work with this one for some reason. 
 
 ### reversed tungara v reversed *R. alata*
 
@@ -494,21 +636,19 @@ This linear mixed model may not be appropriate for this test given its terribly 
 
 ```{r, echo=FALSE}
 
-rt_desc_glm <- glmer(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subset_rt1, family= "poisson")
+rt_desc_clm <- clmm(Ordinal ~ as.factor(set_num) + (1|Bat_ID) , data = subset_O_rt, Hess=TRUE)
 #its ugly, but it converges
-rt_desc_glm.nb<-glmer.nb(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subset_rt1, family= "poisson")
 
-
-anova(rt_desc_glm, rt_desc_glm.nb)
+anova(rt_desc_clm, rt_desc_clm.nb)
 #in this case, the negative binomial test fits a lot betta.(dealing with the extra zeros) 
 #but this is too much for the data.
 
-diag.vals <- getME(rt_desc_glm.nb,"theta")[getME(rt_desc_glm.nb,"lower") == 0]
+diag.vals <- getME(rt_desc_clm.nb,"theta")[getME(rt_desc_clm.nb,"lower") == 0]
 any(diag.vals < 1e-6) # TRUE, so singularities
 
 ```
 ``````{r}
-summary(rt_desc_glm)
+summary(rt_desc_clm)
 #boxplot
 boxplot(all_tw_set ~ (as.factor(set_num)), main = "rt_rra_rt", data=subset_rt1)
 #logged boxplot:
@@ -518,13 +658,13 @@ rt_desc_transformed<-boxplot((log(all_tw_set+1)) ~ (as.factor(set_num)), main = 
 ```
 
 ```{r}
-rt_lst<-lsmeans(rt_desc_glm, ~set_num) 
+rt_lst<-lsmeans(rt_desc_clm, ~set_num) 
 cld_rt<-cld(rt_lst)
 cld_rt
 pairs(rt_lst)
 ```
 
-So again, there is discrimination, if not dishabituation between reversed tungara and reversed alata. 
+So again, there is discrimination, if not dishabituation between reversed tungara and reversed alata using continuous scores NOT using ordinal scales.  
 
 
 ### Tungara v *D. ebracattus*
@@ -533,20 +673,22 @@ So again, there is discrimination, if not dishabituation between reversed tungar
 qq.t.de<- qqnorm(subset_t_de1$all_tw_set)
 
 
-t_de_desc_glm <- glmer(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subset_t_de1, family= "poisson")
-sum_t_de<- summary(t_de_desc_glm)
+t_de_desc_clm <- clmm(Ordinal ~ as.factor(set_num) + (1|Bat_ID) , data = subset_O_t_de, Hess=TRUE)
+sum_t_de<- summary(t_de_desc_clm)
+sum_t_de
 #boxplot
-t_de_t_desc_plot<- boxplot(all_tw_set ~ (as.factor(set_num)), main = "t_de_t", data=subset_t_de1)
+t_de_t_desc_plot<- boxplot(Ordinal ~ (as.factor(set_num)), main = "t_de_t", data=subset_O_t_de)
 ```
 ```{r}
-t_de_lst<-lsmeans(t_de_desc_glm, ~set_num)
+t_de_lst<-lsmeans(t_de_desc_clm, ~set_num)
 cld_t_de<-cld(t_de_lst)
 cld_t_de
 pairs(t_de_lst)
 ```
 
-There is no evidence for descrimination between tungara and dendrobates Perhaps/ likley due to high overall responses
+There is no evidence for descrimination between tungara and dendrobates in twitches Perhaps/ likley due to high overall responses
 
+Also no differences using ordinal scale. 
 ###Tungara v R. alata
 ```{r, echo=FALSE}
 
@@ -557,10 +699,11 @@ t_ra_t_desc_plot<- boxplot(all_tw_set ~ (as.factor(set_num)), main = "t_ra_t", d
 
 
 
-t_ra_desc_glm <- glmer(all_tw_set ~ set_num + (1|Bat_ID) , data = subset_t_ra1, family= "poisson", control=glmerControl(optimizer = "bobyqa"))
+t_ra_desc_clm <- clmm(Ordinal ~ as.factor(set_num) + (1|Bat_ID) , data = subset_O_t_ra, Hess=TRUE)
+
 #not converging?-> converges with bobyqa
 
-summary(t_ra_desc_glm)
+summary(t_ra_desc_clm)
 
 ```
 
@@ -568,7 +711,7 @@ summary(t_ra_desc_glm)
 This chunk isn't knittingn for some reason: eval=false for now
 ```{r, eval=FALSE}
 
-t_ra_lst <- lsmeans(t_ra_desc_glm, ~set_num)
+t_ra_lst <- lsmeans(t_ra_desc_clm, ~set_num)
 cld_t_ra <- cld(t_ra_lst)
 cld_t_ra
 pairs(t_ra_lst)
@@ -576,7 +719,7 @@ pairs(t_ra_lst)
 ```
 
 No discimination between treatments detected. (generalization or dishabituation)
-
+With either strategy
 
 
 ## Intraspecific Trials
@@ -587,24 +730,23 @@ No discimination between treatments detected. (generalization or dishabituation)
 qqnorm(subset_tc1$all_tw_set)
 #one total outlier 
 #more than half zeros!
-tc_desc_glm <- glmer(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subset_tc1, family= "poisson")
-summary(tc_desc_glm)
+tc_desc_clm <- clmm(Ordinal ~ as.factor(set_num) + (1|Bat_ID) , data = subset_O_tc, Hess=TRUE)
+summary(tc_desc_clm)
 # boxplot
-tc_ts_tc_plot<- boxplot(all_tw_set ~ (as.factor(set_num)), main = "tc_ts_tc", data=subset_tc1)
+tc_ts_tc_plot<- boxplot(Ordinal ~ (as.factor(set_num)), main = "tc_ts_tc", data=subset_O_tc)
 
 #dealing with outlier
 #View(subset_tc1)
 subset_tc1$all_tw_set.no<-subset_tc1$all_tw_set
 subset_tc1$all_tw_set.no <- ifelse(subset_tc1$all_tw_set.no > 15, NA, subset_tc1$all_tw_set.no) #removing points over 15
 tc_ts_tc_plot.no<- boxplot(all_tw_set.no ~ (as.factor(set_num)), main = "tc_ts_tc", data=subset_tc1)
-tc_desc_glm.no <- glmer(all_tw_set.no ~ as.factor(set_num) + (1|Bat_ID) , data = subset_tc1, family= "poisson")
-summary(tc_desc_glm.no)
+tc_desc_clm.no <- glmer(all_tw_set.no ~ as.factor(set_num) + (1|Bat_ID) , data = subset_tc1, Hess=TRUE)
+summary(tc_desc_clm.no)
 #makes nothing significant at all. Diff between last 2? 
 ```
 with outlier
 ```{r}
-
-tc_lst<-lsmeans(tc_desc_glm, ~set_num)
+tc_lst<-lsmeans(tc_desc_clm, ~set_num)
 cld_tc<-cld(tc_lst)
 cld_tc
 pairs(tc_lst)
@@ -613,15 +755,19 @@ pairs(tc_lst)
 without outlier
 ```{r}
 
-tc_lst.no<-lsmeans(tc_desc_glm.no, ~set_num)
+tc_lst.no<-lsmeans(tc_desc_clm.no, ~set_num)
 cld_tc.no<-cld(tc_lst.no)
 cld_tc.no
 pairs(tc_lst.no)
 ```
 So, with outlier 6 is significantly lower than 7, without outlier, they are all the same, regardless, no evidence of dishabituation or anything 
+
+Not with ordinal scale, either
 There is no apparent discrimination between complex and simple calls in this test. However, there is an outlier that could easily be messing with this. Outlier doesn't change the relationship. It just makes them all the more the same
 
+
 If this is accurate, it is probable that discrimination is obscured by simple calls being less salient stimuli, so the interuption in habituation is masked by lower overall interest in the simple call. See the inverse treatment:
+
 
 ##Simple tungara against complex tungara call
 ```{r}
@@ -629,24 +775,24 @@ If this is accurate, it is probable that discrimination is obscured by simple ca
 qqnorm(subset_ts1$all_tw_set)
 hist(subset_ts1$all_tw_set)
 #pretty 0 weighted)
-ts_desc_glm <- glmer(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subset_ts1, family= "poisson")
+ts_desc_clm <- clmm(Ordinal ~ as.factor(set_num) + (1|Bat_ID) , data = subset_O_ts, Hess=TRUE)
 
-summary(ts_desc_glm)
+summary(ts_desc_clm)
 # boxplot
-ts_tc_ts_plot<- boxplot(all_tw_set ~ (as.factor(set_num)), main = "ts_tc_ts", data=subset_ts1)    
+ts_tc_ts_plot<- boxplot(Ordinal ~ (as.factor(set_num)), main = "ts_tc_ts", data=subset_O_ts)    
 
 ```
 
 ```{r}
 
-ts_lst<-lsmeans(ts_desc_glm, ~set_num)
+ts_lst<-lsmeans(ts_desc_clm, ~set_num)
 cld_ts<-cld(ts_lst)
 cld_ts
 pairs(ts_lst)
 ```
 
-
-This shows that bats discriminate between complex and simple tungara calls (0c v 2c). There is clear evidence of discrimination (lack of stimulus genrealization), but not of dishabituation  Note how discrimination is more apparent when the less salient stimulus is the one that is being habituated. ((Also, more habituation=more evidence of discrimination))
+ NO EVIDENCE OF DISCIMINATION OR DISHABITUATION WITH ORDINAL SCALE
+This shows that bats discriminate between complex and simple tungara calls using twitches (0c v 2c). There is clear evidence of discrimination (lack of stimulus genrealization), but not of dishabituation  Note how discrimination is more apparent when the less salient stimulus is the one that is being habituated. ((Also, more habituation=more evidence of discrimination))
 
 ## Tungara "A" v Tungara "B" (or the id of individuals trials)
 
@@ -656,14 +802,14 @@ qqnorm(subset_tia1$all_tw_set)
 #almost half zeros
 # not justifiably normal (left/0 skewed)
 
-tia_desc_glm <- glmer(all_tw_set ~ as.factor(set_num) + (1|Bat_ID) , data = subset_tia1, family= "poisson")
-summary(tia_desc_glm)
+tia_desc_clm <- clmm(Ordinal ~ as.factor(set_num) + (1|Bat_ID) , data = subset_O_tia, Hess=TRUE)
+summary(tia_desc_clm)
 # boxplot
-tia_tib_tia_plot<- boxplot(all_tw_set ~ (as.factor(set_num)), main = "tia_tib_tia", data=subset_tia1)
+tia_tib_tia_plot<- boxplot(Ordinal ~ (as.factor(set_num)), main = "tia_tib_tia", data=subset_O_tia)
 ```
 significant differences and pairwise contrasts:
 ```{r}
-tia_lst<-lsmeans(tia_desc_glm, ~set_num)
+tia_lst<-lsmeans(tia_desc_clm, ~set_num)
 cld_tia<-cld(tia_lst)
 cld_tia
 pairs(tia_lst)
@@ -671,19 +817,11 @@ pairs(tia_lst)
 ```
 There is no apparent discrimination between individual tungaras. Removing the possible outliers would only make it less likely to show dishabituation 
 
+With ordinal scale, all are exactly the same. 
 
-###Plots of whole trials
+###Plots of whole trials with Ordinal Scaling by set
 
-[Data wrangling]
-```{r}
-        attn_whole<-read.table("https://raw.githubusercontent.com/maydixon/Attn_Project/master/attention_Rcopy_individuals_condensed.txt", sep="\t", header=TRUE)
-      
-        attn_whole <- subset(attn_whole, attn_whole$bat_name != "Blackbeard") 
-        # want just one line for each "set"
-        #pull partial string match  x.1 for call number using grep
-        attn_whole_set <- attn_whole[grep(".1", attn_whole$call_num), ]
-```        
-        
+t.d. dataset works  
         
 
 [de_t_de]
@@ -692,8 +830,8 @@ There is no apparent discrimination between individual tungaras. Removing the po
         #making a plot for the entire of one treatment, with each set getting a boxplot
         
         #DE
-        de_data <- attn_whole_set[attn_whole_set$trial_name_2=="de_t_de", ]       
-        p_de <-ggplot(data=de_data, aes(x = set_num, y = all_tw_set))      
+        de_data <- t.d.[t.d.$trial_name_2=="de_t_de", ]       
+        p_de <-ggplot(data=de_data, aes(x = set_num, y = as.numeric(Ordinal)) )     
         p_de <- p_de + geom_boxplot(aes(fill=factor(set_num)))
         #p_de<- p_de + geom_point(position = position_jitter(width = 0.1))
         p_de <- p_de + guides(fill=FALSE)
@@ -707,7 +845,7 @@ There is no apparent discrimination between individual tungaras. Removing the po
          p_de <- p_de + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(),  axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
           axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
-        p_de <- p_de + coord_cartesian(ylim = c(0, 25))
+        p_de <- p_de + coord_cartesian(ylim = c(0, 5))
         #p_de <- p_de + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(de_data, de_data$set_num!="6" & de_data$set_num!="7")) 
        
         p_de
@@ -721,8 +859,8 @@ t_de
         #making a plot for the entire of one treatment, with each set getting a boxplot
         
         #T_DE
-        t_de_data<- attn_whole_set[attn_whole_set$trial_name_2=="t_de_t", ]       
-        p_t_de<-ggplot(data=t_de_data, aes(x = set_num, y = all_tw_set))      
+        t_de_data<- t.d.[t.d.$trial_name_2=="t_de_t", ]       
+        p_t_de<-ggplot(data=t_de_data, aes(x = set_num, y = as.numeric(Ordinal)))      
         p_t_de<- p_t_de+ geom_boxplot(aes(fill=factor(set_num)))
         #p_de<- p_t_de+ geom_point(position = position_jitter(width = 0.1))
         p_t_de<- p_t_de+ guides(fill=FALSE)
@@ -736,7 +874,7 @@ t_de
          p_t_de <- p_t_de+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
           axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
-        p_t_de<- p_t_de+ coord_cartesian(ylim = c(0, 25))
+        p_t_de<- p_t_de+ coord_cartesian(ylim = c(0,5))
         #p_t_de<- p_t_de+ stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(de_data, de_data$set_num!="6" & de_data$set_num!="7")) 
        
         p_t_de
@@ -750,8 +888,8 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         #making a plot for the entire of one treatment, with each set getting a boxplot
         
         #Ra_T
-        ra_t_data <- attn_whole_set[attn_whole_set$trial_name_2=="ra_t_ra", ]       
-        p_ra <- ggplot(data=ra_t_data, aes(x = set_num, y = all_tw_set))      
+        ra_t_data <- t.d.[t.d.$trial_name_2=="ra_t_ra", ]       
+        p_ra <- ggplot(data=ra_t_data, aes(x = set_num, y = as.numeric(Ordinal)))      
         p_ra <- p_ra + geom_boxplot(aes(fill=factor(set_num)))
         #p_ra <- p_ra + geom_point(position = position_jitter(width = 0.1))
         p_ra<- p_ra + guides(fill=FALSE)
@@ -765,7 +903,7 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
          p_ra <- p_ra + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
           axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
-        p_ra <- p_ra + coord_cartesian(ylim = c(0, 25))
+        p_ra <- p_ra + coord_cartesian(ylim = c(0,5))
         
         p_ra
  ggsave("ra_t_trial.jpg", height =5, width = 7)             
@@ -779,8 +917,8 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         #making a plot for the entire of one treatment, with each set getting a boxplot
         
         #t_ra
-        t_ra_data <- attn_whole_set[attn_whole_set$trial_name_2=="t_ra_t", ]       
-        p_t_ra <- ggplot(data = t_ra_data, aes(x = set_num, y = all_tw_set))      
+        t_ra_data <- t.d.[t.d.$trial_name_2=="t_ra_t", ]       
+        p_t_ra <- ggplot(data = t_ra_data, aes(x = set_num, y = as.numeric(Ordinal)))      
         p_t_ra <- p_t_ra + geom_boxplot(aes(fill=factor(set_num)))
         #p_t_ra <- p_t_ra + geom_point(position = position_jitter(width = 0.1))
         p_t_ra<- p_t_ra + guides(fill=FALSE)
@@ -794,7 +932,7 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
          p_t_ra <- p_t_ra + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
           axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
-        p_t_ra <- p_t_ra + coord_cartesian(ylim = c(0, 25))
+        p_t_ra <- p_t_ra + coord_cartesian(ylim = c(0,5))
         
         p_t_ra
  ggsave("t_ra_trial.jpg", height =5, width = 7)             
@@ -807,8 +945,8 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         #making a plot for the entire of one treatment, with each set getting a boxplot
         
         #tia
-        tia_data <- attn_whole_set[attn_whole_set$trial_name_2=="tia_tib_tia", ]       
-        p_tia <- ggplot(data = tia_data, aes(x = set_num, y = all_tw_set))      
+        tia_data <- t.d.[t.d.$trial_name_2=="tia_tib_tia", ]       
+        p_tia <- ggplot(data = tia_data, aes(x = set_num, y = as.numeric(Ordinal)))      
         p_tia <- p_tia + geom_boxplot(aes(fill=factor(set_num)))
         #p_tia <- p_tia + geom_point(position = position_jitter(width = 0.1))
         p_tia<- p_tia + guides(fill=FALSE)
@@ -822,7 +960,7 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
          p_tia <- p_tia + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
           axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
-        p_tia <- p_tia + coord_cartesian(ylim = c(0, 25))
+        p_tia <- p_tia + coord_cartesian(ylim = c(0,5))
         
         p_tia
  ggsave("tia_trial.jpg", height =5, width = 7)             
@@ -835,8 +973,8 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         #making a plot for the entire of one treatment, with each set getting a boxplot
         
         #ts_tc
-        ts_data <- attn_whole_set[attn_whole_set$trial_name_2=="ts_tc_ts", ]       
-        p_ts <- ggplot(data = ts_data, aes(x = set_num, y = all_tw_set))      
+        ts_data <- t.d.[t.d.$trial_name_2=="ts_tc_ts", ]       
+        p_ts <- ggplot(data = ts_data, aes(x = set_num, y = as.numeric(Ordinal)))      
         p_ts <- p_ts + geom_boxplot(aes(fill=factor(set_num)))
         #p_ts <- p_ts + geom_point(position = position_jitter(width = 0.1))
         p_ts<- p_ts + guides(fill=FALSE)
@@ -850,7 +988,7 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
          p_ts <- p_ts + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
           axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
-        p_ts <- p_ts + coord_cartesian(ylim = c(0, 25))
+        p_ts <- p_ts + coord_cartesian(ylim = c(0,5))
         
         p_ts
  ggsave("ts_trial.jpg", height =5, width = 7)             
@@ -863,8 +1001,8 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         #making a plot for the entire of one treatment, with each set getting a boxplot
         
         #tc
-        tc_data <- attn_whole_set[attn_whole_set$trial_name_2=="tc_ts_tc", ]       
-        p_tc <- ggplot(data = tc_data, aes(x = set_num, y = all_tw_set))      
+        tc_data <- t.d.[t.d.$trial_name_2=="tc_ts_tc", ]       
+        p_tc <- ggplot(data = tc_data, aes(x = set_num, y = as.numeric(Ordinal)))      
         p_tc <- p_tc + geom_boxplot(aes(fill=factor(set_num)))
         #p_tc <- p_tc + geom_point(position = position_jitter(width = 0.1))
         p_tc<- p_tc + guides(fill=FALSE)
@@ -878,7 +1016,7 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
          p_tc <- p_tc + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
           axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
-        p_tc <- p_tc + coord_cartesian(ylim = c(0, 25))
+        p_tc <- p_tc + coord_cartesian(ylim = c(0,5))
         
         p_tc
  ggsave("tc_trial.jpg", height =5, width = 7)             
@@ -891,8 +1029,8 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         #making a plot for the entire of one treatment, with each set getting a boxplot
         
         #rt
-        rt_data <- attn_whole_set[attn_whole_set$trial_name_2=="rt_rra_rt", ]       
-        p_rt <- ggplot(data = rt_data, aes(x = set_num, y = all_tw_set))      
+        rt_data <- t.d.[t.d.$trial_name_2=="rt_rra_rt", ]       
+        p_rt <- ggplot(data = rt_data, aes(x = set_num, y = as.numeric(Ordinal)))      
         p_rt <- p_rt + geom_boxplot(aes(fill=factor(set_num)))
         #p_rt <- p_rt + geom_point(position = position_jitter(width = 0.1))
         p_rt<- p_rt + guides(fill=FALSE)
@@ -906,7 +1044,7 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
          p_rt <- p_rt + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
           axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
-        p_rt <- p_rt + coord_cartesian(ylim = c(0, 25))
+        p_rt <- p_rt + coord_cartesian(ylim = c(0,5))
         
         p_rt
  ggsave("rt_trial.jpg", height =5, width = 7)             
@@ -919,8 +1057,8 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         #making a plot for the entire of one treatment, with each set getting a boxplot
         
         #rra
-        rra_data <- attn_whole_set[attn_whole_set$trial_name_2=="rra_rt_rra", ]       
-        p_rra <- ggplot(data = rra_data, aes(x = set_num, y = all_tw_set))      
+        rra_data <- t.d.[t.d.$trial_name_2=="rra_rt_rra", ]       
+        p_rra <- ggplot(data = rra_data, aes(x = set_num, y = as.numeric(Ordinal)))      
         p_rra <- p_rra + geom_boxplot(aes(fill=factor(set_num)))
         #p_rra <- p_rra + geom_point(position = position_jitter(width = 0.1))
         p_rra<- p_rra + guides(fill=FALSE)
@@ -934,7 +1072,7 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
          p_rra <- p_rra + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
           axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
-        p_rra <- p_rra + coord_cartesian(ylim = c(0, 25))
+        p_rra <- p_rra + coord_cartesian(ylim = c(0,5))
         
         p_rra
  ggsave("rra_trial.jpg", height =5, width = 7.5)             
@@ -947,8 +1085,8 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
 ### Attention set 5- "space to move?"
 [data wrangling]
 ```{r}
- attn_set_5 <- read.table("/Users/maydixon/Dropbox/Attention Project/R/attn_set5_only.txt", header=TRUE) #local      
-
+ t.d.just5<- subset(t.d., t.d.$set_num=="5")
+head(t.d.just5)
 ```
 
 
@@ -956,9 +1094,9 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
 ##Plotting set 5
 
 ```{r}
- attn_set_5$primary_stim <- factor(attn_set_5$primary_stim,levels = c("Ts" ,"T1c", "T2c" , "De", "Ra" , "Rra","Rt" ),ordered = TRUE)
+ t.d.just5$primary_stim <- factor(t.d.just5$primary_stim,levels = c("ts" ,"t1c", "t2c" , "de", "ra" , "rra","rt" ),ordered = TRUE)
 
-p5<- ggplot(data = attn_set_5, aes(x = primary_stim, y = all_tw_set, fill=primary_stim))
+p5<- ggplot(data = t.d.just5, aes(x = primary_stim, y = as.numeric(Ordinal), fill=primary_stim))
 p5<- p5+ geom_boxplot()
 p5<- p5+ geom_point(position = position_jitter(width = 0.1))
 p5<- p5+ theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "none") #format x-axis, and remove side legend
@@ -971,15 +1109,15 @@ panel.background = element_blank(), axis.line = element_line(colour = "black")) 
 
 
 p5<- p5+ xlab("Acoustic stimuli")
-p5<- p5+ ylab("Ear-twitches in trial 5")
+p5<- p5+ ylab("Responses in trial 5")
 p5
-ggsave("Ear twitches in set 5.jpg", width = 3, height = 4)
+ggsave("Ordinal Response in set 5.jpg", width = 3, height = 4)
 #ggsave("CI_comparison_final.png",width=5)
 ```
 
 ```{r}
 
-trial5mod<- glmer(all_tw_set ~ primary_stim -1 + (trial_number|Bat_ID), family= "poisson", data = attn_set_5) 
+trial5mod<- clmm(Ordinal ~ primary_stim -1 + (trial_number|Bat_ID), Hess=TRUE, data = attn_set_5) 
 s.trial5mod<- summary(trial5mod)
 s.trial5mod
 lst_5mod<-cld(lsmeans(trial5mod, ~primary_stim))
@@ -1070,17 +1208,76 @@ gg_trial<- ggplot(data=attn_trial, aes(x=primary_stim, y=all_tw_trial, fill=prim
 gg_trial
 
 ggsave("twitches_per_trial.jpg", width = 7, height = 5)
+
 ```
 
 So, these results are a bit jumbled, DE and t2c have the most twitches overall, followed by reversed rhinella alata, the various other tungaras, and the other rhinella is last.  
+## Other patterns over the course of the trials
+#####small twitch trends with trials
+```{r}
+smalltwitchtrial <-ggplot(data=t.d., aes(x=set_num, y=sm_tw_set))
+smalltwitchtrial <- smalltwitchtrial + geom_point(position = position_jitter(width = 0.1))
+smalltwitchtrial
+```
 
+#####medium large twitch trends with trials
+```{r}
+mdlgtwitchtrial <-ggplot(data=t.d., aes(x=set_num, y=mdlg_tw_set))
+mdlgtwitchtrial <- mdlgtwitchtrial + geom_point(position = position_jitter(width = 0.1))
+mdlgtwitchtrial
+```
+####Med twitch trends with trials
+```{r}
+medtwitch.trialplot <-ggplot(data=t.d., aes(x = set_num, y = md_tw__set, color=primary_stim))
+medtwitch.trialplot <- medtwitch.trialplot + geom_point(position = position_jitter(width = 0.1))
+medtwitch.trialplot
+```
 
+##### large twitch trends with trials
+```{r}
+lgtwitchtrial <-ggplot(data=t.d., aes(x=set_num, y=lg_tw_set))
+lgtwitchtrial <- lgtwitchtrial + geom_point(position = position_jitter(width = 0.1))
+lgtwitchtrial
+```
+Orient trend with trials
+```{r}
+orient.trialplot <-ggplot(data=t.d., aes(x = set_num, y = Orienting_set, color=primary_stim))
+orient.trialplot <- orient.trialplot + geom_point(position = position_jitter(width = 0.1))
+orient.trialplot
+```
+Approach trend with trials
+```{r}
+approach.trialplot <-ggplot(data=t.d., aes(x = set_num, y = Approach_set, color=primary_stim))
+approach.trialplot <- approach.trialplot + geom_point(position = position_jitter(height=0.05, width = 0.05))
+approach.trialplot
+```
+
+Ordinal#1 trend with trials
+```{r}
+Ordinal.trialplot <-ggplot(data=t.d., aes(x = set_num, y = Ordinal, color=primary_stim))
+Ordinal.trialplot <- Ordinal.trialplot + geom_point(position = position_jitter(height=0.05, width = 0.05))
+Ordinal.trialplot
+```
+Ordinal#2 trial plots
+```{r}
+Ordinal2.trialplot <-ggplot(data=t.d., aes(x = set_num, y = Ordinal2, color=primary_stim))
+Ordinal2.trialplot <- Ordinal2.trialplot + geom_point(position = position_jitter(height=0.05, width = 0.05))
+Ordinal2.trialplot
+```
+Ordinal#3 trial plot
+
+```{r}
+Ordinal3.trialplot <-ggplot(data=t.d., aes(x = set_num, y = Ordinal3, color=primary_stim))
+Ordinal3.trialplot <- Ordinal3.trialplot + geom_point(position = position_jitter(height=0.05, width = 0.05))
+Ordinal3.trialplot
+```
 
 
 
 
 some interesting side associations
 ```{r}
+
 #relation between twitching and flying 
 fltplot<- ggplot(data = t.d., aes(x = Ordinal, y = Flying_trial))
 fltplot<- fltplot+ geom_point()
