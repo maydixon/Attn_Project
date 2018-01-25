@@ -42,7 +42,7 @@ t.d.<- attn_R
 
 ```
 
-Ordinal function!!!!
+Ordinal function #1!!!!
 # Code data as ordinal
 
 ```{r}
@@ -75,7 +75,114 @@ for (i in 1:nrow(t.d.)){
 
 
 ```
+Ordinal function #2!!!!
+# Code data as ordinal
+## Remove orient as a category
+## seperate medium and large twitches
+##  Call it Ordinal #2
 
+```{r}
+t.d.$Ordinal2<-rep(0,nrow(t.d.))
+
+for (i in 1:nrow(t.d.)){
+      
+  if (t.d.$Landing_set[i]>0) {
+   t.d.$Ordinal2[i]<-"5"
+} else if (t.d.$Approach_set[i]>0) {
+      t.d.$Ordinal2[i]<-"4"
+} else if (t.d.$lg_tw_set[i]>0) {
+      t.d.$Ordinal2[i]<-"3"
+} else if (t.d.$md_tw__set[i]>0) {
+      t.d.$Ordinal2[i]<-"2"
+} else if (t.d.$sm_tw_set[i]>0) {
+      t.d.$Ordinal2[i]<-"1"
+} else 
+      t.d.$Ordinal2[i]<-"0"
+
+}
+
+
+   # GUIDE #   
+# reorder rows in reverse order of ordinal scale
+# if land !=0 write "5" in new column, else go to next column
+# if approach !=0 write "4" in new column, else go to next column
+# if lg twitches !=0 write "3" in new column else go to next column
+# if md twitches !=0 write "2" in new column else go to next column
+# if smtwitch!=0 write "1" in new column, else write "0"
+
+
+```
+
+Ordinal function #3!!!!
+
+#
+# Code data as ordinal
+# No orient as category
+##Combine medium and large twitches
+##  Call it Ordinal #3
+```{r}
+t.d.$Ordinal3<-rep(0,nrow(t.d.))
+
+for (i in 1:nrow(t.d.)){
+      
+  if (t.d.$Landing_set[i]>0) {
+   t.d.$Ordinal3[i]<-"4"
+} else if (t.d.$Approach_set[i]>0) {
+      t.d.$Ordinal3[i]<-"3"
+} else if (t.d.$mdlg_tw_set[i]>0) {
+      t.d.$Ordinal3[i]<-"2"
+} else if (t.d.$sm_tw_set[i]>0) {
+      t.d.$Ordinal3[i]<-"1"
+} else 
+      t.d.$Ordinal3[i]<-"0"
+
+}
+
+
+   # GUIDE #   
+# reorder rows in reverse order of ordinal scale
+# if land !=0 write "4" in new column, else go to next column
+# if approach !=0 write "3" in new column, else go to next column
+# if md or lg twitches !=0 write "2" in new column else go to next column
+# if smtwitch!=0 write "1" in new column, else write "0"
+
+
+```
+
+# Code data as ordinal
+## No orient as category
+##Combine medium and large twitches
+##Combine approach and land
+##  Call it Ordinal #3
+
+```{r}
+t.d.$Ordinal4<-rep(0,nrow(t.d.))
+
+for (i in 1:nrow(t.d.)){
+      
+  if (t.d.$Landing_set[i]>0) {
+   t.d.$Ordinal4[i]<-"3"
+} else if (t.d.$Approach_set[i]>0) {
+      t.d.$Ordinal4[i]<-"3"
+} else if (t.d.$mdlg_tw_set[i]>0) {
+      t.d.$Ordinal4[i]<-"2"
+} else if (t.d.$sm_tw_set[i]>0) {
+      t.d.$Ordinal4[i]<-"1"
+} else 
+      t.d.$Ordinal4[i]<-"0"
+
+}
+
+
+   # GUIDE #   
+# reorder rows in reverse order of ordinal scale
+# if land !=0 write "4" in new column, else go to next column
+# if approach !=0 write "3" in new column, else go to next column
+# if md or lg twitches !=0 write "2" in new column else go to next column
+# if smtwitch!=0 write "1" in new column, else write "0"
+
+
+```
 write to file
 ```{r}
 

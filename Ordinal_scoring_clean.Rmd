@@ -17,6 +17,30 @@ library(lme4)
 library(lsmeans)
 library(readxl)
 ```
+
+###palette controls for plotting colors, controls all plots
+```{r}
+#Checking out a palette of colors:
+        #plotCol(gray(1.1:11 /11))
+     
+      
+#finding the name of those colors:
+      #gray(1.1:8 /9)
+      
+#reference colors for plots
+#can change all from here
+Ts  = "#1F1F1F"
+T1c ="#3C3C3C"
+T2c = "#585858"
+De  = "#747474"
+Ra  ="#919191"
+Rra ="#ADADAD"  
+Rt  ="#C9C9C9"
+
+Palette<- "YlGn"  # or "Grays" for grayscale version
+
+
+```
 import data
 ```{r}
 attn_R <- read_excel("~/Dropbox/Attention Solomon Coding/attn_Rcopy_12.7.17_justset.xlsx")
@@ -36,6 +60,10 @@ reorder columns
 attn_R = attn_R %>% select(Bat_ID:set_num, Landing_set, Approach_set, Orienting_set, all_tw_set, mdlg_tw_set, lg_tw_set, md_tw__set, sm_tw_set, Flying_set, Grooming_set, Yawning_set)
 head(attn_R)
 ```
+```{r}
+t.d.<-attn_R
+```
+
 
 recode data to make ordinal:
 ```{r}
@@ -80,10 +108,38 @@ levels(t.d.$primary_stim)
 ```
 
 ##Now investigate initial interest and all the rest with cumulative linear mixed model. 
-subset just the first set, to make dataset "t.d.int"
+
+[data wrangling]
 ```{r}
-t.d.int<-subset(t.d., t.d.$set_num=="1")
-head(t.d.int)
+t.d.int.temp<-subset(t.d., t.d.$set_num=="1") # pull just the first sets
+
+#Now, only include the scores from the first time that bats heard a habituating stimulus
+
+#############GUIDE##########
+#subset all rows where primary stim isn't tia or ts
+#subset ts
+#subset tia
+#order by bat id, trial number
+#remove duplicates of primary stimulus. should keep the first observation
+#combine subsets
+#subset all rows where primary stim isn't tia or ts
+#############################
+
+t.d.int.most<-subset(t.d.int.temp, t.d.int.temp$primary_stim!="ts" & t.d.int.temp$primary_stim!="t1c") #all except ts, t1c
+
+#ts
+t.d.int.ts<-subset(t.d.int.temp, t.d.int.temp$primary_stim=="ts") #subset ts
+t.d.int.ts.1<- with(t.d.int.ts, t.d.int.ts[order(t.d.int.ts$Bat_ID, t.d.int.ts$trial_number),])  #order by bat id, trial number
+t.d.int.ts.2<- t.d.int.ts.1[!duplicated(t.d.int.ts.1$Bat_ID), ] #removes duplicates, keeps first row, lowest trial#
+
+
+t.d.int.t1c<-subset(t.d.int.temp, t.d.int.temp$primary_stim=="t1c") #subset tia 
+t.d.int.t1c.1<- with(t.d.int.t1c, t.d.int.t1c[order(t.d.int.t1c$Bat_ID, t.d.int.t1c$trial_number),]) #order by bat id, trial number
+t.d.int.t1c.2<- t.d.int.t1c.1[!duplicated(t.d.int.t1c.1$Bat_ID), ] #removes duplicates, keeps first (lowest)
+
+
+t.d.int<-rbind(t.d.int.most, t.d.int.ts.2, t.d.int.t1c.2) #combine subsets, this is the right data to use.
+View(t.d.int)
 ```
 now check initial interest, compare to old results
 ```{r}
@@ -144,7 +200,7 @@ int.plot<- int.plot+ xlab("Acoustic stimuli")
 int.plot<- int.plot+ ylab("Ear-twitches in trial 1")
 int.plot
 
-#ggsave("initial_interest_plot.jpg", width = 6.5, height = 5.55)
+ggsave("initial_interest_plot.jpg", width = 6.5, height = 5.55)
 ```
 WITH ORDINAL
 ```{r}
@@ -152,6 +208,7 @@ t.d.int$Ordinal3<-as.numeric(t.d.int$Ordinal3)
 
 ```
 
+Boxplot:
 ```{r}
  
 
@@ -172,6 +229,30 @@ int.plot_Ordinal
 ggsave("initial_interest_Ordinal.jpg", width = 6.5, height = 5.55)
 ```
 
+Mosaic plot:
+```{r}
+ #I'm reversing the ordering of the Ordinal factor, just for plotting, because I think it looks clearer/ more like habituation if the lowest interest score is on the top. 
+
+t.d.int.plot<- t.d.int
+t.d.int.plot$Ordinal3<- factor(t.d.int.plot$Ordinal3, levels = c(4, 3, 2, 1, 0))
+t.d.int.plot$Ordinal3<- factor(t.d.int.plot$Ordinal3, ordered= FALSE)
+levels(t.d.int.plot$Ordinal3)
+class(t.d.int.plot$primary_stim)   ##R
+ #Ra_T
+  mosaic_int<- ggplot(data = t.d.int.plot) +
+   geom_mosaic(aes(weight = 1, x = product(Ordinal3, primary_stim), fill=Ordinal3), na.rm=TRUE) +  
+   scale_fill_brewer(type="seq", palette= Palette, direction=-1) +
+  # scale_x_continuous(breaks=c("ts",  "t1c", "t2c", "de",  "ra",  "rra", "rt" ),
+     #   labels=c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))+
+  
+          theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black")) + #this gets rid of grey background and lines, adds y+x axes lines
+        labs(x="Acoustic stimuli ", y= "Interest score in trial 1") +
+        guides(fill=guide_legend(title = "Interest Score", reverse = TRUE)) 
+  mosaic_int
+
+  
+ggsave("initial_interest_mosaic.jpg", width = 6.5, height = 5.55)
+```
 
 
 
@@ -644,7 +725,36 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
  ggsave("de_trial_ordinal.jpg", height =5, width = 7.5)             
 ```
 
+mosaic 
+```{r}
+# Attempt at a mosaic plot
+str(de_data$Ordinal3)
+levels(de_data$Ordinal3)
 
+#I'm reversing the ordering of the Ordinal factor, just for plotting, because I think it looks clearer/ more like habituation if the lowest interest score is on the top. 
+de_data$Ordinal3<- factor(de_data$Ordinal3, levels = c(4, 3, 2, 1, 0))
+levels(de_data$Ordinal3)
+
+ #Ra_T
+mosaic_de<- ggplot(data = de_data) +
+geom_mosaic(aes(weight = 1, x = product(Ordinal3, set_num), fill=Ordinal3), na.rm=TRUE) +  
+scale_fill_brewer(type="seq", palette= "YlGn", direction=-1) +
+labs(x="Trial number ", title='Interest scores by trial number') + 
+labs(title =  " D. ebraccatus / 0-chuck P. pustulosus") +
+theme(plot.title = element_text(face="italic", size=31.5)) + #this makes the plot title italic, affects the size
+theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"),  axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
+          axis.title.y=element_blank()) + #this gets rid of grey background and lines, adds y+x axes lines
+guides(fill=guide_legend(title = "Interest Score", reverse = TRUE)) 
+mosaic_de 
+# alternate palette "YlGnBu"
+
+
+ggsave("de_trial_mosaic.pdf", height =5, width = 7)  
+  
+#axis.text.y=element_blank(),
+
+```
 
 t_de
 ```{r}
@@ -674,6 +784,36 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
  ggsave("t_de_trial_ordinal.jpg", height =5, width = 7)             
 ```
 
+mosaic t_de
+```{r}
+# Attempt at a mosaic plot
+str(t_de_data$Ordinal3)
+levels(t_de_data$Ordinal3)
+
+#I'm reversing the ordering of the Ordinal factor, just for plotting, because I think it looks clearer/ more like habituation if the lowest interest score is on the top. 
+t_de_data$Ordinal3<- factor(t_de_data$Ordinal3, levels = c(4, 3, 2, 1, 0))
+levels(t_de_data$Ordinal3)
+
+ #Ra_T
+mosaic_t_de<- ggplot(data = t_de_data) +
+geom_mosaic(aes(weight = 1, x = product(Ordinal3, set_num), fill=Ordinal3), na.rm=TRUE) +  
+scale_fill_brewer(type="seq", palette= "YlGn", direction=-1) +
+labs(x="Trial number ", title='Interest scores by trial number') + 
+labs(title =  " 0-chuck P. pustulosus / D. ebraccatus") +
+theme(plot.title = element_text(face="italic", size=29.5)) + #this makes the plot title italic, affects the size
+theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"),  axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
+          axis.title.y=element_blank()) + #this gets rid of grey background and lines, adds y+x axes lines
+guides(fill=guide_legend(title = "Interest Score", reverse = TRUE)) 
+mosaic_t_de 
+# alternate palette "YlGnBu"
+
+
+ggsave("t_de_trial_mosaic.pdf", height =5, width = 7)  
+  
+#axis.text.y=element_blank(),
+
+```
 
 [ra_t_ra]
 ```{r}
@@ -692,15 +832,17 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
        # p_ra<- p_ra + ylab(element_blank())
        #p_ra <- p_ra + xlab(element_blank())
         p_ra <- p_ra + labs(title =  " R. alata / 0-chuck P. pustulosus") +
-             theme(plot.title = element_text(face="italic", size=33)) #this makes the plot title italic, affects the size
+             theme(plot.title = element_text(face="italic", size=29.5)) #this makes the plot title italic, affects the size
          p_ra <- p_ra + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
           axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
         p_ra <- p_ra + coord_cartesian(ylim = c(0,5))
         
         p_ra
- ggsave("ra_t_trial_ordinal.jpg", height =5, width = 7)             
+ ggsave("ra_t_trial_ordinal.pdf", height =5, width = 7)             
 ```
+
+mosaic ra_t_ra
 ```{r}
 
 ##Palette
@@ -715,35 +857,34 @@ interest_palette<- c("#ffffcc", "#a1dab4"," #41b6c4", "#2c7fb8", "#253494")
 str(ra_t_data$Ordinal3)
 levels(ra_t_data$Ordinal3)
 
+#I'm reversing the ordering of the Ordinal factor, just for plotting, because I think it looks clearer/ more like habituation if the lowest interest score is on the top. 
 ra_t_data$Ordinal3<- factor(ra_t_data$Ordinal3, levels = c(4, 3, 2, 1, 0))
 levels(ra_t_data$Ordinal3)
 
  #Ra_T
-  mosaic_ra<- ggplot(data = ra_t_data) +
-   geom_mosaic(aes(weight = 1, x = product(Ordinal3, set_num), fill=Ordinal3), na.rm=TRUE) +  
-        scale_fill_brewer(type="seq", palette= "YlGn", direction=-1) +
-
-          labs(x="Trial number ", title='Interest scores by trial number') + 
-          labs(title =  " 0-chuck P. pustulosus / R. alata") +
-             theme(plot.title = element_text(face="italic", size=33)) +#this makes the plot title italic, affects the size
-          theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+mosaic_ra<- ggplot(data = ra_t_data) +
+geom_mosaic(aes(weight = 1, x = product(Ordinal3, set_num), fill=Ordinal3), na.rm=TRUE) +  
+scale_fill_brewer(type="seq", palette= "YlGn", direction=-1) +
+labs(x="Trial number ", title='Interest scores by trial number') + 
+labs(title =  " R. alata / 0-chuck P. pustulosus") +
+theme(plot.title = element_text(face="italic", size=29.5)) + #this makes the plot title italic, affects the size
+theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 panel.background = element_blank(), axis.line = element_line(colour = "black"),  axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
           axis.title.y=element_blank()) + #this gets rid of grey background and lines, adds y+x axes lines
-       
-        guides(fill=guide_legend(title = "Interest Score", reverse = TRUE)) 
-  
-
-
+guides(fill=guide_legend(title = "Interest Score", reverse = TRUE)) 
 mosaic_ra 
 # alternate palette "YlGnBu"
+
+
+ggsave("ra_t_trial_mosaic.pdf", height =5, width = 7)  
   
-axis.text.y=element_blank(),
+#axis.text.y=element_blank(),
 
 ```
 [t_ra_t]
 ```{r}
       
-        #making a plot for the entire of one treatment, with each set getting a boxplot
+ #making a plot for the entire of one treatment, with each set getting a boxplot
         
         #t_ra
         t_ra_data <- t.d.[t.d.$trial_name_2=="t_ra_t", ]       
@@ -757,16 +898,46 @@ axis.text.y=element_blank(),
        # p_t_ra<- p_t_ra + ylab(element_blank())
        #p_t_ra <- p_t_ra + xlab(element_blank())
         p_t_ra <- p_t_ra + labs(title =  " 0-chuck P. pustulosus / R. alata") +
-             theme(plot.title = element_text(face="italic", size=33)) #this makes the plot title italic, affects the size
+             theme(plot.title = element_text(face="italic", size=29.5)) #this makes the plot title italic, affects the size
          p_t_ra <- p_t_ra + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
           axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
         p_t_ra <- p_t_ra + coord_cartesian(ylim = c(0,5))
         
         p_t_ra
- #ggsave("t_ra_trial_ordinal.jpg", height =5, width = 7)             
+ ggsave("t_ra_trial_ordinal.jpg", height =5, width = 7)             
 ```
 
+mosaic t_ra
+```{r}
+# Attempt at a mosaic plot
+str(t_ra_data$Ordinal3)
+levels(t_ra_data$Ordinal3)
+
+#I'm reversing the ordering of the Ordinal factor, just for plotting, because I think it looks clearer/ more like habituation if the lowest interest score is on the top. 
+t_ra_data$Ordinal3<- factor(t_ra_data$Ordinal3, levels = c(4, 3, 2, 1, 0))
+levels(t_ra_data$Ordinal3)
+
+ #Ra_T
+mosaic_t_ra<- ggplot(data = t_ra_data) +
+geom_mosaic(aes(weight = 1, x = product(Ordinal3, set_num), fill=Ordinal3), na.rm=TRUE) +  
+scale_fill_brewer(type="seq", palette= "YlGn", direction=-1) +
+labs(x="Trial number ", title='Interest scores by trial number') + 
+labs(title =  " 0-chuck P. pustulosus / R. alata") +
+theme(plot.title = element_text(face="italic", size=29.5)) + #this makes the plot title italic, affects the size
+theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"),  axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
+          axis.title.y=element_blank()) + #this gets rid of grey background and lines, adds y+x axes lines
+guides(fill=guide_legend(title = "Interest Score", reverse = TRUE)) 
+mosaic_t_ra 
+# alternate palette "YlGnBu"
+
+
+ggsave("t_ra_trial_mosaic.pdf", height =5, width = 7)  
+  
+#axis.text.y=element_blank(),
+
+```
 
 [tia_tib_tia]
 ```{r}
@@ -795,6 +966,36 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
  ggsave("tia_trial_ordinal.jpg", height =5, width = 7)             
 ```
 
+mosaic tia
+```{r}
+# Attempt at a mosaic plot
+str(tia_data$Ordinal3)
+levels(tia_data$Ordinal3)
+
+#I'm reversing the ordering of the Ordinal factor, just for plotting, because I think it looks clearer/ more like habituation if the lowest interest score is on the top. 
+tia_data$Ordinal3<- factor(tia_data$Ordinal3, levels = c(4, 3, 2, 1, 0))
+levels(tia_data$Ordinal3)
+
+ #Ra_T
+mosaic_tia<- ggplot(data = tia_data) +
+geom_mosaic(aes(weight = 1, x = product(Ordinal3, set_num), fill=Ordinal3), na.rm=TRUE) +  
+scale_fill_brewer(type="seq", palette= "YlGn", direction=-1) +
+labs(x="Trial number ", title='Interest scores by trial number') + 
+labs(title =  "Different individual P. pustulosus") +
+theme(plot.title = element_text(face="italic", size=33)) + #this makes the plot title italic, affects the size
+theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"),  axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
+          axis.title.y=element_blank()) + #this gets rid of grey background and lines, adds y+x axes lines
+guides(fill=guide_legend(title = "Interest Score", reverse = TRUE)) 
+mosaic_tia 
+# alternate palette "YlGnBu"
+
+
+ggsave("tia_trial_mosaic.pdf", height =5, width = 7)  
+  
+#axis.text.y=element_blank(),
+
+```
 
 [ts_tc_ts]
 ```{r}
@@ -822,6 +1023,38 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         p_ts
  ggsave("ts_trial_ordinal.jpg", height =5, width = 7)             
 ```
+
+mosaic ts
+```{r}
+# Attempt at a mosaic plot
+str(ts_data$Ordinal3)
+levels(ts_data$Ordinal3)
+
+#I'm reversing the ordering of the Ordinal factor, just for plotting, because I think it looks clearer/ more like habituation if the lowest interest score is on the top. 
+ts_data$Ordinal3<- factor(ts_data$Ordinal3, levels = c(4, 3, 2, 1, 0))
+levels(ts_data$Ordinal3)
+
+ 
+mosaic_ts<- ggplot(data = ts_data) +
+geom_mosaic(aes(weight = 1, x = product(Ordinal3, set_num), fill=Ordinal3), na.rm=TRUE) +  
+scale_fill_brewer(type="seq", palette= "YlGn", direction=-1) +
+labs(x="Trial number ", title='Interest scores by trial number') + 
+labs(title =  "0-chuck  / 2-chuck P. pustulosus") +
+theme(plot.title = element_text(face="italic", size=33)) + #this makes the plot title italic, affects the size
+theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"),  axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
+          axis.title.y=element_blank()) + #this gets rid of grey background and lines, adds y+x axes lines
+guides(fill=guide_legend(title = "Interest Score", reverse = TRUE)) 
+mosaic_ts 
+# alternate palette "YlGnBu"
+
+
+ggsave("ts_trial_mosaic.pdf", height =5, width = 7)  
+  
+#axis.text.y=element_blank(),
+
+```
+
 
 
 [tc_ts_tc]
@@ -852,6 +1085,37 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
 ```
 
 
+mosaic tc
+```{r}
+# Attempt at a mosaic plot
+str(tc_data$Ordinal3)
+levels(tc_data$Ordinal3)
+
+#I'm reversing the ordering of the Ordinal factor, just for plotting, because I think it looks clearer/ more like habituation if the lowest interest score is on the top. 
+tc_data$Ordinal3<- factor(tc_data$Ordinal3, levels = c(4, 3, 2, 1, 0))
+levels(tc_data$Ordinal3)
+
+ #Ra_T
+mosaic_tc<- ggplot(data = tc_data) +
+geom_mosaic(aes(weight = 1, x = product(Ordinal3, set_num), fill=Ordinal3), na.rm=TRUE) +  
+scale_fill_brewer(type="seq", palette= "YlGn", direction=-1) +
+labs(x="Trial number ", title='Interest scores by trial number') + 
+labs(title =  "2-chuck / 0-chuck P. pustulosus") +
+theme(plot.title = element_text(face="italic", size=33)) + #this makes the plot title italic, affects the size
+theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"),  axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
+          axis.title.y=element_blank()) + #this gets rid of grey background and lines, adds y+x axes lines
+guides(fill=guide_legend(title = "Interest Score", reverse = TRUE)) 
+mosaic_tc 
+# alternate palette "YlGnBu"
+
+
+ggsave("tc_trial_mosaic.pdf", height =5, width = 7)  
+  
+#axis.text.y=element_blank(),
+
+```
+
 [rt_rra_rt]
 ```{r}
       
@@ -879,6 +1143,37 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
  ggsave("rt_trial_ordinal.jpg", height =5, width = 7)             
 ```
 
+
+mosaic rt
+```{r}
+# Attempt at a mosaic plot
+str(rt_data$Ordinal3)
+levels(rt_data$Ordinal3)
+
+#I'm reversing the ordering of the Ordinal factor, just for plotting, because I think it looks clearer/ more like habituation if the lowest interest score is on the top. 
+rt_data$Ordinal3<- factor(rt_data$Ordinal3, levels = c(4, 3, 2, 1, 0))
+levels(rt_data$Ordinal3)
+
+ #Ra_T
+mosaic_rt<- ggplot(data = rt_data) +
+geom_mosaic(aes(weight = 1, x = product(Ordinal3, set_num), fill=Ordinal3), na.rm=TRUE) +  
+scale_fill_brewer(type="seq", palette= "YlGn", direction=-1) +
+labs(x="Trial number ", title='Interest scores by trial number') + 
+labs(title =  "Rev. P. pustulosus / Rev. R. alata") +
+theme(plot.title = element_text(face="italic", size=33)) + #this makes the plot title italic, affects the size
+theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"),  axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
+          axis.title.y=element_blank()) + #this gets rid of grey background and lines, adds y+x axes lines
+guides(fill=guide_legend(title = "Interest Score", reverse = TRUE)) 
+mosaic_rt 
+# alternate palette "YlGnBu"
+
+
+ggsave("rt_trial_mosaic.pdf", height =5, width = 7)  
+  
+#axis.text.y=element_blank(),
+
+```
 
 [rra_rt_rra]
 ```{r}
@@ -908,7 +1203,36 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
 ```
 
 
+mosaic rra
+```{r}
+# Attempt at a mosaic plot
+str(rra_data$Ordinal3)
+levels(rra_data$Ordinal3)
 
+#I'm reversing the ordering of the Ordinal factor, just for plotting, because I think it looks clearer/ more like habituation if the lowest interest score is on the top. 
+rra_data$Ordinal3<- factor(rra_data$Ordinal3, levels = c(4, 3, 2, 1, 0))
+levels(rra_data$Ordinal3)
+
+ #Ra_T
+mosaic_rra<- ggplot(data = rra_data) +
+geom_mosaic(aes(weight = 1, x = product(Ordinal3, set_num), fill=Ordinal3), na.rm=TRUE) +  
+scale_fill_brewer(type="seq", palette= "YlGn", direction=-1) +
+labs(x="Trial number ", title='Interest scores by trial number') + 
+labs(title =  "Rev. R. alata / Rev. P. pustulosus") +
+theme(plot.title = element_text(face="italic", size=33)) + #this makes the plot title italic, affects the size
+theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"),  axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
+          axis.title.y=element_blank()) + #this gets rid of grey background and lines, adds y+x axes lines
+guides(fill=guide_legend(title = "Interest Score", reverse = TRUE)) 
+mosaic_rra 
+# alternate palette "YlGnBu"
+
+
+ggsave("rra_trial_mosaic.pdf", height =5, width = 7)  
+  
+#axis.text.y=element_blank(),
+
+```
 
 
 ### Attention set 5- "space to move?"
@@ -930,7 +1254,7 @@ Anova(trial5mod)
 
 ```
 
-Plotting set 5
+Plotting set 5::
 
 ```{r}
 
@@ -942,6 +1266,7 @@ lst_5mod
 Anova(trial5mod)
 
 ```
+
 ```{r}
  t.d.just5$primary_stim <- factor(t.d.just5$primary_stim,levels = c("ts" ,"t1c", "t2c" , "de", "ra" , "rra","rt" ),ordered = TRUE)
 
@@ -961,8 +1286,38 @@ p5<- p5+ xlab("Acoustic stimuli")
 p5<- p5+ ylab("Responses in trial 5")
 p5
 ggsave("Ordinal Response in set 5.jpg", width = 3, height = 4)
-#ggsave("CI_comparison_final.png",width=5)
+ggsave("CI_comparison_final.png",width=5)
 ```
+
+mosaic trial 5 :
+```{r}
+
+t.d.just5_a <-  t.d.just5
+t.d.just5_a$primary_stim <- factor(t.d.just5$primary_stim,levels = c("ts" ,"t1c", "t2c" , "de", "ra" , "rra","rt" ),ordered = TRUE)
+ #I'm reversing the ordering of the Ordinal factor, just for plotting, because I think it looks clearer/ more like habituation if the lowest interest score is on the top. 
+
+
+t.d.just5_a$Ordinal3<- factor(t.d.just5_a$Ordinal3, levels = c(4, 3, 2, 1, 0))
+t.d.just5_a$Ordinal3<- factor(t.d.just5_a$Ordinal3, ordered= FALSE)
+levels(t.d.just5_a$Ordinal3)
+class(t.d.just5_a$primary_stim)   ##R
+ #Ra_T
+  mosaic_just5<- ggplot(data = t.d.just5_a) +
+   geom_mosaic(aes(weight = 1, x = product(Ordinal3, primary_stim), fill=Ordinal3), na.rm=TRUE) +  
+   scale_fill_brewer(type="seq", palette= Palette, direction=-1) +
+  # scale_x_continuous(breaks=c("ts",  "t1c", "t2c", "de",  "ra",  "rra", "rt" ),
+     #   labels=c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))+
+  
+          theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black")) + #this gets rid of grey background and lines, adds y+x axes lines
+        labs(x="Acoustic stimuli ", y= "Interest score in trial 5") +
+        guides(fill=guide_legend(title = "Interest Score", reverse = TRUE)) 
+  mosaic_just5
+
+  #worry about axis later. 
+ 
+ggsave("set5_interest_mosaic.pdf", width = 6.5, height = 5.55)
+```
+
 
 
 Investigate correlation between initial interest and slope more formally?
