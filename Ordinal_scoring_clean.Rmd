@@ -109,7 +109,7 @@ levels(t.d.$primary_stim)
 
 ##Now investigate initial interest and all the rest with cumulative linear mixed model. 
 
-[data wrangling]
+####[data wrangling]
 ```{r}
 t.d.int.temp<-subset(t.d., t.d.$set_num=="1") # pull just the first sets
 
@@ -139,39 +139,72 @@ t.d.int.t1c.2<- t.d.int.t1c.1[!duplicated(t.d.int.t1c.1$Bat_ID), ] #removes dupl
 
 
 t.d.int<-rbind(t.d.int.most, t.d.int.ts.2, t.d.int.t1c.2) #combine subsets, this is the right data to use.
-View(t.d.int)
+
 ```
-now check initial interest, compare to old results
+#### check initial interest, ordinal scale
 ```{r}
-
-# previous results, continuous scale:
-initial_int_nbc <- glmer.nb(all_tw_set ~ first_stim -1 + (0+trial_number|Bat_ID),  data = attn_int_2, control=glmerControl(optimizer = "bobyqa"))  #lowest AIC, and most compex random effects structure that makes sense and converges.
-summary(initial_int_nbc) #random slope of trial number within bat ID: no variation in intercept
-int_lsmeans<- lsmeans::lsmeans(initial_int_nbc, "first_stim")
-sv_int_nbc<- cld(int_lsmeans, letters=LETTERS)
-sv_int_nbc
-
-
 #current results, ordinal scale
-initial_intO3<-clmm(Ordinal3 ~ primary_stim + (1|Bat_ID),  data = t.d.int, Hess=TRUE)
-summary(initial_intO3)
 
-initial_intO3_2<-clmm(Ordinal3 ~ primary_stim + (1|trial_number) + (1|Bat_ID),  data = t.d.int, Hess=TRUE)
+#random only model, clm
+#initial interest, intercept only model
+int_int_only <- clm(Ordinal3 ~ 1 ,  data = t.d.int, Hess=TRUE)
+summary(int_int_only)
 
-summary(initial_intO3_2)
-anova_int<- anova(initial_intO3_2, initial_intO3)
-anova_int
+# initial interest intercept model, one random effect (the one with most variance), clmm
+int_int_rand<-clmm(Ordinal3 ~ 1 + (1|Bat_ID),  data = t.d.int, Hess=TRUE)
+summary(int_int_rand)
 
-# The two random effects is marginally better. 
-#this is the most complex model this data can handle before it doesn't converge. 
+anova(int_int_only, int_int_rand) 
 
-cum_lsmeans_2<-lsmeans::lsmeans(initial_intO3_2, "primary_stim")
-cum_lsmeans_2
-sv_cum_lsmeans_2<- cld(cum_lsmeans_2)
-sv_cum_lsmeans_2
-plot(cum_lsmeans_2)
+##not significantly different. So no random effect needed, keep simpler mode, int_rand
+
+## initial interest model with main effect, no random, clm
+
+initial_int_primary<-clm(Ordinal3 ~ primary_stim, data = t.d.int)
+summary(initial_int_primary)
+
+# compare intercept only model with stimulus category model
+anova(int_int_only, initial_int_primary)
+
+
+## So, despite that the model with treatment has a potentially significant variable, it is not significantly better than the random model. 
+
+## look at model anyway?
+
+cum_lsmeans_primary<-lsmeans::lsmeans(initial_int_primary, "primary_stim")
+cum_lsmeans_primary
+sv_cum_lsmeans_primary<- cld(cum_lsmeans_primary)
+sv_cum_lsmeans_primary
+pairs_lsmeans_primary <-pairs(cum_lsmeans_primary)
+pairs_lsmeans_primary
+plot(cum_lsmeans_primary)
+# adjusted for a fmaily of 7 estimates. 
+
+
+########
+## http://glmm.wdfiles.com/local--files/examples/Banta_2011_part1.pdf
+## p. 21
+#chosen fixed effects structure, maximalist rand structure:
+initial_int_primary_full<-clmm(Ordinal3 ~ primary_stim +  (1|Bat_ID) + (1|trial_number), data = t.d.int)
+initial_int_primary_noID<- clmm(Ordinal3 ~ primary_stim +   (1|trial_number), data = t.d.int)
+initial_int_primary_notrial<-clmm(Ordinal3 ~ primary_stim +  (1|Bat_ID) , data = t.d.int)
+initial_int_primary_nested<-clmm(Ordinal3 ~ primary_stim +  (trial_number|Bat_ID) , data = t.d.int)
+initial_int_primary_norand<-clm(Ordinal3 ~ primary_stim , data = t.d.int)
+
+#compare:
+anova(initial_int_primary_full, initial_int_primary_notrial ) #no trial
+#no difference
+anova(initial_int_primary_full, initial_int_primary_noID ) # no bat_ID
+# no difference
+anova(initial_int_primary_full, initial_int_primary_nested)
+#almost significant, nested better
+anova(initial_int_primary_nested, initial_int_primary_norand)
+anova(initial_int_primary_full, initial_int_primary_nested, initial_int_primary_notrial, initial_int_primary_noID, initial_int_primary_norand)
+anova(initial_int_primary_noID, initial_int_primary_norand)
+anova(initial_int_primary_notrial, initial_int_primary_norand)
+########
 ```
-So it looks liek T2c has a marginally higher initial response than to ra or t1c, at least using this model. 
+So it looks like T2c has a marginally higher initial response than to ra or t1c, at least using this model. 
 
 plotting initial interest:
 ```{r}
@@ -200,7 +233,7 @@ int.plot<- int.plot+ xlab("Acoustic stimuli")
 int.plot<- int.plot+ ylab("Ear-twitches in trial 1")
 int.plot
 
-ggsave("initial_interest_plot.jpg", width = 6.5, height = 5.55)
+ggsave("initial_interest_plot.pdf", width = 6.5, height = 5.55)
 ```
 WITH ORDINAL
 ```{r}
@@ -233,7 +266,23 @@ Mosaic plot:
 ```{r}
  #I'm reversing the ordering of the Ordinal factor, just for plotting, because I think it looks clearer/ more like habituation if the lowest interest score is on the top. 
 
+#doing palette manually so this plot will match the others
+#green palette: "#31a354","#78c679", "#c2e699"
+#c("#006837", "#31a354", "#78c679","#c2e699", "#ffffcc")
+#Gray palette: "#cccccc" , "#969696", "#636363"
+
+
+##$$$$$$$$$$$$$
+## start here, see if this makes the plot better, then look back adn make sure this plot is using the right data, bc different than before 
+#$$$$$$$$$$$$$$$$
+
+Int_palette<- c("#006837", "#31a354", "#78c679", "#ffffcc")
+#scale color brewer, name colors, ylgn 5
+
 t.d.int.plot<- t.d.int
+
+t.d.int.plot$primary_stim <- factor(t.d.int.plot$primary_stim,levels = c("ts" ,"t1c", "t2c" , "de", "ra" , "rra","rt" ),ordered = TRUE)
+
 t.d.int.plot$Ordinal3<- factor(t.d.int.plot$Ordinal3, levels = c(4, 3, 2, 1, 0))
 t.d.int.plot$Ordinal3<- factor(t.d.int.plot$Ordinal3, ordered= FALSE)
 levels(t.d.int.plot$Ordinal3)
@@ -241,7 +290,8 @@ class(t.d.int.plot$primary_stim)   ##R
  #Ra_T
   mosaic_int<- ggplot(data = t.d.int.plot) +
    geom_mosaic(aes(weight = 1, x = product(Ordinal3, primary_stim), fill=Ordinal3), na.rm=TRUE) +  
-   scale_fill_brewer(type="seq", palette= Palette, direction=-1) +
+        scale_fill_manual(values=Int_palette)+
+   #scale_fill_brewer(type="seq", palette= Int_palette, direction=-1) +
   # scale_x_continuous(breaks=c("ts",  "t1c", "t2c", "de",  "ra",  "rra", "rt" ),
      #   labels=c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))+
   
@@ -251,7 +301,7 @@ class(t.d.int.plot$primary_stim)   ##R
   mosaic_int
 
   
-ggsave("initial_interest_mosaic.jpg", width = 6.5, height = 5.55)
+ggsave("initial_interest_mosaic.pdf", width = 6.5, height = 5.55)
 ```
 
 
@@ -347,16 +397,27 @@ habit.ordinal3.null<- clmm(Ordinal3 ~ 1 + (trial_number| Bat_ID), data= t.d.hab.
 
 habit.ordinal3.intonly<- clmm(Ordinal3 ~ set_num:primary_stim + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE) ## this one is the best
 
-habit.ordinal3.me2<- clmm(Ordinal3 ~ primary_stim + set_num:primary_stim + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE)
+habit.ordinal3.primary.int<- clmm(Ordinal3 ~ primary_stim + set_num:primary_stim + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE)
 
 
-habit.ordinal3.me3<- clmm(Ordinal3 ~ primary_stim + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE) 
+habit.ordinal3.primary<- clmm(Ordinal3 ~ primary_stim + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE) 
 
-habit.ordinal3.me4<- clmm(Ordinal3 ~ set_num + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE) 
+habit.ordinal3.set<- clmm(Ordinal3 ~ set_num + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE) 
 
-habit.ordinal3.modfull <- clmm(Ordinal3 ~ set_num*primary_stim + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE)
+habit.ordinal3.set.primary<- clmm(Ordinal3 ~ set_num + primary_stim + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE) 
 
+habit.ordinal3.set.primary.int <- clmm(Ordinal3 ~ set_num*primary_stim + (trial_number| Bat_ID), data= t.d.hab., Hess=TRUE)
 
+#iterative model selection. add variables and delete them if they do not improve model. 
+# do I have to start with main effects, or can i start with apriori hypotheses on what is important?
+anova1<- anova(habit.ordinal3.null, habit.ordinal3.set)
+anova1
+anova2<- anova(habit.ordinal3.set, habit.ordinal3.set.primary)
+anova2
+anova3<- anova(habit.ordinal3.set.primary, habit.ordinal3.set.primary.int)
+anova3
+###I just have to look at the interaction alone...
+#~~~~~~~~~~~~~~~~~~~
 anova.me<- anova(habit.ordinal3.null, habit.ordinal3.intonly)
 anova.me
 anova.me1<-anova(habit.ordinal3.intonly, habit.ordinal3.modfull)
@@ -367,7 +428,12 @@ anova.me3<-anova(habit.ordinal3.intonly, habit.ordinal3.me3)
 anova.me3
 anova.me4<- anova(habit.ordinal3.intonly, habit.ordinal3.me4)
 anova.me4
+anova.me5<- anova(habit.ordinal3.me5, habit.ordinal3.modfull)
+anova.me5
+anova.all<- anova(habit.ordinal3.null, habit.ordinal3.intonly, habit.ordinal3.me2, habit.ordinal3.me3, habit.ordinal3.me4, habit.ordinal3.modfull)
 
+
+anova.all
     #interaction only model is slightly better than any of the others
 ```
 Model estimates for model with interaction, two random effects
@@ -387,6 +453,9 @@ lst.ord3.intonly=lsmeans::lstrends(habit.ordinal3.intonly, ~primary_stim, var="s
 svlst.ord3.intonly<-cld(lst.ord3.intonly)
 svlst.ord3.intonly
 
+#show pairwise contrasts:
+p.lst.ord3.intonly<- pairs(lst.ord3.intonly)
+p.lst.ord3.intonly
 #plot distributions
 plot(svlst.ord3.intonly)
 ```
@@ -428,7 +497,7 @@ scale_x_discrete(labels=c("0c P. pustulosus","1c P. pustulosus","2c pustulosus",
                              #   values=c(Ts, T1c, T2c, de, ra, rra, rt)) +
 
  xlab("Call Type") +
-ylab("log slope of change in responses") +
+ylab("Slope of interest score in habituation period") +
       geom_hline(yintercept=0, linetype="dotted") 
       
 
@@ -476,7 +545,7 @@ ggsave("Total responses per treatment.png")
 ## start with t.d.
 ## Seperate "trial type"and the last 3 trial/sets
 ## This is coded terribly, but it works, ok
-View(subset_O_de)
+
 subset_O_de <- subset(t.d., t.d.$trial_name_2=="de_t_de" & (t.d.$set_num=="5" |t.d.$set_num=="6" |t.d.$set_num=="7"))
 subset_O_ra <- subset(t.d., t.d.$trial_name_2=="ra_t_ra" & (t.d.$set_num=="5" |t.d.$set_num=="6" |t.d.$set_num=="7"))
 subset_O_rra <- subset(t.d., t.d.$trial_name_2=="rra_rt_rra" & (t.d.$set_num=="5" |t.d.$set_num=="6" |t.d.$set_num=="7"))
@@ -485,7 +554,71 @@ subset_O_t_de <- subset(t.d., t.d.$trial_name_2=="t_de_t" & (t.d.$set_num=="5" |
 subset_O_t_ra <- subset(t.d., t.d.$trial_name_2=="t_ra_t" & (t.d.$set_num=="5" |t.d.$set_num=="6" |t.d.$set_num=="7"))
 subset_O_tc <- subset(t.d., t.d.$trial_name_2=="tc_ts_tc" & (t.d.$set_num=="5" |t.d.$set_num=="6" |t.d.$set_num=="7"))
 subset_O_tia <- subset(t.d., t.d.$trial_name_2=="tia_tib_tia" & (t.d.$set_num=="5" |t.d.$set_num=="6" |t.d.$set_num=="7"))
+
 subset_O_ts <- subset(t.d., t.d.$trial_name_2=="ts_tc_ts" & (t.d.$set_num=="5" |t.d.$set_num=="6" |t.d.$set_num=="7"))
+
+
+
+
+
+###FRIEDMAN TEST#####
+library(reshape2)
+t_de_cast <- dcast(subset_O_t_de, bat_name~set_num ) #reshapes into wide format
+de_cast <- dcast(subset_O_de, bat_name~set_num )
+ra_cast <- dcast(subset_O_ra, bat_name~set_num )
+rra_cast <- dcast(subset_O_rra, bat_name~set_num )
+t_ra_cast <- dcast(subset_O_t_ra, bat_name~set_num )
+rt_cast <- dcast(subset_O_rt, bat_name~set_num )
+tc_cast <- dcast(subset_O_tc, bat_name~set_num )
+ts_cast <- dcast(subset_O_ts, bat_name~set_num )
+#tia_cast <- dcast(subset_O_tia, bat_name ~ set_num)
+#can't do tia for now
+
+
+f.test_de <- friedman.test(cbind(de_cast$"5", de_cast$"6", de_cast$"7"))
+f.test_t_de <- friedman.test(cbind(t_de_cast$"5", t_de_cast$"6", t_de_cast$"7"))
+f.test_ra <- friedman.test(cbind(ra_cast$"5", ra_cast$"6", ra_cast$"7"))
+f.test_rra <- friedman.test(cbind(rra_cast$"5", rra_cast$"6", rra_cast$"7"))
+f.test_t_ra <- friedman.test(cbind(t_ra_cast$"5", t_ra_cast$"6", t_ra_cast$"7"))
+f.test_rt <- friedman.test(cbind(rt_cast$"5", rt_cast$"6", rt_cast$"7"))
+f.test_tc <- friedman.test(cbind(tc_cast$"5", tc_cast$"6", tc_cast$"7"))
+f.test_ts <- friedman.test(cbind(ts_cast$"5", ts_cast$"6", ts_cast$"7"))
+#f.test_tia <- friedman.test(cbind(tia_cast$"5", tia_cast$"6", tia_cast$"7"))
+f.test_de
+f.test_t_de
+f.test_ra
+f.test_rra
+f.test_t_ra
+f.test_rt
+f.test_tc
+f.test_ts
+#f.test_tia
+
+t_de_ordinal_slim<- cbind(subset_O_t_de$bat_name, subset_O_t_de$set_num, subset_O_t_de$Ordinal3)
+t_de_ordinal_slim <- as.data.frame(t_de_ordinal_slim, row.names = c("ID", "Set", "Val"))
+t_de_m <- reshape(t_de_ordinal_slim, idvar = "V1", timevar = "V2", direction = "wide")
+
+
+friedman.test(cbind(t_de_m$V3.5, t_de_m$V3.6, t_de_m$V3.7))
+
+
+posthocs: mann-whitney/ wilcox
+
+#not sure this is right
+wilcox_ts<- pairwise.wilcox.test(as.numeric(subset_O_ts$Ordinal3),  subset_O_ts$set_num,  p.adjust.method="holm")
+
+
+wilcox_rra<- pairwise.wilcox.test(as.numeric(subset_O_rra$Ordinal3),  subset_O_rra$set_num,  p.adjust.method=p.adjust.methods)
+wilcox_rra
+
+wilcox_ra<- pairwise.wilcox.test(as.numeric(subset_O_ra$Ordinal3),  subset_O_ra$set_num,  p.adjust.method=p.adjust.methods)
+
+
+wilcox_ra
+wilcox_rra
+wilcox_ts
+
+ 
 ```
 
 ## Summary chart
@@ -515,14 +648,14 @@ same with clmm
 GLMM found there is *no evidence of discrimination* between ebracattus and tungara. This may be because there was no habituation to D. ebracattus (actually there was slight sensitization) 
 CLMM found *NO EVIDENCE OF DISCRIMINATION* 
 ```{r, echo=FALSE}
-
 de_desc_clm <- clmm(Ordinal3 ~ as.factor(set_num) + (1|Bat_ID) , data = subset_O_de, Hess=TRUE)
 summary(de_desc_clm)
 de_t_de_desc <- boxplot(Ordinal3 ~ (as.factor(set_num)), main = "de_t_de", data=subset_O_de)
 de_lst<-lsmeans(de_desc_clm, ~set_num)
 cld_de<-cld(de_lst)
 cld_de
-pairs(de_lst)
+pair_cld_de<- pairs(de_lst)
+
 ```
 
 
@@ -545,7 +678,7 @@ ra_descrim_plot
 ra_lst<-lsmeans(ra_desc_clm, ~set_num)
 cld_ra<-cld(ra_lst)
 cld_ra
-pairs(ra_lst)
+pairs_cld_ra<- pairs(ra_lst)
 ```
 
 ### Reversed *R. alata* v tungara
@@ -566,16 +699,18 @@ boxplot(Ordinal3 ~ (as.factor(set_num)), main = "rra_rt_rra", data=subset_O_rra)
 rra_lst<-lsmeans(rra_desc_clm, ~set_num)
 cld_rra<-cld(rra_lst)
 cld_rra
+pairs_cld_rra<- pairs(rra_lst)
+
 ```
 
 
 ### reversed tungara v reversed *R. alata*
-
+### return to these values, 6 is way low. 
 model didn't converge, probably bc near boundary. The different treatments do not appear to be different (using lsmeans) (though it did converge with Original Ordinal scale)
 ```{r, echo=FALSE}
 subset_O_rt$set_num<- as.factor(subset_O_rt$set_num)
-class(subset_O_rt$set_num)
-rt_desc_clm <- clmm(Ordinal3 ~ as.factor(set_num) + (1|Bat_ID) , data = subset_O_rt, Hess=TRUE, control=clmm.control(grtol=1e-6))
+
+rt_desc_clm <- clm(Ordinal3 ~ as.factor(set_num)  , data = subset_O_rt, Hess=TRUE)
 summary(rt_desc_clm)
 rt_desc_clmx <- clm(Ordinal3 ~ as.factor(set_num) , data = subset_O_rt, Hess=TRUE)
 summary(rt_desc_clmx)
@@ -585,6 +720,7 @@ plot(Ordinal3 ~ (as.factor(set_num)), main = "rt_rra_rt", data=subset_O_rt)
 rt_lst<-lsmeans(rt_desc_clm, ~set_num) 
 cld_rt<-cld(rt_lst)
 cld_rt
+pairs_cld_rt<- pairs(rt_lst)
 ```
 
  there is discrimination, if not dishabituation between reversed tungara and reversed alata using continuous scores 
@@ -601,11 +737,27 @@ sum_t_de
 #boxplot
 t_de_t_desc_plot<- boxplot(Ordinal3 ~ (as.factor(set_num)), main = "t_de_t", data=subset_O_t_de)
 ```
+dif analysis strategy
+```{r}
+#data restructure
+
+t_de_ordinal_slim<- cbind(subset_O_t_de$bat_name, subset_O_t_de$set_num, subset_O_t_de$Ordinal3)
+t_de_ordinal_slim <- as.data.frame(t_de_ordinal_slim, row.names = c("ID", "Set", "Val"))
+t_de_m <- reshape(t_de_ordinal_slim, idvar = "V1", timevar = "V2", direction = "wide")
+
+friedman.test(cbind(t_de_m$V3.5, t_de_m$V3.6, t_de_m$V3.7))
+#same outcome
+## 
+## 	Friedman rank sum test
+## 
+## data:  cbind(read, write, math) 
+## Friedman chi-squared = 0.645, df = 2, p-value = 0.7244
+```
 ```{r}
 t_de_lst<-lsmeans(t_de_desc_clm, ~set_num)
 cld_t_de<-cld(t_de_lst)
 cld_t_de
-pairs(t_de_lst)
+pairs_cld_t_de<- pairs(t_de_lst)
 ```
 
 There is no evidence for discrimination between tungara and dendrobates in twitches Perhaps/ likley due to high overall responses
@@ -623,11 +775,16 @@ summary(t_ra_desc_clm)
 t_ra_lst <- lsmeans(t_ra_desc_clm, ~set_num)
 cld_t_ra <- cld(t_ra_lst)
 cld_t_ra
+pairs_cld_t_ra<- pairs(t_ra_lst)
+pairs_cld_t_ra
 
+## regular Kruskal wallance
+
+t_ra_k.test<- kruskal.test(Ordinal3 ~ as.factor(set_num), data =subset_O_t_ra )
+t_ra_k.test
 ```
 
 
-No discimination between treatments detected. (generalization or dishabituation) with either twitches or an ordinal scale. Both 6 and 7 were lower than 5, evidence only of further habituation. 
 
 
 ## Intraspecific Trials
@@ -643,6 +800,7 @@ tc_ts_tc_plot<- boxplot(Ordinal3 ~ (as.factor(set_num)), main = "tc_ts_tc", data
 tc_lst<-lsmeans(tc_desc_clm, ~set_num)
 cld_tc<-cld(tc_lst)
 cld_tc
+pairs_cld_tc <- pairs(tc_lst)
 ```
 
 No evidence of habituation or discrimination with either scale. 
@@ -651,15 +809,29 @@ It is probable that discrimination is obscured by simple calls being less salien
 
 ##Simple tungara against complex tungara call
 ```{r}
+class(as.factor(subset_O_ts$set_num))
 
 ts_desc_clm <- clmm(Ordinal3 ~ as.factor(set_num) + (1|Bat_ID) , data = subset_O_ts, Hess=TRUE)
 summary(ts_desc_clm)
-ts_lst<-lsmeans(ts_desc_clm, ~set_num)
+ts_lst<-lsmeans(ts_desc_clm, ~ as.factor(set_num))
 cld_ts<-cld(ts_lst)
 cld_ts
-pairs(ts_lst)
+pairs_cld_ts<- pairs(ts_lst)
+pairs_cld_ts
 # boxplot
 ts_tc_ts_plot<- boxplot(Ordinal3 ~ (as.factor(set_num)), main = "ts_tc_ts", data=subset_O_ts)    
+
+```
+diff analysis strat
+```{r}
+#data restructure
+
+ts_ordinal_slim<- cbind(subset_O_ts$bat_name, subset_O_ts$set_num, subset_O_ts$Ordinal3)
+ts_ordinal_slim <- as.data.frame(ts_ordinal_slim, row.names = c("ID", "Set", "Val"))
+ts_m <- reshape(ts_ordinal_slim, idvar = "V1", timevar = "V2", direction = "wide")
+
+friedman.test(cbind(ts_m$V3.5, t_de_m$V3.6, t_de_m$V3.7))
+#same outcome
 
 ```
 
@@ -672,38 +844,68 @@ Bats discriminate between complex and simple tungara calls using twitches (0c v 
 
 ```{r}
 
-qqnorm(subset_tia1$all_tw_set)
-#almost half zeros
-# not justifiably normal (left/0 skewed)
-
 tia_desc_clm <- clmm(Ordinal3 ~ as.factor(set_num) + (1|Bat_ID) , data = subset_O_tia, Hess=TRUE)
 summary(tia_desc_clm)
 
 tia_lst<-lsmeans(tia_desc_clm, ~set_num)
 cld_tia<-cld(tia_lst)
 cld_tia
-pairs(tia_lst)
+pairs_cld_tia<- pairs(tia_lst)
 
 # boxplot
 tia_tib_tia_plot<- boxplot(Ordinal3 ~ (as.factor(set_num)), main = "tia_tib_tia", data=subset_O_tia)
 ```
-significant differences and pairwise contrasts:
 
 There is no apparent discrimination between individual tungaras with either scale. 
+####significant differences and pairwise contrasts summary:
 
+All together: 
+```{r}
+cld_de
+cld_tia
+cld_ra
+cld_rra
+cld_rt
+cld_t_de
+cld_t_ra
+cld_tc
+cld_ts
 
+pair_cld_de
+
+pairs_cld_ra
+
+pairs_cld_rra
+
+pairs_cld_rt
+
+pairs_cld_t_de
+
+pairs_cld_t_ra
+
+pairs_cld_tc
+pairs_cld_ts
+
+pairs_cld_tia
+```
 ###Plots of whole trials with Ordinal Scaling by set
 
 t.d. dataset works  
         
 
-[de_t_de]
+#### de_t_de
+#make de_data
 ```{r}
       
-        #making a plot for the entire of one treatment, with each set getting a boxplot
-        
+       
         #DE
-        de_data <- t.d.[t.d.$trial_name_2=="de_t_de", ]       
+        de_data <- t.d.[t.d.$trial_name_2=="de_t_de", ]  
+```
+
+boxplot
+```{r}
+ #making a plot for the entire of one treatment, with each set getting a boxplot
+        
         p_de <-ggplot(data=de_data, aes(x = set_num, y = as.numeric(Ordinal3)) )     
         p_de <- p_de + geom_boxplot(aes(fill=factor(set_num)))
         #p_de<- p_de + geom_point(position = position_jitter(width = 0.1))
@@ -722,7 +924,7 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         #p_de <- p_de + stat_smooth(colour="black", size=0.5, method="lm", se=FALSE ,  data= subset(de_data, de_data$set_num!="6" & de_data$set_num!="7")) 
        
         p_de
- ggsave("de_trial_ordinal.jpg", height =5, width = 7.5)             
+ #ggsave("de_trial_ordinal.jpg", height =5, width = 7.5)             
 ```
 
 mosaic 
@@ -735,10 +937,10 @@ levels(de_data$Ordinal3)
 de_data$Ordinal3<- factor(de_data$Ordinal3, levels = c(4, 3, 2, 1, 0))
 levels(de_data$Ordinal3)
 
- #Ra_T
+ 
 mosaic_de<- ggplot(data = de_data) +
 geom_mosaic(aes(weight = 1, x = product(Ordinal3, set_num), fill=Ordinal3), na.rm=TRUE) +  
-scale_fill_brewer(type="seq", palette= "YlGn", direction=-1) +
+scale_fill_brewer(type="seq", palette= Palette, direction=-1) +
 labs(x="Trial number ", title='Interest scores by trial number') + 
 labs(title =  " D. ebraccatus / 0-chuck P. pustulosus") +
 theme(plot.title = element_text(face="italic", size=31.5)) + #this makes the plot title italic, affects the size
@@ -750,20 +952,23 @@ mosaic_de
 # alternate palette "YlGnBu"
 
 
-ggsave("de_trial_mosaic.pdf", height =5, width = 7)  
+#ggsave("de_trial_mosaic.pdf", height =5, width = 7)  
   
 #axis.text.y=element_blank(),
 
 ```
 
-t_de
+#### t_de data
 ```{r}
       
-        #making a plot for the entire of one treatment, with each set getting a boxplot
-        
+       
         #T_DE
-        t_de_data<- t.d.[t.d.$trial_name_2=="t_de_t", ]       
+        t_de_data<- t.d.[t.d.$trial_name_2=="t_de_t", ] 
+```
+
+```{r}
         p_t_de<-ggplot(data=t_de_data, aes(x = set_num, y = as.numeric(Ordinal3)))      
+      
         p_t_de<- p_t_de+ geom_boxplot(aes(fill=factor(set_num)))
         #p_de<- p_t_de+ geom_point(position = position_jitter(width = 0.1))
         p_t_de<- p_t_de+ guides(fill=FALSE)
@@ -797,7 +1002,7 @@ levels(t_de_data$Ordinal3)
  #Ra_T
 mosaic_t_de<- ggplot(data = t_de_data) +
 geom_mosaic(aes(weight = 1, x = product(Ordinal3, set_num), fill=Ordinal3), na.rm=TRUE) +  
-scale_fill_brewer(type="seq", palette= "YlGn", direction=-1) +
+scale_fill_brewer(type="seq", palette= Palette, direction=-1) +
 labs(x="Trial number ", title='Interest scores by trial number') + 
 labs(title =  " 0-chuck P. pustulosus / D. ebraccatus") +
 theme(plot.title = element_text(face="italic", size=29.5)) + #this makes the plot title italic, affects the size
@@ -864,7 +1069,7 @@ levels(ra_t_data$Ordinal3)
  #Ra_T
 mosaic_ra<- ggplot(data = ra_t_data) +
 geom_mosaic(aes(weight = 1, x = product(Ordinal3, set_num), fill=Ordinal3), na.rm=TRUE) +  
-scale_fill_brewer(type="seq", palette= "YlGn", direction=-1) +
+scale_fill_brewer(type="seq", palette= Palette, direction=-1) +
 labs(x="Trial number ", title='Interest scores by trial number') + 
 labs(title =  " R. alata / 0-chuck P. pustulosus") +
 theme(plot.title = element_text(face="italic", size=29.5)) + #this makes the plot title italic, affects the size
@@ -881,13 +1086,17 @@ ggsave("ra_t_trial_mosaic.pdf", height =5, width = 7)
 #axis.text.y=element_blank(),
 
 ```
-[t_ra_t]
+#### [t_ra_t]
+
+data
 ```{r}
       
- #making a plot for the entire of one treatment, with each set getting a boxplot
-        
         #t_ra
-        t_ra_data <- t.d.[t.d.$trial_name_2=="t_ra_t", ]       
+        t_ra_data <- t.d.[t.d.$trial_name_2=="t_ra_t", ]  
+```
+
+boxplot
+```{r}
         p_t_ra <- ggplot(data = t_ra_data, aes(x = set_num, y = as.numeric(Ordinal3)))      
         p_t_ra <- p_t_ra + geom_boxplot(aes(fill=factor(set_num)))
         #p_t_ra <- p_t_ra + geom_point(position = position_jitter(width = 0.1))
@@ -921,7 +1130,7 @@ levels(t_ra_data$Ordinal3)
  #Ra_T
 mosaic_t_ra<- ggplot(data = t_ra_data) +
 geom_mosaic(aes(weight = 1, x = product(Ordinal3, set_num), fill=Ordinal3), na.rm=TRUE) +  
-scale_fill_brewer(type="seq", palette= "YlGn", direction=-1) +
+scale_fill_brewer(type="seq", palette= Palette, direction=-1) +
 labs(x="Trial number ", title='Interest scores by trial number') + 
 labs(title =  " 0-chuck P. pustulosus / R. alata") +
 theme(plot.title = element_text(face="italic", size=29.5)) + #this makes the plot title italic, affects the size
@@ -979,7 +1188,7 @@ levels(tia_data$Ordinal3)
  #Ra_T
 mosaic_tia<- ggplot(data = tia_data) +
 geom_mosaic(aes(weight = 1, x = product(Ordinal3, set_num), fill=Ordinal3), na.rm=TRUE) +  
-scale_fill_brewer(type="seq", palette= "YlGn", direction=-1) +
+scale_fill_brewer(type="seq", palette= Palette, direction=-1) +
 labs(x="Trial number ", title='Interest scores by trial number') + 
 labs(title =  "Different individual P. pustulosus") +
 theme(plot.title = element_text(face="italic", size=33)) + #this makes the plot title italic, affects the size
@@ -997,13 +1206,16 @@ ggsave("tia_trial_mosaic.pdf", height =5, width = 7)
 
 ```
 
-[ts_tc_ts]
+#### [ts_tc_ts]
 ```{r}
       
-        #making a plot for the entire of one treatment, with each set getting a boxplot
-        
+  
         #ts_tc
-        ts_data <- t.d.[t.d.$trial_name_2=="ts_tc_ts", ]       
+        ts_data <- t.d.[t.d.$trial_name_2=="ts_tc_ts", ] 
+
+```
+
+```{r}
         p_ts <- ggplot(data = ts_data, aes(x = set_num, y = as.numeric(Ordinal3)))      
         p_ts <- p_ts + geom_boxplot(aes(fill=factor(set_num)))
         #p_ts <- p_ts + geom_point(position = position_jitter(width = 0.1))
@@ -1037,7 +1249,7 @@ levels(ts_data$Ordinal3)
  
 mosaic_ts<- ggplot(data = ts_data) +
 geom_mosaic(aes(weight = 1, x = product(Ordinal3, set_num), fill=Ordinal3), na.rm=TRUE) +  
-scale_fill_brewer(type="seq", palette= "YlGn", direction=-1) +
+scale_fill_brewer(type="seq", palette= Palette, direction=-1) +
 labs(x="Trial number ", title='Interest scores by trial number') + 
 labs(title =  "0-chuck  / 2-chuck P. pustulosus") +
 theme(plot.title = element_text(face="italic", size=33)) + #this makes the plot title italic, affects the size
@@ -1057,13 +1269,17 @@ ggsave("ts_trial_mosaic.pdf", height =5, width = 7)
 
 
 
-[tc_ts_tc]
+###[tc_ts_tc]
+
+tc data
 ```{r}
       
-        #making a plot for the entire of one treatment, with each set getting a boxplot
-        
-        #tc
-        tc_data <- t.d.[t.d.$trial_name_2=="tc_ts_tc", ]       
+  
+        ##tc
+        tc_data <- t.d.[t.d.$trial_name_2=="tc_ts_tc", ]  
+```
+
+```{r}
         p_tc <- ggplot(data = tc_data, aes(x = set_num, y = as.numeric(Ordinal3)))      
         p_tc <- p_tc + geom_boxplot(aes(fill=factor(set_num)))
         #p_tc <- p_tc + geom_point(position = position_jitter(width = 0.1))
@@ -1081,7 +1297,7 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         p_tc <- p_tc + coord_cartesian(ylim = c(0,5))
         
         p_tc
- ggsave("tc_trial_ordinal.jpg", height =5, width = 7)             
+ #ggsave("tc_trial_ordinal.jpg", height =5, width = 7)             
 ```
 
 
@@ -1095,10 +1311,10 @@ levels(tc_data$Ordinal3)
 tc_data$Ordinal3<- factor(tc_data$Ordinal3, levels = c(4, 3, 2, 1, 0))
 levels(tc_data$Ordinal3)
 
- #Ra_T
+#plot
 mosaic_tc<- ggplot(data = tc_data) +
 geom_mosaic(aes(weight = 1, x = product(Ordinal3, set_num), fill=Ordinal3), na.rm=TRUE) +  
-scale_fill_brewer(type="seq", palette= "YlGn", direction=-1) +
+scale_fill_brewer(type="seq", palette= Palette, direction=-1) +
 labs(x="Trial number ", title='Interest scores by trial number') + 
 labs(title =  "2-chuck / 0-chuck P. pustulosus") +
 theme(plot.title = element_text(face="italic", size=33)) + #this makes the plot title italic, affects the size
@@ -1157,7 +1373,7 @@ levels(rt_data$Ordinal3)
  #Ra_T
 mosaic_rt<- ggplot(data = rt_data) +
 geom_mosaic(aes(weight = 1, x = product(Ordinal3, set_num), fill=Ordinal3), na.rm=TRUE) +  
-scale_fill_brewer(type="seq", palette= "YlGn", direction=-1) +
+scale_fill_brewer(type="seq", palette= Palette, direction=-1) +
 labs(x="Trial number ", title='Interest scores by trial number') + 
 labs(title =  "Rev. P. pustulosus / Rev. R. alata") +
 theme(plot.title = element_text(face="italic", size=33)) + #this makes the plot title italic, affects the size
@@ -1216,7 +1432,7 @@ levels(rra_data$Ordinal3)
  #Ra_T
 mosaic_rra<- ggplot(data = rra_data) +
 geom_mosaic(aes(weight = 1, x = product(Ordinal3, set_num), fill=Ordinal3), na.rm=TRUE) +  
-scale_fill_brewer(type="seq", palette= "YlGn", direction=-1) +
+scale_fill_brewer(type="seq", palette= Palette, direction=-1) +
 labs(x="Trial number ", title='Interest scores by trial number') + 
 labs(title =  "Rev. R. alata / Rev. P. pustulosus") +
 theme(plot.title = element_text(face="italic", size=33)) + #this makes the plot title italic, affects the size
@@ -1244,13 +1460,17 @@ head(t.d.just5)
 
 model
 ```{r}
+##
 
-trial5mod<- clmm(Ordinal3 ~ primary_stim + (trial_number|Bat_ID), Hess=TRUE, data = attn_set_5) 
+trial5mod<- clmm(Ordinal3 ~ primary_stim + (trial_number|Bat_ID), Hess=TRUE, data = t.d.just5) 
 s.trial5mod<- summary(trial5mod)
 s.trial5mod
 lst_5mod<-cld(lsmeans(trial5mod, ~primary_stim))
 lst_5mod
-Anova(trial5mod)
+
+
+
+##
 
 ```
 
@@ -1258,19 +1478,19 @@ Plotting set 5::
 
 ```{r}
 
-trial5mod<- clmm(Ordinal ~ primary_stim -1 + (trial_number|Bat_ID), Hess=TRUE, data = attn_set_5) 
+trial5mod<- clmm(Ordinal3 ~ primary_stim -1 + (trial_number|Bat_ID), Hess=TRUE, data = t.d.just5) 
 s.trial5mod<- summary(trial5mod)
 s.trial5mod
 lst_5mod<-cld(lsmeans(trial5mod, ~primary_stim))
 lst_5mod
-Anova(trial5mod)
+
 
 ```
 
 ```{r}
  t.d.just5$primary_stim <- factor(t.d.just5$primary_stim,levels = c("ts" ,"t1c", "t2c" , "de", "ra" , "rra","rt" ),ordered = TRUE)
 
-p5<- ggplot(data = t.d.just5, aes(x = primary_stim, y = as.numeric(Ordinal), fill=primary_stim))
+p5<- ggplot(data = t.d.just5, aes(x = primary_stim, y = as.numeric(Ordinal3), fill=primary_stim))
 p5<- p5+ geom_boxplot()
 p5<- p5+ geom_point(position = position_jitter(width = 0.1))
 p5<- p5+ theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "none") #format x-axis, and remove side legend
@@ -1285,13 +1505,13 @@ panel.background = element_blank(), axis.line = element_line(colour = "black")) 
 p5<- p5+ xlab("Acoustic stimuli")
 p5<- p5+ ylab("Responses in trial 5")
 p5
-ggsave("Ordinal Response in set 5.jpg", width = 3, height = 4)
-ggsave("CI_comparison_final.png",width=5)
+#ggsave("Ordinal Response in set 5.jpg", width = 3, height = 4)
+#ggsave("CI_comparison_final.png",width=5)
 ```
 
 mosaic trial 5 :
 ```{r}
-
+## 
 t.d.just5_a <-  t.d.just5
 t.d.just5_a$primary_stim <- factor(t.d.just5$primary_stim,levels = c("ts" ,"t1c", "t2c" , "de", "ra" , "rra","rt" ),ordered = TRUE)
  #I'm reversing the ordering of the Ordinal factor, just for plotting, because I think it looks clearer/ more like habituation if the lowest interest score is on the top. 
@@ -1315,7 +1535,7 @@ class(t.d.just5_a$primary_stim)   ##R
 
   #worry about axis later. 
  
-ggsave("set5_interest_mosaic.pdf", width = 6.5, height = 5.55)
+#ggsave("set5_interest_mosaic.pdf", width = 6.5, height = 5.55)
 ```
 
 
@@ -1383,7 +1603,7 @@ bat_data<- subset(bat_data, bat_data$bat_name != "Blackbeard" ) #removes unrespo
         
         #make column with all the twitches per each trial
         attn_trial$all_tw_trial<- attn_trial$sm_tw_trial + attn_trial$md_tw_trial + attn_trial$lg_tw_trial
-    View(attn_trial)
+    
  #MOD:
     
 tw_trial_mod<- glmer(all_tw_trial ~ primary_stim -1 + (trial_number|Bat_ID), data =attn_trial, family = "poisson")       
