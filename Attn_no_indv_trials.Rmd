@@ -1,7 +1,7 @@
 ---
-title: "Ordinal_scoring_clean"
+title: "Attention Code"
 author: "may"
-date: "December 8, 2017"
+date: "December 6, 2018"
 output: html_document
 ---
 
