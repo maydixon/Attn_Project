@@ -18,21 +18,29 @@ library(lsmeans)
 library(readxl)
 library(readr)
 library(RVAideMemoire)
+library(multcompView)
 ```
 
 ###palette controls for plotting colors, controls all plots
 ```{r}
 #Checking out a palette of colors:
-        #plotCol(gray(1.1:11 /11))
-     
-      
+        #plotCol(gray(1.1:11 /8))
+   gray.colors(8, start = 0.0, end = 0.9, gamma = 2.2, alpha = NULL)  
+  grays<- barplot(1:8, col = gray.colors(8, start = 0.0, end = .9, gamma = 1.5, alpha = NULL))  
+  grays
+
 #finding the name of those colors:
-      #gray(1.1:8 /9)
+     barplot(1:7, col =gray(1.5:8/8))
+     gray(1.5:8/8)
+     
+```
+
+```{r}
       
 #reference colors for plots
 #can change all from here
 Ts  = "#1F1F1F"
-T1c ="#3C3C3C"
+#T1c ="#3C3C3C"
 T2c = "#585858"
 De  = "#747474"
 Ra  ="#919191"
@@ -40,6 +48,7 @@ Rra ="#ADADAD"
 Rt  ="#C9C9C9"
 
 Palette<- "YlGn"  # or "Grays" for grayscale version
+
 
 
 ```
@@ -51,10 +60,11 @@ remove unresponsive bat
 ```{r}
 attn_R <- subset(attn_R , attn_R $bat_name != "Blackbeard" ) #removes unresponsive bat
 ```
-remove unused treatment
+remove unused treatments
 ```{r}
 attn_R <- subset(attn_R , attn_R $trial_name_2 != "t_rt_t" ) #removes treatment
 attn_R <- subset(attn_R , attn_R $trial_name_2 != "rt_t_rt" ) #removes treatment
+attn_R <- subset(attn_R , attn_R $trial_name_2 != "tia_tib_tia" ) #removes treatment
 ```
 
 reorder columns
@@ -99,7 +109,7 @@ for (i in 1:nrow(t.d.)){
 
 write to github
 ```{r}
-write.csv(t.d., file = "Hab_and_eco_sal.csv")
+write.csv(t.d., file = "Hab_and_eco_sal_nINDV.csv")
 ```
 
 make ordinal data read as ordered factor
@@ -113,6 +123,23 @@ t.d.$primary_stim<- factor(t.d.$primary_stim, ordered = FALSE)
 levels(t.d.$primary_stim)
 ```
 
+```{r}
+#Make a row for sex with Vila and Drake 1 and males 0
+t.d.$Sex<-rep(0,nrow(t.d.))
+
+for (i in 1:nrow(t.d.)){
+      
+  if (t.d.$bat_name[i] == "Sir_Frances_Drake") {
+   t.d.$Sex[i]<-"1"
+} else if (t.d.$bat_name[i] == "Vila") {
+   t.d.$Sex[i]<-"1"
+} else 
+      t.d.$Sex[i]<-"0"
+
+}
+
+
+```
 ##Now investigate initial interest and all the rest with cumulative linear mixed model. 
 
 ####[data wrangling]
@@ -147,8 +174,38 @@ t.d.int.t1c.2<- t.d.int.t1c.1[!duplicated(t.d.int.t1c.1$Bat_ID), ] #removes dupl
 t.d.int<-rbind(t.d.int.most, t.d.int.ts.2, t.d.int.t1c.2) #combine subsets, this is the right data to use.
 
 ```
+
+
+```{r}
+#Make a row for sex with Vila and Drake 1 and males 0
+t.d.int$Sex<-rep(0,nrow(t.d.int))
+
+for (i in 1:nrow(t.d.int)){
+      
+  if (t.d.int$bat_name[i] == "Sir_Frances_Drake") {
+   t.d.int$Sex[i]<-"1"
+} else if (t.d.int$bat_name[i] == "Vila") {
+   t.d.int$Sex[i]<-"1"
+} else 
+      t.d.int$Sex[i]<-"0"
+
+}
+
+```
+
+```{r}
+t.d.int.summary.sex  <- t.d.int %>% group_by (primary_stim, Sex) %>% summarise(mean=mean(as.numeric(Ordinal3)), sd=sd(as.numeric(Ordinal3))) %>% write_csv("initial_interest_by_sex.csv")
+
+t.d.int.summary.sex.2<- t.d.int.summary.sex  %>% group_by(Sex) %>% summarise("mean initial response" = mean(mean))
+t.d.int.summary.sex.2 %>% write_csv("initial_interest_by_sex_summary.csv")
+
+```
+
+
 #### check initial interest, ordinal scale
 ```{r}
+
+
 #current results, ordinal scale
 
 #random only model, clm
@@ -162,7 +219,7 @@ summary(int_int_rand)
 
 anova(int_int_only, int_int_rand) 
 
-##not significantly different. So no random effect needed, keep simpler mode, int_rand
+##not significantly different at 0.05 level. So no random effect needed, keep simpler mode, int_rand
 
 ## initial interest model with main effect, no random, clm
 
@@ -177,16 +234,24 @@ anova(int_int_only, initial_int_primary)
 
 ## look at model anyway?
 
-cum_lsmeans_primary<-lsmeans::lsmeans(initial_int_primary, "primary_stim")
+#come back to look at this
+cum_lsmeans_primary<-lsmeans::lsmeans(initial_int_primary, "primary_stim", mode = "mean.class")
 cum_lsmeans_primary
 sv_cum_lsmeans_primary<- cld(cum_lsmeans_primary)
 sv_cum_lsmeans_primary
+sv_cum_lsmeans_primary %>% as.data.frame() %>% write_csv("initial_interest_estimates.csv")
+
 pairs_lsmeans_primary <-pairs(cum_lsmeans_primary)
-pairs_lsmeans_primary
+pairs_lsmeans_primary 
+pairs_lsmeans_primary %>% as.data.frame() %>% write_csv("pairwise_initial_interest.csv")
+
 plot(cum_lsmeans_primary)
-# adjusted for a fmaily of 7 estimates. 
+# adjusted for a fmaily of 6 estimates. 
+
+```
 
 
+```{r}
 ########
 ## http://glmm.wdfiles.com/local--files/examples/Banta_2011_part1.pdf
 ## p. 21
@@ -218,7 +283,7 @@ levels(t.d.int$primary_stim)
 ```
 ```{r}
 #reordering for plotting:
-      t.d.int$primary_stim <- factor(t.d.int$primary_stim,levels = c("ts" ,"t1c", "t2c" , "de", "ra" , "rra","rt" ),ordered = TRUE)
+      t.d.int$primary_stim <- factor(t.d.int$primary_stim,levels = c("ts" , "t2c" , "de", "ra" , "rra","rt" ),ordered = TRUE)
       
 #perhaps best order is: Ts, T, Tc, Rt, Rra, Ra, De, can do using relevel() 
 ```
@@ -230,16 +295,16 @@ int.plot<- ggplot(data = t.d.int, aes(x = primary_stim, y = all_tw_set, fill=pri
 int.plot<- int.plot+ geom_boxplot()
 int.plot<- int.plot+ geom_point(position = position_jitter(width = 0.1))
 int.plot<- int.plot+ theme(axis.text.x = element_text(angle = 45, hjust=1, size = 14), legend.position = "none") #format x-axis, and remove side legend #hjust 1 aligns labels
-int.plot<- int.plot+ scale_x_discrete(labels=c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))  +
-              scale_fill_manual(breaks = c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"),
-                                values=c(Ts, T1c, T2c, De, Ra, Rra, Rt))
+int.plot<- int.plot+ scale_x_discrete(labels=c("0c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))  +
+              scale_fill_manual(breaks = c("0c P. pustulosus", "2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"),
+                                values=c(Ts, T2c, De, Ra, Rra, Rt))
 int.plot<- int.plot+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.title= element_text(size=14))  #gets rid of background
 int.plot<- int.plot+ xlab("Acoustic stimuli")
 int.plot<- int.plot+ ylab("Ear-twitches in trial 1")
 int.plot
 
-ggsave("initial_interest_plot.pdf", width = 6.5, height = 5.55)
+#ggsave("initial_interest_plot.pdf", width = 6.5, height = 5.55)
 ```
 WITH ORDINAL
 ```{r}
@@ -250,22 +315,40 @@ t.d.int$Ordinal3<-as.numeric(t.d.int$Ordinal3)
 Boxplot:
 ```{r}
  
+int.plot_Ordinal_sex<- ggplot(data = t.d.int, aes(x = primary_stim, y = Ordinal3, fill=primary_stim))
+int.plot_Ordinal_sex<- int.plot_Ordinal_sex+ geom_boxplot()
+int.plot_Ordinal_sex<- int.plot_Ordinal_sex+ geom_point(position = position_jitter(width = 0.1), aes(colour = factor(Sex)))
+int.plot_Ordinal_sex<- int.plot_Ordinal_sex+ theme(axis.text.x = element_text(angle = 45, hjust=1, size = 14), legend.position = "none") #format x-axis, and remove side legend #hjust 1 aligns labels
+int.plot_Ordinal_sex<- int.plot_Ordinal_sex+ scale_x_discrete(labels=c("0c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))  +
+              scale_fill_manual(breaks = c("0c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"),
+                                values=c(Ts, T2c, De, Ra, Rra, Rt))
+int.plot_Ordinal_sex<- int.plot_Ordinal_sex + coord_cartesian(ylim = c(0, 5))
+int.plot_Ordinal_sex<- int.plot_Ordinal_sex+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.title= element_text(size=14))  #gets rid of background
+int.plot_Ordinal_sex<- int.plot_Ordinal_sex+ xlab("Acoustic stimuli")
+int.plot_Ordinal_sex<- int.plot_Ordinal_sex+ ylab("Ordinal responses in first trial")
+int.plot_Ordinal_sex
 
+
+#ggsave("initial_interest_Ordinal_sex.jpg", width = 6.5, height = 5.55)
+```
+
+Boxplot sex
+
+```{r}
 int.plot_Ordinal<- ggplot(data = t.d.int, aes(x = primary_stim, y = Ordinal3, fill=primary_stim))
 int.plot_Ordinal<- int.plot_Ordinal+ geom_boxplot()
-int.plot_Ordinal<- int.plot_Ordinal+ geom_point(position = position_jitter(width = 0.1))
+int.plot_Ordinal<- int.plot_Ordinal+ geom_point(position = position_jitter(width = 0.1), aes(colour = factor(Sex)))
 int.plot_Ordinal<- int.plot_Ordinal+ theme(axis.text.x = element_text(angle = 45, hjust=1, size = 14), legend.position = "none") #format x-axis, and remove side legend #hjust 1 aligns labels
-int.plot_Ordinal<- int.plot_Ordinal+ scale_x_discrete(labels=c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))  +
-              scale_fill_manual(breaks = c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"),
-                                values=c(Ts, T1c, T2c, De, Ra, Rra, Rt))
+int.plot_Ordinal<- int.plot_Ordinal+ scale_x_discrete(labels=c("0c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))  +
+              scale_fill_manual(breaks = c("0c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"),
+                                values=c(Ts, T2c, De, Ra, Rra, Rt))
 int.plot_Ordinal<- int.plot_Ordinal + coord_cartesian(ylim = c(0, 5))
 int.plot_Ordinal<- int.plot_Ordinal+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.title= element_text(size=14))  #gets rid of background
 int.plot_Ordinal<- int.plot_Ordinal+ xlab("Acoustic stimuli")
 int.plot_Ordinal<- int.plot_Ordinal+ ylab("Ordinal responses in first trial")
 int.plot_Ordinal
-
-ggsave("initial_interest_Ordinal.jpg", width = 6.5, height = 5.55)
 ```
 
 Mosaic plot:
@@ -282,24 +365,25 @@ Mosaic plot:
 ## start here, see if this makes the plot better, then look back adn make sure this plot is using the right data, bc different than before 
 #$$$$$$$$$$$$$$$$
 
-Int_palette<- c("#006837", "#31a354", "#78c679", "#ffffcc")
+Int_palette<- c("#006837", "#31a354", "#78c679","#c2e699cc", "#ffffcc")
 #scale color brewer, name colors, ylgn 5
 
 t.d.int.plot<- t.d.int
 
-t.d.int.plot$primary_stim <- factor(t.d.int.plot$primary_stim,levels = c("ts" ,"t1c", "t2c" , "de", "ra" , "rra","rt" ),ordered = TRUE)
+t.d.int.plot$primary_stim <- factor(t.d.int.plot$primary_stim,levels = c("ts" , "t2c" , "de", "ra" , "rra","rt" ),ordered = TRUE)
 
 t.d.int.plot$Ordinal3<- factor(t.d.int.plot$Ordinal3, levels = c(4, 3, 2, 1, 0))
-t.d.int.plot$Ordinal3<- factor(t.d.int.plot$Ordinal3, ordered= FALSE)
+#t.d.int.plot$Ordinal3<- factor(t.d.int.plot$Ordinal3, ordered= FALSE)
+
 levels(t.d.int.plot$Ordinal3)
 class(t.d.int.plot$primary_stim)   ##R
- #Ra_T
+ 
   mosaic_int<- ggplot(data = t.d.int.plot) +
    geom_mosaic(aes(weight = 1, x = product(Ordinal3, primary_stim), fill=Ordinal3), na.rm=TRUE) +  
         scale_fill_manual(values=Int_palette)+
    #scale_fill_brewer(type="seq", palette= Int_palette, direction=-1) +
-  # scale_x_continuous(breaks=c("ts",  "t1c", "t2c", "de",  "ra",  "rra", "rt" ),
-     #   labels=c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))+
+  # scale_x_continuous(breaks=c("ts", "t2c", "de",  "ra",  "rra", "rt" ),
+     #   labels=c("0c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))+
   
           theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black")) + #this gets rid of grey background and lines, adds y+x axes lines
         labs(x="Acoustic stimuli ", y= "Interest score in trial 1") +
@@ -307,7 +391,7 @@ class(t.d.int.plot$primary_stim)   ##R
   mosaic_int
 
   
-ggsave("initial_interest_mosaic.pdf", width = 6.5, height = 5.55)
+#ggsave("initial_interest_mosaic.pdf", width = 6.5, height = 5.55)
 ```
 
 
@@ -324,9 +408,9 @@ int.plot_Ordinal2<- ggplot(data = t.d.int.summary.data, aes(x = primary_stim, y 
 int.plot_Ordinal2<- int.plot_Ordinal2+ geom_point()
 int.plot_Ordinal2<- int.plot_Ordinal2+ geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.2, position=position_dodge(.9)) 
 int.plot_Ordinal2<- int.plot_Ordinal2+ theme(axis.text.x = element_text(angle = 45, hjust=1, size = 14), legend.position = "none") #format x-axis, and remove side legend #hjust 1 aligns labels
-int.plot_Ordinal2<- int.plot_Ordinal2+ scale_x_discrete(labels=c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))  +
-              scale_fill_manual(breaks = c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"),
-                                values=c(Ts, T1c, T2c, De, Ra, Rra, Rt))
+int.plot_Ordinal2<- int.plot_Ordinal2+ scale_x_discrete(labels=c("0c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))  +
+              scale_fill_manual(breaks = c("0c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"),
+                                values=c(Ts, T2c, De, Ra, Rra, Rt))
 int.plot_Ordinal2<- int.plot_Ordinal2 + coord_cartesian(ylim = c(0, 5))
 int.plot_Ordinal2<- int.plot_Ordinal2+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.title= element_text(size=14))  #gets rid of background
@@ -363,6 +447,8 @@ habit.ordinal3.mod.nr<- clm(Ordinal3 ~ set_num:primary_stim, data= t.d.hab.)
 #one random effect
 habit.ordinal3.mod2 <- clmm(Ordinal3 ~ set_num:primary_stim + (1| Bat_ID), data= t.d.hab., Hess=TRUE)
 
+# only trial order as random effect
+habit.ordinal3.mod2.5 <- clmm(Ordinal3 ~ set_num:primary_stim + (1| trial_number), data= t.d.hab., Hess=TRUE)
 
 #two random effects
 habit.ordinal3.mod3 <- clmm(Ordinal3 ~ set_num:primary_stim + (1| Bat_ID) + (1 | trial_number), data= t.d.hab., Hess=TRUE)
@@ -377,10 +463,15 @@ sumO3.m3<- summary(habit.ordinal3.mod3)
 sumO3.m4<- summary(habit.ordinal3.mod4)
 #compare models
 
-anovarandom<- anova(habit.ordinal3.mod.nr, habit.ordinal3.mod2)
+anovarandom<- anova(habit.ordinal3.mod.nr, habit.ordinal3.mod2) #comparing no to one effect
 anovarandom
-anovarandom1 <- anova(habit.ordinal3.mod2, habit.ordinal3.mod3)
+anova_effects<-anova(habit.ordinal3.mod2, habit.ordinal3.mod2.5)
+anova_effects
+anova_trialorder <-anova(habit.ordinal3.mod.nr, habit.ordinal3.mod2.5)
+anova_trialorder      
+anovarandom1 <- anova(habit.ordinal3.mod2, habit.ordinal3.mod3) #comparing just bat id to both
 anovarandom1
+
 anovarandom2 <- anova(habit.ordinal3.mod3, habit.ordinal3.mod4) 
 anovarandom2
 
@@ -453,16 +544,19 @@ lmeans, differences between treatments
 ```{r}
 
 #calculate lsmeans over the set number
-lst.ord3.intonly=lsmeans::lstrends(habit.ordinal3.intonly, ~primary_stim, var="set_num")
+
+lst.ord3.intonly=lstrends(habit.ordinal3.intonly, ~primary_stim, var="set_num", transform = "response")
 #must not be response transformation, bc works the sme w and without tranform = "response"
 lst.ord3.intonly
 # Show which are different from one another in letter form:
 svlst.ord3.intonly<-cld(lst.ord3.intonly)
-svlst.ord3.intonly
+svlst.ord3.intonly %>% write.csv("habituation_lsmeans_groups_noindv.csv")
+
 
 #show pairwise contrasts:
 p.lst.ord3.intonly<- pairs(lst.ord3.intonly)
-p.lst.ord3.intonly
+p.lst.ord3.intonly %>% write.csv("habituation_lsmeans_pairwise_noindv.csv")
+
 #plot distributions
 plot(svlst.ord3.intonly)
 ```
@@ -478,18 +572,29 @@ Add in twitches results for this section to compare directly better
 ```{r}
 #######################
 #can change all colors from here
-Ts  = "#1F1F1F"
-T1c ="#3C3C3C"
-T2c = "#585858"
-De  = "#747474"
-Ra  ="#919191"
-Rra ="#ADADAD"  
-Rt  ="#C9C9C9"
+Ts  = "#303030"
+#T1c ="#3C3C3C"
+T2c = "#505050"
+De  = "#707070"
+Ra  ="#8F8F8F"
+Rra ="#AFAFAF" 
+Rt  ="#CFCFCF"
+# OR      
+#[7] "#EFEFEF"
+
+# Ts  = "#1F1F1F"
+# #T1c ="#3C3C3C"
+# T2c = "#585858"
+# De  = "#747474"
+# Ra  ="#919191"
+# Rra ="#ADADAD"  
+# Rt  ="#C9C9C9"
+
 ########################
 
 svlst.om<-svlst.ord3.intonly #ordering factor to change position of plots
 
-svlst.om$primary_stim<-factor(svlst.om$primary_stim, levels = c("ts" ,"t1c", "t2c" , "de", "ra" , "rra","rt"), ordered=TRUE)
+svlst.om$primary_stim<-factor(svlst.om$primary_stim, levels = c("ts" , "t2c" , "de", "ra" , "rra","rt"), ordered=TRUE)
 
   theme_set(theme_classic())    
 
@@ -497,19 +602,19 @@ confint_comp_ls_om<- ggplot(svlst.om, aes(primary_stim,ymin=asymp.LCL,ymax=asymp
     geom_linerange() +
  theme(panel.grid.major = element_blank(), panel.grid.minor =  element_blank(),panel.background = element_blank(),  axis.line = element_line(colour = "black"),
 legend.position = "none", axis.text.x = element_text(angle = 45, hjust=1))  + #gets rid of background
-scale_x_discrete(labels=c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))  +
-              scale_colour_manual(breaks = c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"),
+scale_x_discrete(labels=c("0c P. pustulosus","2c P. pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))  +
+              scale_colour_manual(breaks = c("0c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"),
                                 values=c(Ts, T1c, T2c, De, Ra, Rra, Rt)) +
-#scale_fill_manual(breaks = c("ts","t1c","t2c","de", "ra", "rra", "rts"),
-                             #   values=c(Ts, T1c, T2c, de, ra, rra, rt)) +
+#scale_fill_manual(breaks = c("ts","t2c","de", "ra", "rra", "rts"),
+                             #   values=c(Ts, T2c, de, ra, rra, rt)) +
 
  xlab("Call Type") +
-ylab("Slope of interest score in habituation period") +
+ylab("Slope of change in responses") +
       geom_hline(yintercept=0, linetype="dotted") 
       
 
 confint_comp_ls_om
-ggsave("habituation_slope_plot_grayscale_ordinal.pdf",width=3, height =4)
+#ggsave("habituation_slope_plot_grayscale_ordinal.eps",width=3, height =4)
 ```
  
 ##### Exploratory visualization between the two analysis types. 
@@ -1102,7 +1207,7 @@ ggsave("t_de_trial_mosaic.pdf", height =5, width = 7)
         ra_t_data <- t.d.[t.d.$trial_name_2=="ra_t_ra", ]       
         p_ra <- ggplot(data=ra_t_data, aes(x = set_num, y = as.numeric(Ordinal3)))      
         p_ra <- p_ra + geom_boxplot(aes(fill=factor(set_num)))
-        #p_ra <- p_ra + geom_point(position = position_jitter(width = 0.1))
+        p_ra <- p_ra + geom_point(position = position_jitter(width = 0.1), aes(colour =factor(Sex)))
         p_ra<- p_ra + guides(fill=FALSE)
         p_ra<- p_ra + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
               scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
@@ -1117,7 +1222,7 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         p_ra <- p_ra + coord_cartesian(ylim = c(0,5))
         
         p_ra
- ggsave("ra_t_trial_ordinal.pdf", height =5, width = 7)             
+ #ggsave("ra_t_trial_ordinal_sex.pdf", height =5, width = 7)             
 ```
 
 mosaic ra_t_ra
@@ -1172,7 +1277,7 @@ boxplot
 ```{r}
         p_t_ra <- ggplot(data = t_ra_data, aes(x = set_num, y = as.numeric(Ordinal3)))      
         p_t_ra <- p_t_ra + geom_boxplot(aes(fill=factor(set_num)))
-        #p_t_ra <- p_t_ra + geom_point(position = position_jitter(width = 0.1))
+        p_t_ra <- p_t_ra + geom_point(position = position_jitter(width = 0.1), aes(colour= Sex))
         p_t_ra<- p_t_ra + guides(fill=FALSE)
         p_t_ra<- p_t_ra + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
               scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
@@ -1223,29 +1328,29 @@ ggsave("t_ra_trial_mosaic.pdf", height =5, width = 7)
 
 [tia_tib_tia]
 ```{r}
-      
-        #making a plot for the entire of one treatment, with each set getting a boxplot
-        
-        #tia
-        tia_data <- t.d.[t.d.$trial_name_2=="tia_tib_tia", ]       
-        p_tia <- ggplot(data = tia_data, aes(x = set_num, y = as.numeric(Ordinal3)))      
-        p_tia <- p_tia + geom_boxplot(aes(fill=factor(set_num)))
-        #p_tia <- p_tia + geom_point(position = position_jitter(width = 0.1))
-        p_tia<- p_tia + guides(fill=FALSE)
-        p_tia<- p_tia + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
-              scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
-                                values=c(T1c, T1c, T1c, T1c, T1c, T1c, T1c))
-       # p_tia<- p_tia + ylab(element_blank())
-       #p_tia <- p_tia + xlab(element_blank())
-        p_tia <- p_tia + labs(title =  " Different individual P. pustulosus") +
-             theme(plot.title = element_text(face="italic", size=33)) #this makes the plot title italic, affects the size
-         p_tia <- p_tia + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
-          axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
-        p_tia <- p_tia + coord_cartesian(ylim = c(0,5))
-        
-        p_tia
- ggsave("tia_trial_ordinal.jpg", height =5, width = 7)             
+#       
+#         #making a plot for the entire of one treatment, with each set getting a boxplot
+#         
+#         #tia
+#         tia_data <- t.d.[t.d.$trial_name_2=="tia_tib_tia", ]       
+#         p_tia <- ggplot(data = tia_data, aes(x = set_num, y = as.numeric(Ordinal3)))      
+#         p_tia <- p_tia + geom_boxplot(aes(fill=factor(set_num)))
+#         #p_tia <- p_tia + geom_point(position = position_jitter(width = 0.1))
+#         p_tia<- p_tia + guides(fill=FALSE)
+#         p_tia<- p_tia + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
+#               scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
+#                                 values=c(T1c, T1c, T1c, T1c, T1c, T1c, T1c))
+#        # p_tia<- p_tia + ylab(element_blank())
+#        #p_tia <- p_tia + xlab(element_blank())
+#         p_tia <- p_tia + labs(title =  " Different individual P. pustulosus") +
+#              theme(plot.title = element_text(face="italic", size=33)) #this makes the plot title italic, affects the size
+#          p_tia <- p_tia + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+# panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text.y=element_blank(), axis.text.x = element_text( size = 40), axis.title.x=element_blank(),
+#           axis.title.y=element_blank()) #this gets rid of grey background and lines, adds 2 axes
+#         p_tia <- p_tia + coord_cartesian(ylim = c(0,5))
+#         
+#         p_tia
+#  ggsave("tia_trial_ordinal.jpg", height =5, width = 7)             
 ```
 
 mosaic tia
@@ -1355,7 +1460,7 @@ tc data
 ```{r}
         p_tc <- ggplot(data = tc_data, aes(x = set_num, y = as.numeric(Ordinal3)))      
         p_tc <- p_tc + geom_boxplot(aes(fill=factor(set_num)))
-        #p_tc <- p_tc + geom_point(position = position_jitter(width = 0.1))
+        p_tc <- p_tc + geom_point(position = position_jitter(width = 0.1), aes(colour =factor(Sex)))
         p_tc<- p_tc + guides(fill=FALSE)
         p_tc<- p_tc + scale_x_continuous(breaks = c(1,2,3,4,5,6,7)) +
               scale_fill_manual(breaks = c("1", "2", "3", "4", "5", "6", "7"),
@@ -1370,7 +1475,7 @@ panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         p_tc <- p_tc + coord_cartesian(ylim = c(0,5))
         
         p_tc
- #ggsave("tc_trial_ordinal.jpg", height =5, width = 7)             
+ #ggsave("tc_trial_ordinal_sex.jpg", height =5, width = 7)             
 ```
 
 
@@ -1561,16 +1666,16 @@ lst_5mod
 ```
 
 ```{r}
- t.d.just5$primary_stim <- factor(t.d.just5$primary_stim,levels = c("ts" ,"t1c", "t2c" , "de", "ra" , "rra","rt" ),ordered = TRUE)
+ t.d.just5$primary_stim <- factor(t.d.just5$primary_stim,levels = c("ts" , "t2c" , "de", "ra" , "rra","rt" ),ordered = TRUE)
 
 p5<- ggplot(data = t.d.just5, aes(x = primary_stim, y = as.numeric(Ordinal3), fill=primary_stim))
 p5<- p5+ geom_boxplot()
 p5<- p5+ geom_point(position = position_jitter(width = 0.1))
 p5<- p5+ theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "none") #format x-axis, and remove side legend
 
-p5<- p5+ scale_x_discrete(labels=c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))  +
-              scale_fill_manual(breaks = c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"),
-                                values=c(Ts, T1c, T2c, De, Ra, Rra, Rt))
+p5<- p5+ scale_x_discrete(labels=c("0c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))  +
+              scale_fill_manual(breaks = c("0c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"),
+                                values=c(Ts,  T2c, De, Ra, Rra, Rt))
 p5<- p5+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 panel.background = element_blank(), axis.line = element_line(colour = "black"))  #gets rid of background
 
@@ -1586,7 +1691,7 @@ mosaic trial 5 :
 ```{r}
 ## 
 t.d.just5_a <-  t.d.just5
-t.d.just5_a$primary_stim <- factor(t.d.just5$primary_stim,levels = c("ts" ,"t1c", "t2c" , "de", "ra" , "rra","rt" ),ordered = TRUE)
+t.d.just5_a$primary_stim <- factor(t.d.just5$primary_stim,levels = c("ts" , "t2c" , "de", "ra" , "rra","rt" ),ordered = TRUE)
  #I'm reversing the ordering of the Ordinal factor, just for plotting, because I think it looks clearer/ more like habituation if the lowest interest score is on the top. 
 
 
@@ -1598,8 +1703,8 @@ class(t.d.just5_a$primary_stim)   ##R
   mosaic_just5<- ggplot(data = t.d.just5_a) +
    geom_mosaic(aes(weight = 1, x = product(Ordinal3, primary_stim), fill=Ordinal3), na.rm=TRUE) +  
    scale_fill_brewer(type="seq", palette= Palette, direction=-1) +
-  # scale_x_continuous(breaks=c("ts",  "t1c", "t2c", "de",  "ra",  "rra", "rt" ),
-     #   labels=c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))+
+  # scale_x_continuous(breaks=c("ts",   "t2c", "de",  "ra",  "rra", "rt" ),
+     #   labels=c("0c P. pustulosus", "2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))+
   
           theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black")) + #this gets rid of grey background and lines, adds y+x axes lines
         labs(x="Acoustic stimuli ", y= "Interest score in trial 5") +
@@ -1624,7 +1729,6 @@ svlstx
 
 trt<- c("de",
 "ts",
-"t1c",
 "t2c",
 "ra",
 "rt",

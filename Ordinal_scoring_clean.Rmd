@@ -465,6 +465,7 @@ p.lst.ord3.intonly<- pairs(lst.ord3.intonly)
 p.lst.ord3.intonly
 #plot distributions
 plot(svlst.ord3.intonly)
+
 ```
 
 So, actually pretty consistent results between analysis strategies. 
@@ -493,23 +494,27 @@ svlst.om$primary_stim<-factor(svlst.om$primary_stim, levels = c("ts" ,"t1c", "t2
 
   theme_set(theme_classic())    
 
-confint_comp_ls_om<- ggplot(svlst.om, aes(primary_stim,ymin=asymp.LCL,ymax=asymp.UCL,colour=primary_stim))+
+confint_comp_ls_om<- ggplot(svlst.om, aes(primary_stim,ymin=asymp.LCL,ymax=asymp.UCL,colour= "black"))+
     geom_linerange() +
  theme(panel.grid.major = element_blank(), panel.grid.minor =  element_blank(),panel.background = element_blank(),  axis.line = element_line(colour = "black"),
 legend.position = "none", axis.text.x = element_text(angle = 45, hjust=1))  + #gets rid of background
-scale_x_discrete(labels=c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))  +
-              scale_colour_manual(breaks = c("0c P. pustulosus","1c P. pustulosus","2c pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"),
+scale_x_discrete(labels=c("0c P. pustulosus","2c P. pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"))  +
+              scale_colour_manual(breaks = c("0c P. pustulosus","2c P. pustulosus","D. ebraccatus", "R. alata", "rev R. alata", "rev P. pustulosus"),
                                 values=c(Ts, T1c, T2c, De, Ra, Rra, Rt)) +
 #scale_fill_manual(breaks = c("ts","t1c","t2c","de", "ra", "rra", "rts"),
                              #   values=c(Ts, T1c, T2c, de, ra, rra, rt)) +
 
  xlab("Call Type") +
-ylab("Slope of interest score in habituation period") +
-      geom_hline(yintercept=0, linetype="dotted") 
-      
+ylab("Slope of change in responses") +
+      geom_hline(yintercept=0, linetype="dotted", color = "gray") +
+      geom_point( data = svlst.om,  mapping =aes(x = svlst.om$primary_stim, y = svlst.om$set_num.trend ), color = "black")
 
 confint_comp_ls_om
-ggsave("habituation_slope_plot_grayscale_ordinal.pdf",width=3, height =4)
+
+
+ 
+     
+#ggsave("habituation_slope_plot_black_ordinal.pdf",width=3, height =4)
 ```
  
 ##### Exploratory visualization between the two analysis types. 
@@ -647,9 +652,10 @@ cast_t.d.<- rbind(de_cast, t_de_cast, ra_cast, rra_cast, t_ra_cast, rt_cast, tc_
 colnames(cast_t.d.) <-  c("bat_name" ,    "trial_name_2" ,"primary_stim", "five", "six", "seven")
 
 
-# this computes the paired wilcoxin sign rank for paired two sample data for 5-6 and then 5-7. the [[3]] pulls the p value out of the list produced by wilcox test
+# this computes the paired wilcox0n sign rank for paired two sample data for 5-6 and then 5-7. the [[3]] pulls the p value out of the list produced by wilcox test
 
 t.d.wilx<- cast_t.d. %>% group_by(trial_name_2) %>% summarise (w_56 <- wilcox.test( five, six, paired= TRUE)[[3]] , w_57 <- wilcox.test( five, seven, paired= TRUE)[[3]])
+
 
 #rename clumns to something palatable
 colnames(t.d.wilx) <- c("trial_name_2", "w_56", "w_57")
@@ -661,6 +667,28 @@ colnames(t.d.wilx) <- c("trial_name_2", "w_56_p", "w_57_p", "w_56_p.holm", "w_57
 
 View(t.d.wilx)
 
+
+ra_wilx<- wilcox.test(cast_t.d.$five[cast_t.d.$trial_name_2=="ra_t_ra"], cast_t.d.$six[cast_t.d.$trial_name_2=="ra_t_ra"], paired = TRUE)
+ra_wilx
+p.adjust(ra_wilx$p.value, method = "holm", 2)
+
+rra_wilx<- wilcox.test(cast_t.d.$five[cast_t.d.$trial_name_2=="rra_rt_rra"], cast_t.d.$six[cast_t.d.$trial_name_2=="rra_rt_rra"], paired = TRUE)
+rra_wilx
+p.adjust(rra_wilx$p.value, method = "holm", 2)
+
+rra_wilx<- wilcox.test(cast_t.d.$five[cast_t.d.$trial_name_2=="rra_rt_rra"], cast_t.d.$six[cast_t.d.$trial_name_2=="rra_rt_rra"], paired = TRUE)
+rra_wilx
+p.adjust(0.01463, method = "holm", 2)
+
+tc_wilx<- wilcox.test(cast_t.d.$five[cast_t.d.$trial_name_2=="tc_ts_tc"], cast_t.d.$six[cast_t.d.$trial_name_2=="tc_ts_tc"], paired = TRUE)
+tc_wilx
+p.adjust(tc_wilx$p.value, method = "holm", 2)
+
+ts_wilx<- wilcox.test(cast_t.d.$five[cast_t.d.$trial_name_2=="ts_tc_ts"], cast_t.d.$six[cast_t.d.$trial_name_2=="ts_tc_ts"], paired = TRUE)
+ts_wilx
+p.adjust(ts_wilx$p.value, method = "holm", 2)
+
+wilcox.test
 #write to output
 # t.d.wilx  %>% write_csv('wilcoxin_SRPT_summary_output.csv')
 
